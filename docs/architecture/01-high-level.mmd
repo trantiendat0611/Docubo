@@ -1,0 +1,44 @@
+%% Sơ đồ 1 — Tổng quan hệ thống (Task 1.4)
+%% Xem trước: dán vào https://mermaid.live hoặc mở bằng extension Mermaid của VS Code
+
+graph TB
+    subgraph offline["Offline — máy cá nhân, chạy tay"]
+        PDF[("PDF nguồn<br/>data/raw")]
+        ING["Ingest pipeline<br/>Python"]
+        CACHE[("Cache JSON<br/>data/cache")]
+        PDF --> ING
+        ING <--> CACHE
+    end
+
+    subgraph google["Google AI — free tier"]
+        VIS["Gemini Flash<br/>đọc trang (vision)"]
+        EMB["Gemini Embedding<br/>768 chiều"]
+        GEN["Gemini Flash<br/>sinh câu trả lời"]
+    end
+
+    subgraph supa["Supabase — free tier 500MB"]
+        DB[("Postgres + pgvector<br/>documents, chunks, query_log")]
+    end
+
+    subgraph vercel["Vercel — Hobby plan"]
+        API["/api/chat<br/>Route Handler"]
+        UI["Next.js UI<br/>chat + KaTeX + citation"]
+    end
+
+    USER(["Người dùng<br/>hỏi tiếng Việt hoặc tiếng Anh"])
+
+    ING -->|1 request mỗi trang| VIS
+    ING -->|batch 32| EMB
+    ING -->|upsert| DB
+
+    USER --> UI
+    UI --> API
+    API -->|phân tích truy vấn| GEN
+    API -->|embed câu hỏi| EMB
+    API -->|hybrid_search RPC| DB
+    API -->|sinh câu trả lời, stream| GEN
+    API -->|ghi log| DB
+    API -.->|SSE| UI
+
+    classDef free fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    class google,supa,vercel free

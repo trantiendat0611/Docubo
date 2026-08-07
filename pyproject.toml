@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 90
+target-version = "py311"
+exclude = ["data", ".venv", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["ingest/tests"]
+pythonpath = ["."]

@@ -1,0 +1,44 @@
+%% Sơ đồ 2 — Luồng RAG Pipeline (Task 1.4)
+%% Ý chính: mỗi chunk mang hai biểu diễn. embed_text để máy tìm, display_text để người đọc.
+
+flowchart TB
+    subgraph ingest["Pha 1 — Ingest (offline, Python)"]
+        direction TB
+        A["Trang PDF"] -->|PyMuPDF, 200 dpi| B["Ảnh PNG<br/>p0001.png"]
+        B -->|Gemini vision<br/>1 request/trang| C["Page JSON<br/>markdown, formulas, figures"]
+        C --> D[("Cache trên đĩa<br/>không bao giờ gọi lại")]
+        D --> E{"Chunker<br/>700 token"}
+        E --> F["display_text<br/>markdown + LaTeX"]
+        E --> G["embed_text<br/>văn xuôi thuần"]
+        G -->|Gemini embedding<br/>RETRIEVAL_DOCUMENT| H["vector 768"]
+    end
+
+    subgraph store["Pha 2 — Lưu trữ (Supabase)"]
+        direction LR
+        I[("chunks")]
+        I --- I1["embedding<br/>HNSW cosine"]
+        I --- I2["fts_en<br/>to_tsvector english"]
+        I --- I3["fts_vi<br/>to_tsvector simple"]
+    end
+
+    F --> I
+    H --> I
+
+    subgraph query["Pha 3 — Truy vấn (online, Vercel)"]
+        direction TB
+        Q["Câu hỏi<br/>VI hoặc EN"] --> R["Guardrail + phân tích<br/>1 lần gọi Gemini"]
+        R -->|không an toàn| RX["Chặn"]
+        R --> S["query_en, query_vi,<br/>keywords, lang"]
+        S -->|RETRIEVAL_QUERY| T["vector câu hỏi"]
+        T --> U{{"hybrid_search<br/>RRF k=60"}}
+        S --> U
+        U --> V{"cosine_sim<br/>&ge; 0.35 ?"}
+        V -->|không| W["Từ chối trả lời"]
+        V -->|có| X["Grounding prompt<br/>+ 8 context block"]
+        X -->|Gemini Flash, stream| Y["Câu trả lời<br/>+ marker trích dẫn"]
+        Y --> Z["UI: KaTeX + panel nguồn"]
+    end
+
+    I1 --> U
+    I2 --> U
+    I3 --> U

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# No secrets are used anywhere in this workflow. CI lints and type-checks only —
+# it must never call Gemini or Supabase, both because the free tier is small and
+# because a scheduled job that burns quota is a bad thing to discover later.
+
+jobs:
+  python:
+    name: Ingest (python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r ingest/requirements.txt
+      - name: Lint
+        run: ruff check ingest eval
+      - name: Format check
+        run: ruff format --check ingest eval
+      - name: Tests
+        run: pytest ingest/tests -q
+
+  web:
+    name: Web (next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+        env:
+          # Build-time placeholders. The real values live in Vercel's project
+          # settings; these only need to exist so the build does not fail on a
+          # missing-env assertion.
+          SUPABASE_URL: https://placeholder.supabase.co
+          SUPABASE_SERVICE_KEY: placeholder
+          GOOGLE_GENERATIVE_AI_API_KEY: placeholder
