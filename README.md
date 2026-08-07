@@ -76,9 +76,20 @@ Chạy `db/001_schema.sql` rồi `db/002_hybrid_search.sql` trong Supabase SQL e
 
 **3. Cài phụ thuộc**
 
+Python — tạo môi trường ảo riêng cho dự án, đừng cài vào env hệ thống:
+
 ```bash
-pip install -r ingest/requirements.txt
+python -m venv .venv
 ```
+
+```bash
+.venv/Scripts/python -m pip install -r ingest/requirements.txt
+```
+
+Trên macOS/Linux đường dẫn là `.venv/bin/python`. Mọi lệnh `python -m ingest...`
+bên dưới đều chạy bằng interpreter trong `.venv`.
+
+Node:
 
 ```bash
 npm install

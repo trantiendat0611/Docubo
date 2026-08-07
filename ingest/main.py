@@ -20,11 +20,13 @@ import argparse
 import sys
 from pathlib import Path
 
+from google.genai import errors
 from tqdm import tqdm
 
 from . import config
 from .pipeline import cache, chunk, embed, render, store, vision
 from .pipeline.models import Document
+from .utils.apierrors import explain
 
 
 def _resolve(pdf: str) -> Path:
@@ -34,6 +36,42 @@ def _resolve(pdf: str) -> Path:
     if not p.exists():
         raise SystemExit(f"Not found: {p}")
     return p
+
+
+def cmd_models(args: argparse.Namespace) -> None:
+    """Which models can this API key actually call?
+
+    Free-tier model availability changes over time — a model that worked last
+    month can start returning 429 with `limit: 0`. This is the first thing to
+    run when that happens.
+    """
+    from google import genai
+
+    client = genai.Client(api_key=config.GEMINI_API_KEY)
+    generate: list[str] = []
+    embed_models: list[str] = []
+    for m in client.models.list():
+        actions = list(getattr(m, "supported_actions", None) or [])
+        name = (m.name or "").removeprefix("models/")
+        if "generateContent" in actions:
+            generate.append(name)
+        if "embedContent" in actions:
+            embed_models.append(name)
+
+    print(
+        f"Currently configured: vision={config.VISION_MODEL} embed={config.EMBED_MODEL}\n"
+    )
+    print("generateContent:")
+    for n in generate:
+        print(f"  {n}")
+    print("\nembedContent:")
+    for n in embed_models:
+        print(f"  {n}")
+    print(
+        "\nListed here means the model exists, not that your key has free-tier "
+        "quota for it.\nTo confirm quota, set it in .env and run `spike` on one "
+        "page."
+    )
 
 
 def cmd_render(args: argparse.Namespace) -> None:
@@ -52,19 +90,46 @@ def cmd_vision(args: argparse.Namespace) -> None:
     if not todo:
         return
 
-    failures: list[int] = []
+    failed: dict[str, list[int]] = {"recitation": [], "schema": []}
+    fallback_used: list[int] = []
+
     for page_no, image_path in tqdm(todo, desc="vision"):
-        page, raw = vision.extract_page(image_path, page_no)
+        page, raw, failure = vision.extract_page(image_path, page_no)
         if page is None:
-            failures.append(page_no)
-            cache.save_raw(slug, page_no, raw)
+            failed[failure].append(page_no)
+            if raw:
+                cache.save_raw(slug, page_no, raw)
             continue
+        if page.extracted_by != config.VISION_MODEL:
+            fallback_used.append(page_no)
         cache.save(slug, page)
 
-    if failures:
-        print(f"\n{len(failures)} pages failed schema validation: {failures}")
-        print("Raw responses saved as *.raw.txt in the cache dir. Fix the prompt,")
-        print("delete nothing else, and re-run — cached pages will be skipped.")
+    done = len(todo) - len(failed["recitation"]) - len(failed["schema"])
+    print(f"\nextracted {done}/{len(todo)} pages")
+
+    if fallback_used:
+        print(
+            f"{len(fallback_used)} needed the fallback model "
+            f"({config.FALLBACK_VISION_MODEL}): {fallback_used[:20]}"
+        )
+
+    if failed["recitation"]:
+        print(
+            f"\n{len(failed['recitation'])} pages refused as recitation: "
+            f"{failed['recitation']}\n"
+            "Every configured model declined to transcribe these as memorised "
+            "published text.\nThey are not in the corpus and questions about "
+            "them will be refused. Note the count\nin REQUIREMENTS.md as a "
+            "coverage limitation."
+        )
+
+    if failed["schema"]:
+        print(
+            f"\n{len(failed['schema'])} pages failed schema validation: "
+            f"{failed['schema']}\n"
+            "Raw responses saved as *.raw.txt in the cache dir. Fix the prompt, "
+            "delete nothing\nelse, and re-run — cached pages are skipped."
+        )
 
 
 def cmd_index(args: argparse.Namespace) -> None:
@@ -126,10 +191,20 @@ def cmd_spike(args: argparse.Namespace) -> None:
             print(f"page {page_no} out of range (1..{len(paths)})")
             continue
 
-        page, raw = vision.extract_page(paths[page_no - 1], page_no)
+        page, raw, failure = vision.extract_page(paths[page_no - 1], page_no)
         print("\n" + "=" * 70)
         print(f"PAGE {page_no}   image: {paths[page_no - 1]}")
         print("=" * 70)
+
+        if failure == "recitation":
+            print(
+                "REFUSED AS RECITATION by every configured model "
+                f"({config.VISION_MODEL}, {config.FALLBACK_VISION_MODEL}).\n"
+                "The model will not transcribe this page as memorised published "
+                "text.\nTry another model in GEMINI_FALLBACK_VISION_MODEL, or "
+                "accept the page as\noutside the corpus."
+            )
+            continue
 
         if page is None:
             print("SCHEMA FAILURE. Raw response:\n")
@@ -139,7 +214,8 @@ def cmd_spike(args: argparse.Namespace) -> None:
 
         print(
             f"lang={page.lang}  boilerplate={page.is_boilerplate}  "
-            f"formulas={len(page.formulas)}  figures={len(page.figures)}\n"
+            f"formulas={len(page.formulas)}  figures={len(page.figures)}  "
+            f"model={page.extracted_by}\n"
         )
         print("--- markdown ---")
         print(page.markdown[:1500])
@@ -161,6 +237,8 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="ingest")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    sub.add_parser("models")
+
     for name in ("render", "vision", "index", "spike", "all"):
         p = sub.add_parser(name)
         p.add_argument("pdf")
@@ -172,19 +250,25 @@ def main(argv: list[str] | None = None) -> None:
             p.add_argument("--pages", help="comma-separated, e.g. 12,31,44")
 
     args = parser.parse_args(argv)
-    config.assert_ready()
+    config.assert_ready(need_supabase=args.cmd in ("index", "all"))
 
-    if args.cmd == "render":
-        cmd_render(args)
-    elif args.cmd == "vision":
-        cmd_vision(args)
-    elif args.cmd == "index":
-        cmd_index(args)
-    elif args.cmd == "spike":
-        cmd_spike(args)
-    elif args.cmd == "all":
-        cmd_vision(args)
-        cmd_index(args)
+    handlers = {
+        "models": cmd_models,
+        "render": cmd_render,
+        "vision": cmd_vision,
+        "index": cmd_index,
+        "spike": cmd_spike,
+    }
+    try:
+        if args.cmd == "all":
+            cmd_vision(args)
+            cmd_index(args)
+        else:
+            handlers[args.cmd](args)
+    except errors.APIError as exc:
+        # A traceback here tells the reader nothing they can act on. The status
+        # code does.
+        raise SystemExit(explain(exc, config.VISION_MODEL)) from exc
 
 
 if __name__ == "__main__":

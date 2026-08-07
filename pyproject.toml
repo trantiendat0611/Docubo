@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 90
-target-version = "py311"
+target-version = "py313"
 exclude = ["data", ".venv", "node_modules"]
 
 [tool.ruff.lint]

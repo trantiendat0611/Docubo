@@ -18,7 +18,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          # Match the local venv. A CI running a different minor version than
+          # the machine the code is developed on hides wheel-availability
+          # problems until the worst possible moment.
+          python-version: "3.13"
           cache: pip
       - run: pip install -r ingest/requirements.txt
       - name: Lint

@@ -26,7 +26,7 @@ from __future__ import annotations
 import re
 
 from .. import config
-from ..utils.tokens import estimate_tokens
+from ..utils.tokens import budget_chars, estimate_tokens
 from .models import Chunk, Figure, Lang, Page
 
 _DISPLAY_MATH = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)
@@ -81,6 +81,48 @@ def _blocks(markdown: str) -> list[str]:
         else:
             out.append(b)
     return out
+
+
+#: Sentence or line boundary — the least damaging place to cut a block that has
+#: no paragraph breaks at all.
+_SOFT_BREAK = re.compile(r"(?<=\n)|(?<=[.!?…])\s+")
+
+
+def _split_oversized(block: str, lang: Lang) -> list[str]:
+    """Break a block that alone exceeds the token budget.
+
+    `_blocks` splits on blank lines, so a page whose markdown arrives with no
+    blank lines becomes one enormous block — and a single block is never split
+    by the packing loop, so it would be emitted as one oversized chunk. That
+    wrecks retrieval precision and can overflow the prompt.
+
+    Real output that does this: the fallback vision model sometimes returns a
+    page with headings run together inline and no blank lines anywhere.
+
+    Cutting here can separate a formula from its explanation, which the block
+    rules otherwise prevent. That is the lesser harm — the alternative is a
+    chunk several times over budget.
+    """
+    if estimate_tokens(block, lang) <= config.MAX_TOKENS:
+        return [block]
+
+    limit = budget_chars(config.TARGET_TOKENS, lang)
+    out: list[str] = []
+    current = ""
+
+    for piece in filter(None, _SOFT_BREAK.split(block)):
+        if current and len(current) + len(piece) > limit:
+            out.append(current.strip())
+            current = ""
+        # A run with no sentence breaks at all still has to be cut somewhere.
+        while len(piece) > limit:
+            out.append(piece[:limit])
+            piece = piece[limit:]
+        current += piece
+
+    if current.strip():
+        out.append(current.strip())
+    return [b for b in out if b]
 
 
 def dominant_lang(pages: list[Page]) -> Lang:
@@ -145,7 +187,8 @@ def build_chunks(pages: list[Page]) -> list[Chunk]:
     for page in pages:
         if page.is_boilerplate:
             continue
-        for block in _blocks(page.markdown):
+        raw_blocks = _blocks(page.markdown)
+        for block in (s for b in raw_blocks for s in _split_oversized(b, page.lang)):
             t = estimate_tokens(block, page.lang)
             if buf and buf_tokens + t > config.MAX_TOKENS:
                 flush()

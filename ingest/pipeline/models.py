@@ -31,8 +31,13 @@ class Figure(BaseModel):
     image_path: str | None = None
 
 
-class Page(BaseModel):
-    """One page as returned by the vision model. Cached verbatim to disk."""
+class PageExtraction(BaseModel):
+    """Exactly what the vision model is asked to return.
+
+    Kept separate from `Page` because this class is passed to the API as
+    `response_schema` — any field added here becomes a field the model is asked
+    to fill in.
+    """
 
     page: int
     lang: Lang
@@ -40,6 +45,15 @@ class Page(BaseModel):
     markdown: str
     formulas: list[Formula] = Field(default_factory=list)
     figures: list[Figure] = Field(default_factory=list)
+
+
+class Page(PageExtraction):
+    """A page as cached to disk: the extraction plus how it was produced."""
+
+    #: Which model actually read this page. Pages that tripped RECITATION on the
+    #: primary model carry the fallback's name here, so the share of the corpus
+    #: that needed it is a number you can report rather than a guess.
+    extracted_by: str = ""
 
 
 class Chunk(BaseModel):

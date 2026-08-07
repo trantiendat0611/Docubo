@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-import fitz  # pymupdf
+import pymupdf
 
 from .. import config
 
@@ -40,9 +40,9 @@ def render(pdf_path: Path, dpi: int = config.RENDER_DPI) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     paths: list[Path] = []
-    with fitz.open(pdf_path) as doc:
+    with pymupdf.open(pdf_path) as doc:
         zoom = dpi / 72.0
-        matrix = fitz.Matrix(zoom, zoom)
+        matrix = pymupdf.Matrix(zoom, zoom)
         for i, page in enumerate(doc, start=1):
             out = out_dir / f"p{i:04d}.png"
             if not out.exists():
@@ -52,5 +52,5 @@ def render(pdf_path: Path, dpi: int = config.RENDER_DPI) -> list[Path]:
 
 
 def page_count(pdf_path: Path) -> int:
-    with fitz.open(pdf_path) as doc:
+    with pymupdf.open(pdf_path) as doc:
         return doc.page_count

@@ -15,9 +15,10 @@ from __future__ import annotations
 
 from google import genai
 from google.genai import types
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from .. import config
+from ..utils.apierrors import is_transient
 from ..utils.ratelimit import RateLimiter
 
 _BATCH = 32
@@ -34,7 +35,12 @@ def _get_client() -> genai.Client:
     return _client
 
 
-@retry(stop=stop_after_attempt(4), wait=wait_exponential(min=2, max=60))
+@retry(
+    stop=stop_after_attempt(4),
+    wait=wait_exponential(min=2, max=60),
+    retry=retry_if_exception(is_transient),
+    reraise=True,
+)
 def _embed_batch(texts: list[str], task_type: str) -> list[list[float]]:
     client = _get_client()
     assert _limiter is not None

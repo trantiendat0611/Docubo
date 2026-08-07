@@ -18,9 +18,28 @@ CACHE_DIR = DATA_DIR / "cache"  # one JSON per page, the vision-call cache
 
 # --- gemini ----------------------------------------------------------------
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-VISION_MODEL = os.environ.get("GEMINI_VISION_MODEL", "gemini-2.0-flash")
+
+# Pin a named version, never `gemini-flash-latest`. A floating alias would mean
+# pages cached in week 3 and week 6 were read by different model versions, which
+# makes the eval numbers incomparable and the cache internally inconsistent.
+# Verified working on free tier 2026-08-07; `gemini-3.6-flash` also works and is
+# worth A/B-ing during the spike — neither has been measured on math extraction.
+VISION_MODEL = os.environ.get("GEMINI_VISION_MODEL", "gemini-3.5-flash")
+
+# Used only when the primary model returns finish_reason=RECITATION — it refuses
+# to transcribe a page it recognises as memorised published text. That refusal
+# is deterministic: temperature makes no difference, and 3.6-flash and
+# 3.5-flash-lite refuse the same pages. A different model generation does not.
+# Measured on a Vietnamese lecture-notes page that 3.5-flash would not read.
+FALLBACK_VISION_MODEL = os.environ.get("GEMINI_FALLBACK_VISION_MODEL", "gemini-2.5-flash")
+
 EMBED_MODEL = os.environ.get("GEMINI_EMBED_MODEL", "gemini-embedding-001")
 EMBED_DIM = int(os.environ.get("EMBED_DIM", "768"))
+
+# A dense page of markdown plus formula readings and figure descriptions runs
+# long. Too low and the JSON comes back truncated, which surfaces as a schema
+# failure that looks like a prompt problem but is not.
+MAX_OUTPUT_TOKENS = int(os.environ.get("GEMINI_MAX_OUTPUT_TOKENS", "16384"))
 RPM = int(os.environ.get("GEMINI_RPM", "15"))
 
 # --- supabase --------------------------------------------------------------
@@ -49,17 +68,20 @@ CANDIDATE_LIMIT = 30
 RRF_K = 60
 
 
-def assert_ready() -> None:
-    """Fail fast with a useful message instead of a stack trace 200 pages in."""
-    missing = [
-        name
-        for name, value in [
-            ("GEMINI_API_KEY", GEMINI_API_KEY),
+def assert_ready(need_supabase: bool = True) -> None:
+    """Fail fast with a useful message instead of a stack trace 200 pages in.
+
+    `need_supabase` is False for the render and spike stages, which never touch
+    the database — the whole point of `spike` is to run it in week 1, before the
+    Supabase project exists.
+    """
+    required = [("GEMINI_API_KEY", GEMINI_API_KEY)]
+    if need_supabase:
+        required += [
             ("SUPABASE_URL", SUPABASE_URL),
             ("SUPABASE_SERVICE_KEY", SUPABASE_SERVICE_KEY),
         ]
-        if not value
-    ]
+    missing = [name for name, value in required if not value]
     if missing:
         raise SystemExit(
             f"Missing env vars: {', '.join(missing)}. "

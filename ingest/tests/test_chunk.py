@@ -6,8 +6,12 @@ it is the only stage CI can meaningfully test. Keep these fast and offline.
 
 from __future__ import annotations
 
+import json
+
+from ingest import config
 from ingest.pipeline.chunk import _to_embed_text, build_chunks
 from ingest.pipeline.models import Figure, Formula, Page
+from ingest.pipeline.vision import _repair_escapes
 
 
 def _page(**kw) -> Page:
@@ -97,3 +101,58 @@ def test_formula_stays_with_its_paragraph():
     assert len(chunks) == 1
     assert "số mẫu" in chunks[0].display_text
     assert "$$" in chunks[0].display_text
+
+
+def test_repair_escapes_rescues_unescaped_latex():
+    r"""The real page-44 failure: `\prod` emitted with a single backslash.
+
+    `\p` is not a legal JSON escape, so the whole page is lost even though the
+    extraction itself was correct.
+    """
+    broken = r'{"latex": "p(x) = \prod_{k} p(x_k|pa_k)"}'
+
+    try:
+        json.loads(broken)
+        raise AssertionError("expected the unrepaired string to be invalid JSON")
+    except json.JSONDecodeError:
+        pass
+
+    fixed = json.loads(_repair_escapes(broken))
+    assert fixed["latex"] == r"p(x) = \prod_{k} p(x_k|pa_k)"
+
+
+def test_repair_escapes_leaves_valid_escapes_alone():
+    """Must not double-escape sequences that were already correct."""
+    ok = r'{"a": "line\nbreak", "b": "quote\"inside", "c": "\\frac{1}{2}", "d": "\u00e9"}'
+
+    assert json.loads(_repair_escapes(ok)) == json.loads(ok)
+    # The already-correct `\\frac` must survive as a single literal backslash,
+    # not become `\\\\frac`.
+    assert json.loads(_repair_escapes(ok))["c"] == r"\frac{1}{2}"
+
+
+def test_page_with_no_blank_lines_is_still_split():
+    """Real fallback-model output: headings run inline, no blank lines at all.
+
+    Without oversize splitting the whole page becomes one block, and a single
+    block is never divided by the packing loop.
+    """
+    sentence = "Machine learning la mot linh vuc cua tri tue nhan tao. "
+    page = _page(lang="vi", markdown=sentence * 200)
+
+    chunks = build_chunks([page])
+
+    assert len(chunks) > 1
+    over = [c for c in chunks if c.n_tokens > config.MAX_TOKENS]
+    assert not over, f"{len(over)} chunks exceed MAX_TOKENS"
+
+
+def test_normal_page_is_not_resplit():
+    """Blocks within budget must pass through untouched."""
+    page = _page(lang="en", markdown="First paragraph here.\n\nSecond paragraph here.")
+
+    chunks = build_chunks([page])
+
+    assert len(chunks) == 1
+    assert "First paragraph" in chunks[0].display_text
+    assert "Second paragraph" in chunks[0].display_text

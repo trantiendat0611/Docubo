@@ -86,6 +86,9 @@ Anh.** Đây là ca chính, không phải ca biên — nó quyết định thi�
 | E10 | Supabase / Gemini lỗi | Trả JSON lỗi, UI hiện thông báo, không treo | TODO tuần 6 |
 | E11 | Nạp lại tài liệu đã có | So `content_hash`, `replace_chunks` xoá bản cũ | `store.py` |
 | E12 | Câu trả lời trích dẫn block không tồn tại | Đo bằng `citation_validity` trong eval | `metrics.py` |
+| E13 | Model từ chối trang vì `RECITATION` | Fallback sang model thế hệ khác; nếu vẫn hỏng thì báo cáo trang mất | `vision.py extract_page` |
+| E14 | Trang trả markdown không có dòng trống | Cắt theo ranh giới câu khi block vượt `MAX_TOKENS` | `chunk.py _split_oversized` |
+| E15 | Model cấu hình không có quota free tier | Nhận diện `limit: 0`, không retry, chỉ dẫn chạy `ingest.main models` | `utils/apierrors.py` |
 
 ## 6. Ràng buộc phi chức năng
 
