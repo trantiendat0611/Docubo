@@ -3,12 +3,15 @@
 The only stage that spends vision quota. Everything it returns is cached to
 disk by the caller before any downstream stage runs.
 
-One page per request, deliberately. Sending the whole PDF in one call is cheaper
-but loses reliable page attribution, and page numbers are what the citations in
-the UI point at.
+Several pages per request, with each image preceded by a label naming its page
+number. Sending the whole PDF as one blob would be cheaper still but loses
+reliable page attribution, and page numbers are what the citations point at —
+labelled batching keeps attribution while cutting requests, which is the only
+quota dimension that actually binds.
 
-NOTE: verify the google-genai call surface against the installed version during
-the week-1 spike — this SDK's API changed shape recently.
+A batch is all-or-nothing: one page tripping RECITATION voids the response for
+the rest. `extract_batch` therefore returns whatever parsed, and the caller
+retries the gaps one page at a time.
 """
 
 from __future__ import annotations
@@ -24,7 +27,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt
 from .. import config
 from ..utils.apierrors import is_daily_quota, is_transient, wait_as_api_asked
 from ..utils.ratelimit import RateLimiter
-from .models import Page, PageExtraction
+from .models import BatchExtraction, Page, PageExtraction
 
 _PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "page_extract.md"
 _PROMPT = _PROMPT_PATH.read_text(encoding="utf-8")
@@ -67,18 +70,36 @@ def _get_client() -> genai.Client:
     # caller needs the status code to say anything useful about it.
     reraise=True,
 )
-def _call(image_bytes: bytes, page_no: int, model: str) -> tuple[str, str]:
-    """One vision request. Returns (text, finish_reason)."""
+def _call(items: list[tuple[Path, int]], model: str) -> tuple[str, str]:
+    """One vision request covering one or more pages. Returns (text, finish)."""
     client = _get_client()
     assert _limiter is not None
     _limiter.acquire()
 
+    if len(items) == 1:
+        instruction = f"The page number for this image is: {items[0][1]}"
+        schema: type = PageExtraction
+    else:
+        instruction = (
+            'You receive SEVERAL page images. Return {"pages": [...]} with one '
+            'object per image, in the order given. Set each object\'s "page" '
+            "field to the page number stated in the label immediately before "
+            "its image. Do not merge pages, do not skip pages, and do not "
+            "reorder them."
+        )
+        schema = BatchExtraction
+
+    contents: list[object] = [_PROMPT.replace("{page_instruction}", instruction)]
+    for path, page_no in items:
+        if len(items) > 1:
+            contents.append(f"--- PAGE {page_no} ---")
+        contents.append(
+            types.Part.from_bytes(data=path.read_bytes(), mime_type="image/png")
+        )
+
     response = client.models.generate_content(
         model=model,
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-            _PROMPT.replace("{page_number}", str(page_no)),
-        ],
+        contents=contents,
         config=types.GenerateContentConfig(
             # Extraction, not creative writing. Temperature 0 also makes the
             # eval numbers reproducible across runs.
@@ -90,7 +111,7 @@ def _call(image_bytes: bytes, page_no: int, model: str) -> tuple[str, str]:
             # fails to parse. Constraining generation to the schema makes the
             # backend produce correctly escaped strings. Verified on a page of
             # graphical-model equations that failed without it.
-            response_schema=PageExtraction,
+            response_schema=schema,
             max_output_tokens=config.MAX_OUTPUT_TOKENS,
         ),
     )
@@ -115,18 +136,54 @@ def _repair_escapes(raw: str) -> str:
     return _BAD_ESCAPE.sub(r"\\\\", raw)
 
 
-def _parse(raw: str, page_no: int) -> Page | None:
+def _load(raw: str) -> object | None:
     for candidate in (raw, _repair_escapes(raw)):
         try:
-            data = json.loads(candidate)
+            return json.loads(candidate)
         except json.JSONDecodeError:
             continue
-        try:
-            data.setdefault("page", page_no)
-            return Page.model_validate(data)
-        except ValueError:
-            return None
     return None
+
+
+def _parse(raw: str, page_no: int) -> Page | None:
+    data = _load(raw)
+    if not isinstance(data, dict):
+        return None
+    try:
+        data.setdefault("page", page_no)
+        return Page.model_validate(data)
+    except ValueError:
+        return None
+
+
+def _parse_batch(raw: str, expected: list[int]) -> dict[int, Page]:
+    """Pull whatever pages came back, keyed by page number.
+
+    Tolerant on purpose: a batch that returns six of eight pages is still six
+    pages saved. The caller retries whatever is missing one page at a time.
+    """
+    data = _load(raw)
+    if not isinstance(data, dict):
+        return {}
+
+    wanted = set(expected)
+    out: dict[int, Page] = {}
+    for i, entry in enumerate(data.get("pages") or []):
+        if not isinstance(entry, dict):
+            continue
+        # Positional order is a fallback for an *omitted* page number, not a
+        # correction for a wrong one. Rewriting a number the model actually
+        # stated would silently file content under the wrong page, and page
+        # numbers are what the citations point at.
+        if not entry.get("page") and i < len(expected):
+            entry["page"] = expected[i]
+        try:
+            page = Page.model_validate(entry)
+        except ValueError:
+            continue
+        if page.page in wanted:
+            out[page.page] = page
+    return out
 
 
 def extract_page(image_path: Path, page_no: int) -> tuple[Page | None, str, str]:
@@ -141,13 +198,12 @@ def extract_page(image_path: Path, page_no: int) -> tuple[Page | None, str, str]
 
     A failure is never fatal — one bad page must not abort a 300-page document.
     """
-    data = image_path.read_bytes()
     last_raw = ""
     saw_output = False
 
     for model in _chain():
         try:
-            raw, finish = _call(data, page_no, model)
+            raw, finish = _call([(image_path, page_no)], model)
         except errors.ClientError as exc:
             if not is_daily_quota(exc):
                 raise
@@ -172,3 +228,44 @@ def extract_page(image_path: Path, page_no: int) -> tuple[Page | None, str, str]
             return page, raw, ""
 
     return None, last_raw, "schema" if saw_output else "recitation"
+
+
+def extract_batch(items: list[tuple[Path, int]]) -> dict[int, Page]:
+    """Read several pages in one request. Returns only what came back cleanly.
+
+    Never raises on a partial result — the caller is expected to retry missing
+    pages individually, which is also the recovery path when one page in the
+    batch trips RECITATION and takes the whole response with it.
+
+    Daily-quota errors still propagate through the model chain the same way as
+    for single pages.
+    """
+    if not items:
+        return {}
+    if len(items) == 1:
+        page, _, _ = extract_page(items[0][0], items[0][1])
+        return {items[0][1]: page} if page else {}
+
+    expected = [n for _, n in items]
+
+    for model in _chain():
+        try:
+            raw, finish = _call(items, model)
+        except errors.ClientError as exc:
+            if not is_daily_quota(exc):
+                raise
+            _EXHAUSTED.add(model)
+            if not _chain():
+                raise
+            continue
+
+        if "RECITATION" in finish or not raw.strip():
+            continue
+
+        found = _parse_batch(raw, expected)
+        if found:
+            for page in found.values():
+                page.extracted_by = model
+            return found
+
+    return {}

@@ -47,6 +47,12 @@ class PageExtraction(BaseModel):
     figures: list[Figure] = Field(default_factory=list)
 
 
+class BatchExtraction(BaseModel):
+    """Response schema when several page images are sent in one request."""
+
+    pages: list[PageExtraction]
+
+
 class Page(PageExtraction):
     """A page as cached to disk: the extraction plus how it was produced."""
 

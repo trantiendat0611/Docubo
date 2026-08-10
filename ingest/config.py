@@ -56,6 +56,21 @@ VISION_MODELS = [
     if m.strip()
 ]
 
+# Pages sent per vision request.
+#
+# The free-tier wall is requests per DAY, not pages, so batching multiplies
+# daily throughput directly: a 68-page document costs 9 requests instead of 68,
+# taking the chain's capacity from roughly 80 pages a day to roughly 640.
+#
+# Measured at batch 8 on slide pages: page numbers came back correctly ordered,
+# extracted LaTeX matched single-page output apart from cosmetic differences,
+# and output ran 2660 tokens against a 16384 limit — so the ceiling is input
+# tokens per minute, not this.
+#
+# A batch is all-or-nothing: one page triggering RECITATION can lose the whole
+# response, so any page missing from a batch is retried on its own.
+VISION_BATCH_SIZE = int(os.environ.get("GEMINI_VISION_BATCH_SIZE", "8"))
+
 EMBED_MODEL = os.environ.get("GEMINI_EMBED_MODEL", "gemini-embedding-001")
 EMBED_DIM = int(os.environ.get("EMBED_DIM", "768"))
 

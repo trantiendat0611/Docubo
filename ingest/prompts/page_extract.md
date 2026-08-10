@@ -66,4 +66,4 @@ Return ONLY a JSON object. No prose before or after, no markdown code fence.
 7. Ignore running headers, footers, and page numbers — do not put them in
    `markdown`.
 
-The page number for this image is: {page_number}
+{page_instruction}

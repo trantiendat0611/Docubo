@@ -208,3 +208,47 @@ def test_retry_delay_is_parsed_from_the_api_error():
     assert retry_delay_seconds(Exception(prose)) == 41.5
 
     assert retry_delay_seconds(Exception("connection reset")) is None
+
+
+def test_batch_parse_keeps_only_expected_pages():
+    """A batch response is tolerated partially: six of eight is six saved."""
+    from ingest.pipeline.vision import _parse_batch
+
+    raw = json.dumps(
+        {
+            "pages": [
+                {"page": 41, "lang": "en", "markdown": "page forty one"},
+                {"page": 42, "lang": "en", "markdown": "page forty two"},
+                {"page": 99, "lang": "en", "markdown": "not requested"},
+            ]
+        }
+    )
+    got = _parse_batch(raw, [41, 42, 43])
+
+    assert sorted(got) == [41, 42]
+    assert got[41].markdown == "page forty one"
+
+
+def test_batch_parse_falls_back_to_positional_order():
+    """Model omitted the page field; order is the only signal left."""
+    from ingest.pipeline.vision import _parse_batch
+
+    raw = json.dumps(
+        {
+            "pages": [
+                {"page": 0, "lang": "en", "markdown": "first"},
+                {"page": 0, "lang": "en", "markdown": "second"},
+            ]
+        }
+    )
+    got = _parse_batch(raw, [7, 8])
+
+    assert sorted(got) == [7, 8]
+    assert got[7].markdown == "first"
+    assert got[8].markdown == "second"
+
+
+def test_batch_parse_survives_broken_json():
+    from ingest.pipeline.vision import _parse_batch
+
+    assert _parse_batch("not json at all", [1, 2]) == {}

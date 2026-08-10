@@ -145,19 +145,41 @@ def cmd_vision(args: argparse.Namespace) -> None:
 
     failed: dict[str, list[int]] = {"recitation": [], "schema": []}
     by_model: Counter[str] = Counter()
+    n_requests = 0
 
-    for page_no, image_path in tqdm(todo, desc="vision"):
-        page, raw, failure = vision.extract_page(image_path, page_no)
-        if page is None:
-            failed[failure].append(page_no)
-            if raw:
-                cache.save_raw(slug, page_no, raw)
-            continue
-        by_model[page.extracted_by] += 1
-        cache.save(slug, page)
+    size = max(1, config.VISION_BATCH_SIZE)
+    batches = [todo[i : i + size] for i in range(0, len(todo), size)]
+
+    with tqdm(total=len(todo), desc="vision") as bar:
+        for batch in batches:
+            items = [(path, page_no) for page_no, path in batch]
+            found = vision.extract_batch(items)
+            n_requests += 1
+
+            for page in found.values():
+                by_model[page.extracted_by] += 1
+                cache.save(slug, page)
+            bar.update(len(found))
+
+            # Whatever the batch dropped gets one more chance on its own. A
+            # single RECITATION page can void an entire batch response, so
+            # without this a bad page costs seven good ones.
+            for page_no, path in batch:
+                if page_no in found:
+                    continue
+                page, raw, failure = vision.extract_page(path, page_no)
+                n_requests += 1
+                if page is None:
+                    failed[failure].append(page_no)
+                    if raw:
+                        cache.save_raw(slug, page_no, raw)
+                else:
+                    by_model[page.extracted_by] += 1
+                    cache.save(slug, page)
+                bar.update(1)
 
     done = len(todo) - len(failed["recitation"]) - len(failed["schema"])
-    print(f"\nextracted {done}/{len(todo)} pages")
+    print(f"\nextracted {done}/{len(todo)} pages in {n_requests} requests")
 
     if by_model:
         print("by model: " + ", ".join(f"{m} {n}" for m, n in by_model.most_common()))
