@@ -191,3 +191,20 @@ def test_budget_counts_expanded_figure_text():
     assert len(chunks) >= 2
     over = [c for c in chunks if c.n_tokens > config.MAX_TOKENS]
     assert not over, f"{[c.n_tokens for c in over]} exceed MAX_TOKENS"
+
+
+def test_retry_delay_is_parsed_from_the_api_error():
+    """The 429 body says how long to wait; blind backoff ignores it."""
+    from ingest.utils.apierrors import retry_delay_seconds
+
+    structured = (
+        "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'details': "
+        "[{'@type': 'type.googleapis.com/google.rpc.RetryInfo', "
+        "'retryDelay': '27s'}]}}"
+    )
+    assert retry_delay_seconds(Exception(structured)) == 27.0
+
+    prose = "You exceeded your current quota. Please retry in 41.5s."
+    assert retry_delay_seconds(Exception(prose)) == 41.5
+
+    assert retry_delay_seconds(Exception("connection reset")) is None

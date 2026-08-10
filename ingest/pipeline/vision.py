@@ -18,11 +18,11 @@ import re
 from pathlib import Path
 
 from google import genai
-from google.genai import types
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from google.genai import errors, types
+from tenacity import retry, retry_if_exception, stop_after_attempt
 
 from .. import config
-from ..utils.apierrors import is_transient
+from ..utils.apierrors import is_daily_quota, is_transient, wait_as_api_asked
 from ..utils.ratelimit import RateLimiter
 from .models import Page, PageExtraction
 
@@ -31,6 +31,21 @@ _PROMPT = _PROMPT_PATH.read_text(encoding="utf-8")
 
 _client: genai.Client | None = None
 _limiter: RateLimiter | None = None
+
+#: Models that have spent their daily budget during this run. Process-lifetime
+#: only — the quota resets overnight, so persisting it would be wrong.
+_EXHAUSTED: set[str] = set()
+
+
+def _chain() -> list[str]:
+    """Models still worth trying, primary first and twice (see config)."""
+    ordered = [config.VISION_MODELS[0], *config.VISION_MODELS]
+    return [m for m in ordered if m not in _EXHAUSTED]
+
+
+def exhausted_models() -> list[str]:
+    """For the CLI to report which models ran out."""
+    return sorted(_EXHAUSTED)
 
 
 def _get_client() -> genai.Client:
@@ -42,8 +57,11 @@ def _get_client() -> genai.Client:
 
 
 @retry(
-    stop=stop_after_attempt(4),
-    wait=wait_exponential(min=2, max=60),
+    # Generous, because each attempt now waits exactly as long as the server
+    # asked. A 300-page run that dies at page 180 has wasted far more than the
+    # few minutes these retries can cost.
+    stop=stop_after_attempt(8),
+    wait=wait_as_api_asked,
     retry=retry_if_exception(is_transient),
     # Surface the original API error, not tenacity's RetryError wrapper — the
     # caller needs the status code to say anything useful about it.
@@ -124,22 +142,22 @@ def extract_page(image_path: Path, page_no: int) -> tuple[Page | None, str, str]
     A failure is never fatal — one bad page must not abort a 300-page document.
     """
     data = image_path.read_bytes()
-
-    # Primary twice, then the fallback. The second primary attempt is there
-    # because RECITATION turned out to be intermittent: a page refused across
-    # four temperatures and three models in one session was read first-try by
-    # the primary model in a later run. Retrying the primary keeps extraction
-    # consistent across the corpus when it works, at the same cost as going
-    # straight to a different model.
-    models = [config.VISION_MODEL, config.VISION_MODEL]
-    if config.FALLBACK_VISION_MODEL != config.VISION_MODEL:
-        models.append(config.FALLBACK_VISION_MODEL)
-
     last_raw = ""
     saw_output = False
 
-    for model in models:
-        raw, finish = _call(data, page_no, model)
+    for model in _chain():
+        try:
+            raw, finish = _call(data, page_no, model)
+        except errors.ClientError as exc:
+            if not is_daily_quota(exc):
+                raise
+            # This model is finished for the day. Retire it for the rest of the
+            # run and try the next one — waiting would not help, the budget
+            # resets tomorrow.
+            _EXHAUSTED.add(model)
+            if not _chain():
+                raise
+            continue
 
         # RECITATION comes back with no text at all, so there is nothing to
         # parse — move to the next attempt.

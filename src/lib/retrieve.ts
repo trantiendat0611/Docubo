@@ -20,9 +20,10 @@ export const RRF_K = 60;
  *
  * Mirrored in ingest/config.py — change both together.
  *
- * Measured 2026-08-10 against a Vietnamese corpus with gemini-embedding-001:
- * in-scope questions scored 0.648–0.750, completely unrelated ones ("what is
- * the capital of France", "how to cook pho") scored 0.462–0.566.
+ * Measured on a 34-chunk bilingual corpus with gemini-embedding-001, ten
+ * questions in both languages: in-scope 0.713–0.759, completely unrelated
+ * ("what is the capital of France", "how to cook pho") 0.503–0.577. The 0.136
+ * gap puts 0.60 in the middle.
  *
  * Note the floor rather than the gap: this model puts unrelated text around
  * 0.5, so there is no scale on which 0.35 means "no match". The original 0.35

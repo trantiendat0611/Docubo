@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
 from pathlib import Path
 
 from google.genai import errors
@@ -143,7 +144,7 @@ def cmd_vision(args: argparse.Namespace) -> None:
         return
 
     failed: dict[str, list[int]] = {"recitation": [], "schema": []}
-    fallback_used: list[int] = []
+    by_model: Counter[str] = Counter()
 
     for page_no, image_path in tqdm(todo, desc="vision"):
         page, raw, failure = vision.extract_page(image_path, page_no)
@@ -152,17 +153,22 @@ def cmd_vision(args: argparse.Namespace) -> None:
             if raw:
                 cache.save_raw(slug, page_no, raw)
             continue
-        if page.extracted_by != config.VISION_MODEL:
-            fallback_used.append(page_no)
+        by_model[page.extracted_by] += 1
         cache.save(slug, page)
 
     done = len(todo) - len(failed["recitation"]) - len(failed["schema"])
     print(f"\nextracted {done}/{len(todo)} pages")
 
-    if fallback_used:
+    if by_model:
+        print("by model: " + ", ".join(f"{m} {n}" for m, n in by_model.most_common()))
+
+    spent = vision.exhausted_models()
+    if spent:
         print(
-            f"{len(fallback_used)} needed the fallback model "
-            f"({config.FALLBACK_VISION_MODEL}): {fallback_used[:20]}"
+            f"daily quota spent on: {', '.join(spent)}\n"
+            "Each model has its own per-day budget. Add more to "
+            "GEMINI_VISION_MODELS in .env,\nor re-run tomorrow — cached pages "
+            "are skipped."
         )
 
     if failed["recitation"]:
@@ -250,11 +256,11 @@ def cmd_spike(args: argparse.Namespace) -> None:
 
         if failure == "recitation":
             print(
-                "REFUSED AS RECITATION by every configured model "
-                f"({config.VISION_MODEL}, {config.FALLBACK_VISION_MODEL}).\n"
-                "The model will not transcribe this page as memorised published "
-                "text.\nTry another model in GEMINI_FALLBACK_VISION_MODEL, or "
-                "accept the page as\noutside the corpus."
+                "REFUSED AS RECITATION by every model in the chain "
+                f"({', '.join(config.VISION_MODELS)}).\n"
+                "They will not transcribe this page as memorised published "
+                "text.\nAdd another model to GEMINI_VISION_MODELS, or accept "
+                "the page as outside\nthe corpus."
             )
             continue
 

@@ -96,8 +96,8 @@ Anh.** Đây là ca chính, không phải ca biên — nó quyết định thi�
 |---|---|---|
 | Chi phí | 0 đồng | Ràng buộc cứng của đề bài |
 | Thời gian phản hồi | Token đầu tiên < 3s | Vercel Hobby giới hạn thời lượng hàm |
-| Kích thước corpus | TODO — chốt sau khi biết tài liệu | Supabase free 500MB |
-| Quota ingest | TODO — tính số trang × 1 request | Kiểm tra RPD hiện hành ở AI Studio |
+| Kích thước corpus | **Bị chặn bởi quota ngày, không phải dung lượng** | 34 chunk / 73 trang hiện dùng chưa tới 1MB. Supabase 500MB không phải ràng buộc |
+| Quota ingest | **20 request/ngày mỗi model** (đo 10/08 với `gemini-3.5-flash`) | Đây là ràng buộc thật. Chain 4 model ≈ 80 trang/ngày. Thêm model là cách duy nhất tăng thông lượng |
 
 ## 7. Chỉ số nghiệm thu
 

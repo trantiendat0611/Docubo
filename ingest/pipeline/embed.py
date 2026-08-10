@@ -15,10 +15,10 @@ from __future__ import annotations
 
 from google import genai
 from google.genai import types
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt
 
 from .. import config
-from ..utils.apierrors import is_transient
+from ..utils.apierrors import is_transient, wait_as_api_asked
 from ..utils.ratelimit import RateLimiter
 
 _BATCH = 32
@@ -36,8 +36,8 @@ def _get_client() -> genai.Client:
 
 
 @retry(
-    stop=stop_after_attempt(4),
-    wait=wait_exponential(min=2, max=60),
+    stop=stop_after_attempt(8),
+    wait=wait_as_api_asked,
     retry=retry_if_exception(is_transient),
     reraise=True,
 )

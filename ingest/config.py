@@ -25,16 +25,36 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # Verified working on free tier 2026-08-07; `gemini-3.6-flash` also works and is
 # worth A/B-ing during the spike — neither has been measured on math extraction.
 VISION_MODEL = os.environ.get("GEMINI_VISION_MODEL", "gemini-3.5-flash")
+"""Primary extraction model. Reported in errors; the chain below is what runs."""
 
-# Used when the primary model returns finish_reason=RECITATION — it refuses to
-# transcribe a page it recognises as memorised published text.
+# Ingest walks this chain, left to right, and moves on when a model either
+# refuses a page or runs out of daily quota.
 #
-# The refusal is intermittent, not deterministic. Within one session a given
-# page was refused at temperature 0, 0.3, 0.6 and 0.9, and by 3.6-flash and
-# 3.5-flash-lite as well; a later run read that same page with the primary
-# model on the first try. So the retry order is: primary, primary again, then
-# this fallback.
-FALLBACK_VISION_MODEL = os.environ.get("GEMINI_FALLBACK_VISION_MODEL", "gemini-2.5-flash")
+# Two independent reasons a model gets skipped:
+#
+#   RECITATION   the model will not transcribe a page it recognises as
+#                published text. Intermittent, not deterministic — a page
+#                refused across four temperatures and three models in one
+#                session was read first-try by the primary in a later run,
+#                which is why VISION_MODEL appears twice at the front.
+#
+#   daily quota  free tier grants requests-per-day *per model*: measured at 20
+#                for gemini-3.5-flash on 2026-08-10. Since the budget is per
+#                model, adding models to this list is what buys throughput —
+#                nothing else does. Four models is roughly four times the
+#                pages per day.
+#
+# Order matters: put the model you trust most for extraction first, since it
+# will read the bulk of the corpus. Every page records which model read it
+# (Page.extracted_by), so a mixed corpus stays measurable.
+VISION_MODELS = [
+    m.strip()
+    for m in os.environ.get(
+        "GEMINI_VISION_MODELS",
+        "gemini-3.5-flash,gemini-2.5-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite",
+    ).split(",")
+    if m.strip()
+]
 
 EMBED_MODEL = os.environ.get("GEMINI_EMBED_MODEL", "gemini-embedding-001")
 EMBED_DIM = int(os.environ.get("EMBED_DIM", "768"))
@@ -73,20 +93,22 @@ RRF_K = 60
 # Retrieval-score floor for the refusal path. Mirrored in src/lib/retrieve.ts —
 # change both together.
 #
-# Measured 2026-08-10 on a 4-chunk Vietnamese corpus with gemini-embedding-001:
+# Measured twice with gemini-embedding-001. On a 34-chunk bilingual corpus
+# (16 en / 13 mixed / 5 vi), ten questions in both languages:
 #
-#   in scope      0.648 – 0.750
-#   out of scope  0.462 – 0.566   ("giá cổ phiếu VNM", "cách nấu phở bò",
-#                                   "capital of France", "thay lốp xe máy")
+#   in scope      0.713 – 0.759
+#   out of scope  0.503 – 0.577   ("giá cổ phiếu VNM", "cách nấu phở bò",
+#                                   "capital of France", "change a motorcycle
+#                                   tyre")
+#   gap           +0.136, and 0.60 sits in the middle of it
 #
-# The lesson is the floor, not the gap: this model scores *completely
-# unrelated* text around 0.5. There is no universal scale where 0.35 means
-# "unrelated" — the initial 0.35 guess let every off-topic question through,
-# silently disabling the refusal path.
+# The transferable lesson is the floor, not the gap: this model scores
+# *completely unrelated* text around 0.5. No scale exists on which 0.35 means
+# "no match", yet 0.35 was the initial guess — it passed every off-topic
+# question straight through, disabling the refusal path while appearing to work.
 #
-# 0.60 separates the two groups on this sample, but the sample is 7 questions
-# over 4 chunks. Re-measure on the full corpus with eval_dataset.json before
-# treating this number as settled.
+# Re-measure before trusting this on a different embedding model, and widen the
+# question set when eval_dataset.json is written.
 MIN_COSINE = 0.60
 
 
