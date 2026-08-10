@@ -10,6 +10,7 @@ import {
 } from "@/lib/prompt";
 import { isUngrounded, retrieve } from "@/lib/retrieve";
 import { logQuery } from "@/lib/log";
+import { currentUser } from "@/lib/supabase/server";
 
 // Node runtime, not edge: @supabase/supabase-js is happier here, and the
 // Hobby plan's duration limit is the constraint that matters, not cold start.
@@ -18,6 +19,15 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const started = Date.now();
+
+  // Retrieval is already RLS-filtered, so an anonymous request would simply
+  // find nothing. Rejecting it here saves a wasted Gemini call against a
+  // fifteen-request-per-minute budget, and gives the client something to act on.
+  const user = await currentUser();
+  if (!user) {
+    return Response.json({ error: "unauthenticated" }, { status: 401 });
+  }
+
   const { question } = (await req.json()) as { question?: string };
 
   if (!question?.trim()) {
@@ -29,6 +39,7 @@ export async function POST(req: Request) {
   if (!analysis.safe) {
     void logQuery({
       question,
+      user_id: user.id,
       question_lang: analysis.lang,
       blocked_by: analysis.reason,
       latency_ms: Date.now() - started,
@@ -49,6 +60,7 @@ export async function POST(req: Request) {
   if (isUngrounded(chunks)) {
     void logQuery({
       question,
+      user_id: user.id,
       question_lang: analysis.lang,
       blocked_by: "no_context",
       top_score: chunks[0]?.cosine_sim ?? 0,
@@ -66,6 +78,7 @@ export async function POST(req: Request) {
 
   void logQuery({
     question,
+    user_id: user.id,
     question_lang: analysis.lang,
     blocked_by: null,
     top_score: chunks[0].cosine_sim,

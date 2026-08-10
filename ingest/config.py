@@ -84,6 +84,12 @@ RPM = int(os.environ.get("GEMINI_RPM", "15"))
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
+# Supabase auth user id that CLI-ingested documents belong to.
+# Without it, documents land with a null owner and row-level security hides
+# them from every signed-in user — the ingest looks successful and the app
+# finds nothing. Find your id in the Supabase dashboard under Authentication.
+INGEST_OWNER_ID = os.environ.get("INGEST_OWNER_ID", "")
+
 # --- rendering -------------------------------------------------------------
 # Starting point, not yet validated. Confirm during the week-1 spike: if the
 # model misreads subscripts or small indices, raise to 300 and re-run. Higher

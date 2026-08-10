@@ -120,3 +120,58 @@ form button:disabled {
   overflow-y: hidden;
   padding: 0.25rem 0;
 }
+
+/* --- auth --- */
+.auth {
+  max-width: 380px;
+}
+
+.auth .lead {
+  color: var(--muted);
+}
+
+.auth form {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.auth label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.6rem;
+}
+
+.auth button[type="submit"] {
+  margin-top: 1.2rem;
+}
+
+.auth .message {
+  color: var(--text-warning, #b45309);
+  font-size: 0.9rem;
+}
+
+.header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+}

@@ -89,3 +89,7 @@ class Document(BaseModel):
     lang: Lang
     n_pages: int
     content_hash: str
+    #: Supabase auth user. None means nobody can see the document through the
+    #: app — row-level security compares owner_id to auth.uid(), and null never
+    #: matches. Fine for CLI experiments, wrong for anything a user should read.
+    owner_id: str | None = None

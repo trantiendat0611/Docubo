@@ -32,6 +32,11 @@ returns table (
   cosine_sim   real
 )
 language sql stable
+-- Load-bearing, even though it is the default. The function must run as the
+-- caller so that the row-level policies in 004_multi_tenant.sql apply to the
+-- tables it reads. Marking it SECURITY DEFINER would make every user search
+-- every user's corpus.
+security invoker
 as $$
   with dense as (
     select c.id,
@@ -101,6 +106,7 @@ returns table (
   id bigint, page_start int, page_end int, display_text text, cosine_sim real
 )
 language sql stable
+security invoker
 as $$
   select c.id, c.page_start, c.page_end, c.display_text,
          (1 - (c.embedding <=> query_embedding))::real

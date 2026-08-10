@@ -1,13 +1,16 @@
 import { embed } from "ai";
-import { createClient } from "@supabase/supabase-js";
 import { EMBED_DIM, EMBED_MODEL, gemini } from "./gemini";
+import { userClient } from "./supabase/server";
 import type { QueryAnalysis, RetrievedChunk } from "./types";
 
 /**
  * Hybrid retrieval against the hybrid_search RPC.
  *
- * The service_role key is used here, so this module is server-only. Importing
- * it from a client component leaks a key that bypasses row-level security.
+ * Runs under the signed-in user's session, not the service-role key. The RPC is
+ * SECURITY INVOKER, so the row-level policies filter chunks to the caller's own
+ * documents inside the database. Isolation therefore does not depend on this
+ * file remembering to pass an owner filter — omitting one returns nothing
+ * rather than returning another user's corpus.
  */
 
 export const MATCH_LIMIT = 8;
@@ -35,14 +38,6 @@ export const RRF_K = 60;
  */
 export const MIN_COSINE = 0.6;
 
-function client() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-    { auth: { persistSession: false } },
-  );
-}
-
 export async function embedQuery(text: string): Promise<number[]> {
   const { embedding } = await embed({
     // Must match EMBED_MODEL and EMBED_DIM used at ingest, and must use the
@@ -68,7 +63,8 @@ export async function retrieve(
   const lexEn = [analysis.query_en, ...analysis.keywords].join(" ").trim();
   const lexVi = analysis.query_vi.trim();
 
-  const { data, error } = await client().rpc("hybrid_search", {
+  const supabase = await userClient();
+  const { data, error } = await supabase.rpc("hybrid_search", {
     query_embedding: queryEmbedding,
     query_en: lexEn,
     query_vi: lexVi,

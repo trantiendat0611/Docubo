@@ -245,6 +245,7 @@ def cmd_index(args: argparse.Namespace) -> None:
             filename=pdf.name,
             title=args.title or pdf.stem,
             source_url=args.source_url,
+            owner_id=args.owner or config.INGEST_OWNER_ID or None,
             lang=lang,
             n_pages=len(pages),
             content_hash=render.content_hash(pdf),
@@ -336,6 +337,12 @@ def main(argv: list[str] | None = None) -> None:
             p.add_argument("--title")
             p.add_argument("--source-url")
             p.add_argument("--dry-run", action="store_true")
+            p.add_argument(
+                "--owner",
+                help="Supabase auth user id to own this document. Defaults to "
+                "INGEST_OWNER_ID. Without either, RLS hides the document from "
+                "everyone.",
+            )
         if name == "spike":
             p.add_argument("--pages", help="comma-separated, e.g. 12,31,44")
 

@@ -116,11 +116,46 @@ def find_document(content_hash: str) -> dict | None:
 
 
 def upsert_document(doc: Document) -> str:
+    """Insert the document, or update the mutable fields if the file is known.
+
+    Returning early on a content_hash match would be wrong: re-ingesting an
+    unchanged file is exactly how an owner gets assigned to documents that were
+    ingested before authentication existed. Skipping the update makes that
+    command report success and change nothing.
+
+    Chunk ownership follows automatically — replace_chunks deletes and reinserts
+    every chunk, and the chunks_owner_trg trigger copies owner_id down from the
+    document row this call just updated.
+    """
     existing = find_document(doc.content_hash)
     if existing:
+        patch = {
+            field: value
+            for field, value in (
+                ("owner_id", doc.owner_id),
+                ("title", doc.title),
+                ("source_url", doc.source_url),
+            )
+            if value is not None
+        }
+        if patch:
+            _get().table("documents").update(patch).eq("id", existing["id"]).execute()
         return existing["id"]
+
     res = _get().table("documents").insert(doc.model_dump()).execute()
     return res.data[0]["id"]
+
+
+def owner_of(document_id: str) -> str | None:
+    res = (
+        _get()
+        .table("documents")
+        .select("owner_id")
+        .eq("id", document_id)
+        .limit(1)
+        .execute()
+    )
+    return res.data[0]["owner_id"] if res.data else None
 
 
 def replace_chunks(

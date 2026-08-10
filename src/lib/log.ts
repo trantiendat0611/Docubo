@@ -1,7 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+import { admin } from "./supabase/admin";
 
 /**
  * Query logging. Fire-and-forget — a logging failure must never break an answer.
+ *
+ * Written with the service-role client rather than the user's session: the
+ * table has RLS on and no policies, so users cannot read the log, including
+ * their own rows. It exists for the evaluation chapter, not as a feature.
  *
  * This table is where chapter 4 of the report comes from: refusal rate, how
  * often retrieval came back empty, latency distribution, which language users
@@ -10,6 +14,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export interface QueryLogRow {
   question: string;
+  user_id?: string | null;
   question_lang?: string | null;
   blocked_by?: string | null;
   top_score?: number | null;
@@ -19,12 +24,7 @@ export interface QueryLogRow {
 
 export async function logQuery(row: QueryLogRow): Promise<void> {
   try {
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_KEY!,
-      { auth: { persistSession: false } },
-    );
-    await supabase.from("query_log").insert(row);
+    await admin().from("query_log").insert(row);
   } catch {
     // Intentionally swallowed.
   }
