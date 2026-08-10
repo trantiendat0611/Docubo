@@ -1,6 +1,6 @@
-import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { CHAT_MODEL, gemini } from "./gemini";
 import type { QueryAnalysis } from "./types";
 
 /**
@@ -66,7 +66,7 @@ export async function analyseQuery(question: string): Promise<QueryAnalysis> {
 
   try {
     const { object } = await generateObject({
-      model: google(process.env.GEMINI_CHAT_MODEL ?? "gemini-2.0-flash"),
+      model: gemini(CHAT_MODEL),
       schema: analysisSchema,
       system: SYSTEM,
       prompt: `<user_question>\n${trimmed}\n</user_question>`,

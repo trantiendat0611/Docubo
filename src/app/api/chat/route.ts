@@ -1,5 +1,5 @@
-import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
+import { CHAT_MODEL, gemini } from "@/lib/gemini";
 import { analyseQuery } from "@/lib/guardrail";
 import {
   buildCitations,
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: google(process.env.GEMINI_CHAT_MODEL ?? "gemini-2.0-flash"),
+    model: gemini(CHAT_MODEL),
     system: buildSystemPrompt(analysis.lang),
     prompt: `<context>\n${buildContext(chunks)}\n</context>\n\n<question>\n${question}\n</question>`,
     temperature: 0.2,

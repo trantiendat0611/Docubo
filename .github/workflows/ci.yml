@@ -53,4 +53,4 @@ jobs:
           # missing-env assertion.
           SUPABASE_URL: https://placeholder.supabase.co
           SUPABASE_SERVICE_KEY: placeholder
-          GOOGLE_GENERATIVE_AI_API_KEY: placeholder
+          GEMINI_API_KEY: placeholder

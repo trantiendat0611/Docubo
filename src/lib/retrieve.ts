@@ -1,6 +1,6 @@
-import { google } from "@ai-sdk/google";
 import { embed } from "ai";
 import { createClient } from "@supabase/supabase-js";
+import { EMBED_DIM, EMBED_MODEL, gemini } from "./gemini";
 import type { QueryAnalysis, RetrievedChunk } from "./types";
 
 /**
@@ -36,10 +36,10 @@ export async function embedQuery(text: string): Promise<number[]> {
   const { embedding } = await embed({
     // Must match EMBED_MODEL and EMBED_DIM used at ingest, and must use the
     // query task type — chunks were embedded with the document task type.
-    model: google.textEmbeddingModel(
-      process.env.GEMINI_EMBED_MODEL ?? "gemini-embedding-001",
-      { taskType: "RETRIEVAL_QUERY", outputDimensionality: 768 },
-    ),
+    model: gemini.textEmbeddingModel(EMBED_MODEL, {
+      taskType: "RETRIEVAL_QUERY",
+      outputDimensionality: EMBED_DIM,
+    }),
     value: text,
   });
   return embedding;
