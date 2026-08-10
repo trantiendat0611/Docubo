@@ -18,11 +18,21 @@ export const RRF_K = 60;
  * Retrieval-score floor. Below this, the corpus does not contain an answer and
  * the app must refuse rather than let the model improvise.
  *
- * This is the single most effective guardrail in the system and it costs
- * nothing. Calibrate it against eval/eval_dataset.json — specifically the
- * `should_refuse` group — do not guess it.
+ * Mirrored in ingest/config.py — change both together.
+ *
+ * Measured 2026-08-10 against a Vietnamese corpus with gemini-embedding-001:
+ * in-scope questions scored 0.648–0.750, completely unrelated ones ("what is
+ * the capital of France", "how to cook pho") scored 0.462–0.566.
+ *
+ * Note the floor rather than the gap: this model puts unrelated text around
+ * 0.5, so there is no scale on which 0.35 means "no match". The original 0.35
+ * guess passed every off-topic question straight through to the model, which
+ * disabled the refusal path entirely while looking like it worked.
+ *
+ * Re-measure on the full corpus with the should_refuse group in
+ * eval/eval_dataset.json. Do not carry this number to another embedding model.
  */
-export const MIN_COSINE = 0.35;
+export const MIN_COSINE = 0.6;
 
 function client() {
   return createClient(

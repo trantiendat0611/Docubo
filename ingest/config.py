@@ -26,11 +26,14 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # worth A/B-ing during the spike — neither has been measured on math extraction.
 VISION_MODEL = os.environ.get("GEMINI_VISION_MODEL", "gemini-3.5-flash")
 
-# Used only when the primary model returns finish_reason=RECITATION — it refuses
-# to transcribe a page it recognises as memorised published text. That refusal
-# is deterministic: temperature makes no difference, and 3.6-flash and
-# 3.5-flash-lite refuse the same pages. A different model generation does not.
-# Measured on a Vietnamese lecture-notes page that 3.5-flash would not read.
+# Used when the primary model returns finish_reason=RECITATION — it refuses to
+# transcribe a page it recognises as memorised published text.
+#
+# The refusal is intermittent, not deterministic. Within one session a given
+# page was refused at temperature 0, 0.3, 0.6 and 0.9, and by 3.6-flash and
+# 3.5-flash-lite as well; a later run read that same page with the primary
+# model on the first try. So the retry order is: primary, primary again, then
+# this fallback.
 FALLBACK_VISION_MODEL = os.environ.get("GEMINI_FALLBACK_VISION_MODEL", "gemini-2.5-flash")
 
 EMBED_MODEL = os.environ.get("GEMINI_EMBED_MODEL", "gemini-embedding-001")
@@ -66,6 +69,25 @@ CHARS_PER_TOKEN = {"en": 4.0, "vi": 2.6, "mixed": 3.0}
 MATCH_LIMIT = 8
 CANDIDATE_LIMIT = 30
 RRF_K = 60
+
+# Retrieval-score floor for the refusal path. Mirrored in src/lib/retrieve.ts —
+# change both together.
+#
+# Measured 2026-08-10 on a 4-chunk Vietnamese corpus with gemini-embedding-001:
+#
+#   in scope      0.648 – 0.750
+#   out of scope  0.462 – 0.566   ("giá cổ phiếu VNM", "cách nấu phở bò",
+#                                   "capital of France", "thay lốp xe máy")
+#
+# The lesson is the floor, not the gap: this model scores *completely
+# unrelated* text around 0.5. There is no universal scale where 0.35 means
+# "unrelated" — the initial 0.35 guess let every off-topic question through,
+# silently disabling the refusal path.
+#
+# 0.60 separates the two groups on this sample, but the sample is 7 questions
+# over 4 chunks. Re-measure on the full corpus with eval_dataset.json before
+# treating this number as settled.
+MIN_COSINE = 0.60
 
 
 def assert_ready(need_supabase: bool = True) -> None:

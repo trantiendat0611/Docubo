@@ -88,8 +88,8 @@ def _blocks(markdown: str) -> list[str]:
 _SOFT_BREAK = re.compile(r"(?<=\n)|(?<=[.!?…])\s+")
 
 
-def _split_oversized(block: str, lang: Lang) -> list[str]:
-    """Break a block that alone exceeds the token budget.
+def _split_oversized(block: str, page: Page) -> list[str]:
+    """Break a block whose embedded form alone exceeds the token budget.
 
     `_blocks` splits on blank lines, so a page whose markdown arrives with no
     blank lines becomes one enormous block — and a single block is never split
@@ -99,14 +99,23 @@ def _split_oversized(block: str, lang: Lang) -> list[str]:
     Real output that does this: the fallback vision model sometimes returns a
     page with headings run together inline and no blank lines anywhere.
 
+    Measured on the embedded form, not the markdown, for the reason described
+    in build_chunks: a figure placeholder is 17 characters that becomes several
+    hundred.
+
     Cutting here can separate a formula from its explanation, which the block
     rules otherwise prevent. That is the lesser harm — the alternative is a
     chunk several times over budget.
+
+    One case this cannot fix: a single figure whose description alone exceeds
+    the budget. The placeholder is atomic, so whichever piece holds it still
+    expands past the limit. Accepted — splitting a figure from its own caption
+    would be worse than an oversized chunk.
     """
-    if estimate_tokens(block, lang) <= config.MAX_TOKENS:
+    if estimate_tokens(_to_embed_text(block, page), page.lang) <= config.MAX_TOKENS:
         return [block]
 
-    limit = budget_chars(config.TARGET_TOKENS, lang)
+    limit = budget_chars(config.TARGET_TOKENS, page.lang)
     out: list[str] = []
     current = ""
 
@@ -139,9 +148,21 @@ def dominant_lang(pages: list[Page]) -> Lang:
 
 
 def build_chunks(pages: list[Page]) -> list[Chunk]:
-    """Pack page blocks into chunks of roughly TARGET_TOKENS."""
+    """Pack page blocks into chunks of roughly TARGET_TOKENS.
+
+    The budget is measured on the *embedded* text, not the markdown. Those two
+    lengths are not close: `[[FIGURE:fig-2-1]]` is 17 characters of markdown
+    that becomes several hundred characters of description in embed_text.
+    Budgeting on the markdown produced chunks 40% over MAX_TOKENS in the first
+    real ingest — and only ever on chunks containing figures, which is exactly
+    the content this project exists to make retrievable.
+
+    embed_text is what gets embedded and full-text indexed, so embed_text is
+    what the budget has to be about.
+    """
     chunks: list[Chunk] = []
-    buf: list[tuple[str, Page]] = []
+    # (display markdown, embedded prose, source page)
+    buf: list[tuple[str, str, Page]] = []
     buf_tokens = 0
 
     def flush() -> None:
@@ -149,13 +170,13 @@ def build_chunks(pages: list[Page]) -> list[Chunk]:
         if not buf:
             return
 
-        display = "\n\n".join(b for b, _ in buf)
-        embed = " ".join(_to_embed_text(b, p) for b, p in buf).strip()
-        page_nos = [p.page for _, p in buf]
-        lang = dominant_lang([p for _, p in buf])
+        display = "\n\n".join(d for d, _, _ in buf)
+        embed = " ".join(e for _, e, _ in buf).strip()
+        page_nos = [p.page for _, _, p in buf]
+        lang = dominant_lang([p for _, _, p in buf])
 
-        fig_ids = {m for b, _ in buf for m in _FIGURE_REF.findall(b)}
-        figs: list[Figure] = [f for _, p in buf for f in p.figures if f.id in fig_ids]
+        fig_ids = {m for d, _, _ in buf for m in _FIGURE_REF.findall(d)}
+        figs: list[Figure] = [f for _, _, p in buf for f in p.figures if f.id in fig_ids]
         # dedupe, preserve order
         seen: set[str] = set()
         figs = [f for f in figs if not (f.id in seen or seen.add(f.id))]
@@ -177,9 +198,10 @@ def build_chunks(pages: list[Page]) -> list[Chunk]:
 
         # Carry the tail block forward as overlap so a question landing on a
         # chunk boundary still finds its context.
-        if len(buf) > 1 and estimate_tokens(buf[-1][0], lang) <= config.OVERLAP_TOKENS:
+        tail_tokens = estimate_tokens(buf[-1][1], lang)
+        if len(buf) > 1 and tail_tokens <= config.OVERLAP_TOKENS:
             buf = [buf[-1]]
-            buf_tokens = estimate_tokens(buf[0][0], lang)
+            buf_tokens = tail_tokens
         else:
             buf = []
             buf_tokens = 0
@@ -188,11 +210,12 @@ def build_chunks(pages: list[Page]) -> list[Chunk]:
         if page.is_boilerplate:
             continue
         raw_blocks = _blocks(page.markdown)
-        for block in (s for b in raw_blocks for s in _split_oversized(b, page.lang)):
-            t = estimate_tokens(block, page.lang)
+        for display in (s for b in raw_blocks for s in _split_oversized(b, page)):
+            embed = _to_embed_text(display, page)
+            t = estimate_tokens(embed, page.lang)
             if buf and buf_tokens + t > config.MAX_TOKENS:
                 flush()
-            buf.append((block, page))
+            buf.append((display, embed, page))
             buf_tokens += t
             if buf_tokens >= config.TARGET_TOKENS:
                 flush()

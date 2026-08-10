@@ -92,8 +92,13 @@ create trigger chunks_fts_trg
   for each row execute function chunks_fts_update();
 
 -- ------------------------------------------------------------------ indexes
--- HNSW over cosine distance. Build this AFTER the first bulk load — creating it
--- on an empty table then inserting is slower than the reverse.
+-- HNSW over cosine distance, built up front.
+--
+-- The usual advice is to bulk load first and index after, because inserting
+-- into an existing HNSW index is slower. That matters at a hundred thousand
+-- rows; this corpus is hundreds to low thousands, where the difference is
+-- seconds. If the corpus ever grows past ~50k chunks, drop this index before a
+-- full re-ingest and recreate it afterwards.
 create index if not exists chunks_embedding_idx
   on chunks using hnsw (embedding vector_cosine_ops);
 

@@ -124,7 +124,14 @@ def extract_page(image_path: Path, page_no: int) -> tuple[Page | None, str, str]
     A failure is never fatal — one bad page must not abort a 300-page document.
     """
     data = image_path.read_bytes()
-    models = [config.VISION_MODEL]
+
+    # Primary twice, then the fallback. The second primary attempt is there
+    # because RECITATION turned out to be intermittent: a page refused across
+    # four temperatures and three models in one session was read first-try by
+    # the primary model in a later run. Retrying the primary keeps extraction
+    # consistent across the corpus when it works, at the same cost as going
+    # straight to a different model.
+    models = [config.VISION_MODEL, config.VISION_MODEL]
     if config.FALLBACK_VISION_MODEL != config.VISION_MODEL:
         models.append(config.FALLBACK_VISION_MODEL)
 
@@ -134,9 +141,8 @@ def extract_page(image_path: Path, page_no: int) -> tuple[Page | None, str, str]
     for model in models:
         raw, finish = _call(data, page_no, model)
 
-        # RECITATION means the model will not transcribe this page at all, and
-        # it returns no text with it. Retrying the same model is pointless —
-        # the refusal holds across temperatures — so go straight to the next.
+        # RECITATION comes back with no text at all, so there is nothing to
+        # parse — move to the next attempt.
         if "RECITATION" in finish or not raw.strip():
             continue
 

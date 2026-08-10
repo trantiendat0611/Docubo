@@ -156,3 +156,38 @@ def test_normal_page_is_not_resplit():
     assert len(chunks) == 1
     assert "First paragraph" in chunks[0].display_text
     assert "Second paragraph" in chunks[0].display_text
+
+
+def test_budget_counts_expanded_figure_text():
+    """Figure placeholders expand hugely between display and embed text.
+
+    `[[FIGURE:x]]` is 17 characters of markdown that becomes several hundred
+    characters of description once embedded. Budgeting on the markdown packed
+    two figure-heavy pages into one chunk 40% over MAX_TOKENS in the first real
+    ingest.
+    """
+    long_description = "Mo ta chi tiet ve bieu do. " * 60
+
+    def figure_page(n: int) -> Page:
+        return _page(
+            page=n,
+            lang="vi",
+            markdown=f"Doan van ngan tren trang {n}.\n\n[[FIGURE:fig-{n}-1]]",
+            figures=[
+                Figure(
+                    id=f"fig-{n}-1",
+                    kind="chart",
+                    caption=f"Bieu do {n}",
+                    description=long_description,
+                    data="",
+                )
+            ],
+        )
+
+    chunks = build_chunks([figure_page(1), figure_page(2)])
+
+    # Each figure carries enough text to fill a chunk on its own, so they must
+    # not end up packed together.
+    assert len(chunks) >= 2
+    over = [c for c in chunks if c.n_tokens > config.MAX_TOKENS]
+    assert not over, f"{[c.n_tokens for c in over]} exceed MAX_TOKENS"

@@ -74,6 +74,58 @@ def cmd_models(args: argparse.Namespace) -> None:
     )
 
 
+def cmd_checkdb(args: argparse.Namespace) -> None:
+    """Confirm the SQL migrations landed, before spending any quota on ingest."""
+    results = store.check_schema()
+    for label, ok, detail in results:
+        print(f"  {'PASS' if ok else 'FAIL'}  {label:22} {detail}")
+
+    if all(ok for _, ok, _ in results):
+        print("\nDatabase ready. Next: python -m ingest.main all <pdf>")
+        return
+
+    raise SystemExit(
+        "\nSomething is missing. Run db/001_schema.sql, db/002_hybrid_search.sql\n"
+        "and db/003_security.sql in the Supabase SQL editor, in that order.\n"
+        "If a table passes but an RPC fails, only 002 needs re-running."
+    )
+
+
+def cmd_query(args: argparse.Namespace) -> None:
+    """Retrieval only — no generation, no quota beyond one embedding call.
+
+    Use this to sanity-check retrieval after an ingest, and to compare hybrid
+    against dense-only when tuning.
+    """
+    vector = embed.embed_query(args.question)
+    results = store.search(vector, args.query_en or args.question, args.question)
+
+    if not results:
+        print("No results. Either the corpus is empty or nothing matched.")
+        return
+
+    print(f"query: {args.question}\n")
+    for i, r in enumerate(results, start=1):
+        pages = (
+            f"p.{r['page_start']}"
+            if r["page_start"] == r["page_end"]
+            else f"p.{r['page_start']}-{r['page_end']}"
+        )
+        snippet = " ".join(r["display_text"].split())[:150]
+        print(
+            f"[{i}] rrf={r['rrf_score']:.5f}  cos={r['cosine_sim']:.3f}  "
+            f"{r['filename']} {pages} ({r['lang']})\n    {snippet}…\n"
+        )
+
+    top = results[0]["cosine_sim"]
+    verdict = (
+        "would answer"
+        if top >= config.MIN_COSINE
+        else f"would REFUSE (below MIN_COSINE={config.MIN_COSINE})"
+    )
+    print(f"top cosine {top:.3f} -> {verdict}")
+
+
 def cmd_render(args: argparse.Namespace) -> None:
     pdf = _resolve(args.pdf)
     paths = render.render(pdf)
@@ -238,6 +290,16 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("models")
+    sub.add_parser("check-db")
+
+    q = sub.add_parser("query")
+    q.add_argument("question")
+    q.add_argument(
+        "--query-en",
+        help="English phrasing for the fts_en arm. In the app the guardrail "
+        "call produces this; here you supply it to test cross-lingual "
+        "retrieval.",
+    )
 
     for name in ("render", "vision", "index", "spike", "all"):
         p = sub.add_parser(name)
@@ -250,10 +312,12 @@ def main(argv: list[str] | None = None) -> None:
             p.add_argument("--pages", help="comma-separated, e.g. 12,31,44")
 
     args = parser.parse_args(argv)
-    config.assert_ready(need_supabase=args.cmd in ("index", "all"))
+    config.assert_ready(need_supabase=args.cmd in ("index", "all", "check-db", "query"))
 
     handlers = {
         "models": cmd_models,
+        "check-db": cmd_checkdb,
+        "query": cmd_query,
         "render": cmd_render,
         "vision": cmd_vision,
         "index": cmd_index,

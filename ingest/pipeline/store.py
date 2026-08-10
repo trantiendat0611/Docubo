@@ -21,6 +21,88 @@ def _get() -> Client:
     return _client
 
 
+def check_schema() -> list[tuple[str, bool, str]]:
+    """Verify the database is ready, without ingesting anything.
+
+    Every check exercises something that only fails at runtime: the tables, the
+    pgvector column type, and both RPCs. Running this after the SQL migrations
+    turns 200+ lines of never-executed SQL into something known-good.
+
+    Returns (label, ok, detail) rows so the caller can print them all rather
+    than aborting on the first failure.
+    """
+    rows: list[tuple[str, bool, str]] = []
+    client = _get()
+
+    for table in ("documents", "chunks", "query_log"):
+        try:
+            res = client.table(table).select("*", count="exact").limit(1).execute()
+            rows.append((f"table {table}", True, f"{res.count} rows"))
+        except Exception as exc:
+            rows.append((f"table {table}", False, str(exc)[:120]))
+
+    # A non-zero probe vector: cosine distance against an all-zero vector is
+    # undefined, and an empty table would hide the problem until the first real
+    # query.
+    probe = [1.0] + [0.0] * (config.EMBED_DIM - 1)
+
+    try:
+        client.rpc(
+            "hybrid_search",
+            {
+                "query_embedding": probe,
+                "query_en": "test query",
+                "query_vi": "câu hỏi thử",
+                "match_limit": 1,
+                "candidate_limit": 5,
+                "rrf_k": 60,
+                "filter_documents": None,
+            },
+        ).execute()
+        rows.append(("rpc hybrid_search", True, "callable"))
+    except Exception as exc:
+        rows.append(("rpc hybrid_search", False, str(exc)[:200]))
+
+    try:
+        client.rpc("dense_search", {"query_embedding": probe, "match_limit": 1}).execute()
+        rows.append(("rpc dense_search", True, "callable"))
+    except Exception as exc:
+        rows.append(("rpc dense_search", False, str(exc)[:200]))
+
+    return rows
+
+
+def search(
+    query_embedding: list[float],
+    query_en: str,
+    query_vi: str,
+    match_limit: int = config.MATCH_LIMIT,
+) -> list[dict]:
+    """Call the hybrid_search RPC.
+
+    The query path proper lives in TypeScript; this exists so retrieval can be
+    exercised and measured without the web app running — which is what the eval
+    harness needs for --retrieval-only.
+    """
+    res = (
+        _get()
+        .rpc(
+            "hybrid_search",
+            {
+                "query_embedding": query_embedding,
+                "query_en": query_en,
+                "query_vi": query_vi,
+                "match_limit": match_limit,
+                "candidate_limit": config.CANDIDATE_LIMIT,
+                "rrf_k": config.RRF_K,
+                "filter_documents": None,
+            },
+        )
+        .execute()
+    )
+    return res.data or []
+
+
 def find_document(content_hash: str) -> dict | None:
     res = (
         _get()

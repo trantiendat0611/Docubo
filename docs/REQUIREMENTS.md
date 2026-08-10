@@ -114,6 +114,10 @@ Hệ thống coi là đạt khi trên `eval/eval_dataset.json`:
 ## 8. Câu hỏi còn mở
 
 - [ ] Bộ tài liệu cuối cùng gồm những gì, bao nhiêu trang
-- [ ] Ngưỡng `MIN_COSINE` thực tế (hiện đặt tạm 0.35)
+- [x] Ngưỡng `MIN_COSINE` — đo 10/08 trên corpus 4 chunk: trong phạm vi 0.648–0.750,
+      ngoài phạm vi 0.462–0.566. Đặt **0.60**. Cần đo lại trên corpus đầy đủ với
+      bộ eval thật, mẫu hiện tại chỉ 7 câu hỏi
+- [x] Truy vấn xuyên ngôn ngữ đã kiểm chứng: hỏi tiếng Anh trên nguồn tiếng Việt
+      trúng đúng chunk, cosine 0.672 (so với 0.812 khi cùng ngôn ngữ)
 - [ ] `CHARS_PER_TOKEN` cho tiếng Việt — hiệu chỉnh bằng `countTokens` ở tuần 3
 - [ ] Có nạp ảnh trang lên Supabase Storage không, hay chỉ giữ local
