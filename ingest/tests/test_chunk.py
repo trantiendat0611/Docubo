@@ -252,3 +252,78 @@ def test_batch_parse_survives_broken_json():
     from ingest.pipeline.vision import _parse_batch
 
     assert _parse_batch("not json at all", [1, 2]) == {}
+
+
+def test_each_formula_gets_its_own_reading():
+    """Two equations in two blocks must not share the first one's reading.
+
+    _to_embed_text runs per block, so a positional counter restarts every time
+    and every block's first equation resolved to page.formulas[0].
+    """
+    page = _page(
+        lang="en",
+        markdown=(
+            "The loss is defined as follows.\n\n"
+            "$$L = \frac{1}{n}\sum e_i^2$$\n\n"
+            "The gradient is then.\n\n"
+            "$$g = \nabla_\theta L$$"
+        ),
+        formulas=[
+            Formula(
+                id="eq-1-1", latex="L = \frac{1}{n}\sum e_i^2", plain="MEAN SQUARED ERROR"
+            ),
+            Formula(
+                id="eq-1-2", latex="g = \nabla_\theta L", plain="GRADIENT OF THE LOSS"
+            ),
+        ],
+    )
+    chunks = build_chunks([page])
+    embed_all = " ".join(c.embed_text for c in chunks)
+
+    assert "MEAN SQUARED ERROR" in embed_all
+    assert "GRADIENT OF THE LOSS" in embed_all
+    assert embed_all.count("MEAN SQUARED ERROR") == 1
+
+
+def test_inline_math_keeps_symbols_but_drops_latex():
+    r"""Stripping only the `$` left control sequences in the embedded text.
+
+    Real output from an ingested page: `\times` and `\{...\}` survived into
+    embed_text, which is full-text indexed — so `times` became a searchable
+    token that means nothing.
+    """
+    page = _page(
+        lang="en",
+        markdown=(
+            "Given $\{(x_i, y_i)\}_{i=1}^n$ drawn from $P$ on $X \times Y$, we build $F$."
+        ),
+    )
+    out = _to_embed_text(page.markdown, page)
+
+    assert "\\" not in out
+    assert "times" not in out
+    # The identifiers a reader would actually say must survive.
+    for symbol in ("x", "y", "P", "X", "Y", "F"):
+        assert symbol in out
+
+
+def test_display_text_still_carries_the_latex():
+    r"""The stripping applies to embed_text only.
+
+    display_text is the copy KaTeX renders and the copy the model reads as
+    context, so it has to stay verbatim.
+    """
+    page = _page(
+        lang="en",
+        markdown=(
+            r"Let $X \times Y$ be the product space over which the scoring "
+            "function is defined, and let n denote the number of samples."
+        ),
+    )
+
+    chunks = build_chunks([page])
+
+    assert chunks
+    assert r"\times" in chunks[0].display_text
+    assert r"\times" not in chunks[0].embed_text
+    assert "product space" in chunks[0].embed_text

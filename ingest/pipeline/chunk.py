@@ -35,18 +35,46 @@ _FIGURE_REF = re.compile(r"\[\[FIGURE:([^\]]+)\]\]")
 _HEADING = re.compile(r"^(#{1,6})\s+", re.MULTILINE)
 
 
+def _squash(s: str) -> str:
+    return re.sub(r"\s+", "", s)
+
+
+#: LaTeX control sequences, and the punctuation that only exists to drive them.
+_LATEX_COMMAND = re.compile(r"\\[a-zA-Z]+\s*|\\.")
+_LATEX_PUNCT = re.compile(r"[{}^_$&~]")
+
+
+def _strip_inline_math(body: str) -> str:
+    """Reduce inline math to the symbols a reader would say out loud.
+
+    Stripping only the `$` delimiters is not enough. `$x$` becomes a useful
+    `x`, but `$\\{(x_i, y_i)\\}_{i=1}^n$` becomes `\\{(x_i, y_i)\\}_{i=1}^n` —
+    and since embed_text is full-text indexed as well as embedded, `\\times`
+    ends up as a searchable token. Control sequences go, the identifiers stay.
+    """
+    text = _LATEX_COMMAND.sub(" ", body)
+    text = _LATEX_PUNCT.sub(" ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _to_embed_text(markdown: str, page: Page) -> str:
     """Rewrite a markdown fragment into prose suitable for embedding and FTS."""
     by_id = {f.id: f for f in page.figures}
-    formulas = list(page.formulas)
-    counter = {"i": 0}
+    # Keyed by the LaTeX itself, not by position.
+    #
+    # This function is called once per block, so a positional counter restarts
+    # at every block: a page whose second block holds the second equation would
+    # get the first equation's spoken reading attached to it. Matching on
+    # content is stable however the page is split.
+    by_latex = {_squash(f.latex): f for f in page.formulas if f.latex}
 
-    def swap_display(_m: re.Match[str]) -> str:
-        i = counter["i"]
-        counter["i"] += 1
-        if i < len(formulas) and formulas[i].plain:
-            return f" {formulas[i].plain} "
-        # No spoken reading available — drop the LaTeX rather than embed it.
+    def swap_display(m: re.Match[str]) -> str:
+        formula = by_latex.get(_squash(m.group(1)))
+        if formula is not None and formula.plain:
+            return f" {formula.plain} "
+        # No spoken reading available, or the markdown and the extracted LaTeX
+        # disagree. Drop it rather than embed raw LaTeX, which is the whole
+        # point of the dual representation.
         return " "
 
     def swap_figure(m: re.Match[str]) -> str:
@@ -58,8 +86,10 @@ def _to_embed_text(markdown: str, page: Page) -> str:
 
     text = _DISPLAY_MATH.sub(swap_display, markdown)
     text = _FIGURE_REF.sub(swap_figure, text)
-    text = _INLINE_MATH.sub(lambda m: m.group(1), text)
+    text = _INLINE_MATH.sub(lambda m: f" {_strip_inline_math(m.group(1))} ", text)
     text = re.sub(r"[#*`>]+", " ", text)
+    # Anything left with a backslash never belonged to the prose form.
+    text = _LATEX_COMMAND.sub(" ", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
