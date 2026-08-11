@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { ChatPanel } from "@/components/ChatPanel";
 import { SignOutButton } from "@/components/SignOutButton";
+import { Workspace } from "@/components/Workspace";
 import { currentUser } from "@/lib/supabase/server";
 
 export default async function Home() {
@@ -22,7 +22,7 @@ export default async function Home() {
           đều dựa trên tài liệu bạn đã tải lên và có trích dẫn số trang.
         </p>
       </header>
-      <ChatPanel />
+      <Workspace />
     </main>
   );
 }

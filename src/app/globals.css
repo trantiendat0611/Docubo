@@ -175,3 +175,97 @@ button.link {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* --- upload --- */
+.upload {
+  margin: 1.5rem 0;
+}
+
+.upload-drop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.4rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.upload-drop:hover {
+  border-color: var(--accent);
+}
+
+.upload-drop input {
+  display: none;
+}
+
+.upload-drop small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.progress {
+  height: 6px;
+  margin-top: 0.75rem;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.message {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.message.error {
+  color: #b45309;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* --- documents --- */
+.docs {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.docs summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.doclist {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.doclist li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-title {
+  display: block;
+}
+
+.doc-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
