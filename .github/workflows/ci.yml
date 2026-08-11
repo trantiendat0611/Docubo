@@ -45,6 +45,11 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      - name: Tests
+        # The chunker parity test skips itself here: it compares against a
+        # reference generated from data/, which is gitignored. It is a local
+        # guard against the two pipelines drifting apart, not a CI gate.
+        run: npm test
       - name: Build
         run: npm run build
         env:
