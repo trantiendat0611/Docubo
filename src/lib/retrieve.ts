@@ -1,7 +1,9 @@
 import { embed } from "ai";
 import { EMBED_DIM, EMBED_MODEL, gemini } from "./gemini";
 import { userClient } from "./supabase/server";
-import type { QueryAnalysis, RetrievedChunk } from "./types";
+import type { DocumentSummary, QueryAnalysis, RetrievedChunk } from "./types";
+
+export { resolveMentionedDocument } from "./scope";
 
 /**
  * Hybrid retrieval against the hybrid_search RPC.
@@ -14,6 +16,15 @@ import type { QueryAnalysis, RetrievedChunk } from "./types";
  */
 
 export const MATCH_LIMIT = 8;
+
+/**
+ * Chunks sampled across a document for an overview.
+ *
+ * Higher than MATCH_LIMIT because a summary needs breadth rather than
+ * precision, and low enough that twelve chunks of display text still fit a
+ * prompt comfortably.
+ */
+export const OVERVIEW_CHUNKS = 12;
 export const CANDIDATE_LIMIT = 30;
 export const RRF_K = 60;
 
@@ -51,9 +62,41 @@ export async function embedQuery(text: string): Promise<number[]> {
   return embedding;
 }
 
+/**
+ * Chunks spread across one document, in reading order.
+ *
+ * The path for "summarise this" — a request similarity search cannot serve,
+ * because no passage means "all of it" and the query ends up matching whatever
+ * is loosely on-topic anywhere in the corpus.
+ */
+export async function retrieveOverview(
+  documentId: string,
+): Promise<RetrievedChunk[]> {
+  const supabase = await userClient();
+  const { data, error } = await supabase.rpc("document_overview", {
+    doc: documentId,
+    max_chunks: OVERVIEW_CHUNKS,
+  });
+
+  if (error) throw new Error(`document_overview failed: ${error.message}`);
+  return (data ?? []) as RetrievedChunk[];
+}
+
+/** The user's documents, for scoping and for resolving a name in a question. */
+export async function listDocuments(): Promise<DocumentSummary[]> {
+  const supabase = await userClient();
+  const { data } = await supabase
+    .from("documents")
+    .select("id, filename, title, lang, n_pages")
+    .order("created_at", { ascending: false });
+
+  return (data ?? []) as DocumentSummary[];
+}
+
 export async function retrieve(
   analysis: QueryAnalysis,
   original: string,
+  documentIds?: string[],
 ): Promise<RetrievedChunk[]> {
   // Embed the question as written. The embedding model is multilingual, so the
   // dense arm already crosses languages; re-embedding a translation would spend
@@ -71,7 +114,10 @@ export async function retrieve(
     match_limit: MATCH_LIMIT,
     candidate_limit: CANDIDATE_LIMIT,
     rrf_k: RRF_K,
-    filter_documents: null,
+    // Null means the whole corpus. Scoping matters once a user has several
+    // documents: a question about one paper otherwise competes with every
+    // other document that shares its topic.
+    filter_documents: documentIds?.length ? documentIds : null,
   });
 
   if (error) throw new Error(`hybrid_search failed: ${error.message}`);

@@ -6,9 +6,16 @@ import {
   buildContext,
   buildSystemPrompt,
   blockedMessage,
+  needsDocumentMessage,
   refusalMessage,
 } from "@/lib/prompt";
-import { isUngrounded, retrieve } from "@/lib/retrieve";
+import {
+  isUngrounded,
+  listDocuments,
+  resolveMentionedDocument,
+  retrieve,
+  retrieveOverview,
+} from "@/lib/retrieve";
 import { logQuery } from "@/lib/log";
 import { currentUser } from "@/lib/supabase/server";
 
@@ -28,7 +35,10 @@ export async function POST(req: Request) {
     return Response.json({ error: "unauthenticated" }, { status: 401 });
   }
 
-  const { question } = (await req.json()) as { question?: string };
+  const { question, documentId } = (await req.json()) as {
+    question?: string;
+    documentId?: string;
+  };
 
   if (!question?.trim()) {
     return Response.json({ error: "question is required" }, { status: 400 });
@@ -51,7 +61,43 @@ export async function POST(req: Request) {
     });
   }
 
-  const chunks = await retrieve(analysis, question);
+  // Resolve which document the question is about, in order of confidence:
+  // an explicit selection, then a document named in the question itself.
+  const documents = await listDocuments();
+  const mentioned = resolveMentionedDocument(question, documents);
+  const scopedId =
+    documentId && documents.some((d) => d.id === documentId)
+      ? documentId
+      : (mentioned?.id ?? null);
+
+  let chunks;
+
+  if (analysis.wants_overview) {
+    // "Summarise this" cannot be served by similarity search — no passage means
+    // "all of it", so the query matches whatever is loosely on-topic anywhere
+    // in the corpus. A whole-document request needs a document.
+    const target =
+      scopedId ?? (documents.length === 1 ? documents[0].id : null);
+
+    if (!target) {
+      void logQuery({
+        question,
+        user_id: user.id,
+        question_lang: analysis.lang,
+        blocked_by: "needs_document",
+        latency_ms: Date.now() - started,
+      });
+      return Response.json({
+        type: "needs_document",
+        message: needsDocumentMessage(analysis.lang),
+        documents: documents.map((d) => ({ id: d.id, title: d.title ?? d.filename })),
+      });
+    }
+
+    chunks = await retrieveOverview(target);
+  } else {
+    chunks = await retrieve(analysis, question, scopedId ? [scopedId] : undefined);
+  }
 
   // The refusal path. Every question that reaches the model must have context
   // worth grounding on — an LLM handed weak context will produce a confident
@@ -88,7 +134,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: gemini(CHAT_MODEL),
-    system: buildSystemPrompt(analysis.lang),
+    system: buildSystemPrompt(analysis.lang, analysis.wants_overview),
     prompt: `<context>\n${buildContext(chunks)}\n</context>\n\n<question>\n${question}\n</question>`,
     temperature: 0.2,
   });

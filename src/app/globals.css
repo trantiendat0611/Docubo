@@ -269,3 +269,26 @@ button.link {
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+.scope {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.scope select {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.85rem;
+}
+
+.turn-needs_document .prose {
+  color: var(--muted);
+}

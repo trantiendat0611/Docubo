@@ -20,7 +20,7 @@ export function Workspace() {
         <summary>Tài liệu của bạn</summary>
         <DocumentList reloadKey={reloadKey} />
       </details>
-      <ChatPanel />
+      <ChatPanel reloadKey={reloadKey} />
     </>
   );
 }

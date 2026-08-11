@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CitationList } from "./CitationList";
+import { ScopePicker } from "./ScopePicker";
 import { Markdown } from "./Markdown";
 import type { Citation } from "@/lib/types";
 
@@ -9,11 +10,12 @@ interface Turn {
   question: string;
   answer: string;
   citations: Citation[];
-  kind: "answer" | "refusal" | "blocked";
+  kind: "answer" | "refusal" | "blocked" | "needs_document";
 }
 
-export function ChatPanel() {
+export function ChatPanel({ reloadKey }: { reloadKey: number }) {
   const [input, setInput] = useState("");
+  const [scope, setScope] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -33,7 +35,9 @@ export function ChatPanel() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        // Empty scope means the whole corpus; the server also resolves a
+        // document named in the question itself.
+        body: JSON.stringify({ question, documentId: scope || undefined }),
       });
 
       // Refusals and blocks come back as JSON, answers as a token stream.
@@ -82,6 +86,8 @@ export function ChatPanel() {
           </div>
         ))}
       </div>
+
+      <ScopePicker value={scope} onChange={setScope} reloadKey={reloadKey} />
 
       <form onSubmit={send}>
         <input

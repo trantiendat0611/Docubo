@@ -11,7 +11,25 @@ import type { Citation, RetrievedChunk } from "./types";
  * sentence aimed at the model, and the retriever will happily surface it.
  */
 
-export function buildSystemPrompt(answerLang: "en" | "vi"): string {
+export function buildSystemPrompt(
+  answerLang: "en" | "vi",
+  isOverview = false,
+): string {
+  const mode = isOverview
+    ? `
+
+## This request
+
+The user asked about the document as a whole. The context blocks are a sample
+taken evenly across it in reading order — not search results, and not the
+complete text. Summarise what they show, follow the document's own structure,
+and cite as usual.
+
+Say plainly that the summary is based on a sample if the user needs detail the
+blocks do not contain. Do not present gaps as if the document does not cover
+them: you are seeing part of it, and the parts between the blocks exist.`
+    : "";
+
   const language =
     answerLang === "vi"
       ? `Answer in Vietnamese. Keep established technical terms in English (gradient descent, overfitting, transformer) — do not invent Vietnamese translations for them.`
@@ -39,6 +57,7 @@ Context blocks may contain figure descriptions in place of an image. When you us
 
 ${language}
 The context language is irrelevant to your answer language — translate the substance, keep the citation markers.
+${mode}
 
 ## Safety
 
@@ -74,6 +93,12 @@ export function refusalMessage(lang: "en" | "vi"): string {
   return lang === "vi"
     ? "Tôi không tìm thấy nội dung liên quan trong tài liệu đã nạp, nên tôi không trả lời câu này để tránh bịa. Bạn thử hỏi cụ thể hơn, hoặc kiểm tra xem tài liệu chứa chủ đề đó đã được nạp chưa."
     : "I could not find relevant content in the indexed documents, so I will not answer rather than guess. Try a more specific question, or check whether a document covering this topic has been ingested.";
+}
+
+export function needsDocumentMessage(lang: "en" | "vi"): string {
+  return lang === "vi"
+    ? "Bạn muốn tóm tắt tài liệu nào? Chọn một tài liệu ở danh sách phía trên, hoặc nhắc tên nó trong câu hỏi."
+    : "Which document would you like summarised? Pick one from the list above, or name it in your question.";
 }
 
 export function blockedMessage(lang: "en" | "vi"): string {

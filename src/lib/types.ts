@@ -45,6 +45,22 @@ export interface QueryAnalysis {
   query_vi: string;
   /** Technical terms worth matching literally, kept in English. */
   keywords: string[];
+  /**
+   * True for whole-document requests — summarise, outline, what is this about.
+   *
+   * These cannot be served by similarity search: no passage means "all of it",
+   * so the query matches whatever is loosely on-topic anywhere in the corpus.
+   * They take the document_overview path instead.
+   */
+  wants_overview: boolean;
+}
+
+export interface DocumentSummary {
+  id: string;
+  filename: string;
+  title: string | null;
+  lang: Lang;
+  n_pages: number | null;
 }
 
 export interface Citation {
