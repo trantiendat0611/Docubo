@@ -1,7 +1,8 @@
 # Docubo
 
-Trợ lí hỏi đáp tài liệu chuyên ngành **song ngữ Việt – Anh**, đọc được công thức
-toán và biểu đồ, mọi câu trả lời đều trích dẫn số trang nguồn.
+Trợ lí hỏi đáp **tài liệu do bạn tải lên**, song ngữ Việt – Anh. Đọc được công
+thức toán và biểu đồ, mọi câu trả lời đều trích dẫn số trang — và **từ chối trả
+lời** khi tài liệu không chứa câu trả lời.
 
 > Đồ án cuối kì thực tập AI Engineer. Toàn bộ hạ tầng chạy trên free tier,
 > chi phí 0 đồng.
@@ -19,7 +20,7 @@ thuật. Công thức toán là các glyph đặt theo toạ độ, trích ra th
 biểu đồ trích ra thành chuỗi rỗng. Một hệ RAG dựng trên nền đó sẽ trả lời tự
 tin về những nội dung nó chưa từng đọc được.
 
-## Cách giải
+## Bốn quyết định thiết kế
 
 **Ingest bằng vision.** Mỗi trang được render thành ảnh rồi đưa qua Gemini để
 lấy Markdown + LaTeX + mô tả biểu đồ, thay vì parse lớp text.
@@ -34,6 +35,28 @@ nhưng full-text thì không: Postgres có từ điển tiếng Anh mà không c
 Hệ thống giữ hai cột `tsvector` riêng, sinh biến thể truy vấn cho cả hai ngôn
 ngữ trong cùng một lần gọi model, rồi hợp nhất ba danh sách bằng RRF.
 
+**Trình duyệt render PDF, không phải server.** Render phía server cần native
+canvas binding — thứ hạ tầng serverless xử lí tệ nhất — và đặt phần chậm nhất
+của ingest vào trong hàm 60 giây. Trình duyệt đã có sẵn canvas và đã có sẵn file.
+
+## Cô lập dữ liệu
+
+Người dùng tự tải tài liệu lên, nên tài liệu của người này không được lọt vào
+câu trả lời của người khác. Việc đó được đảm bảo **ở tầng database**, không phải
+ở tầng ứng dụng:
+
+| Đường | Client | RLS |
+|---|---|---|
+| Đọc, truy vấn | JWT người dùng | Có hiệu lực |
+| Ghi khi ingest | `service_role` | Bỏ qua, tự đặt `owner_id` |
+
+Hàm `hybrid_search` là `SECURITY INVOKER`, nên policy lọc chunk ngay trong
+database. Route handler quên lọc theo chủ sở hữu sẽ trả về **rỗng**, không phải
+tài liệu người khác.
+
+Đã kiểm chứng bằng thực nghiệm: client ẩn danh và người dùng thứ hai đã đăng
+nhập đều thấy 0 dòng ở cả bốn bảng.
+
 ## Kiến trúc
 
 - [Sơ đồ tổng quan hệ thống](docs/architecture/01-high-level.mmd)
@@ -42,22 +65,30 @@ ngữ trong cùng một lần gọi model, rồi hợp nhất ba danh sách bằ
 | Thành phần | Công nghệ |
 |---|---|
 | Frontend & API | Next.js 15 trên Vercel Hobby |
+| Xác thực | Supabase Auth, email + mật khẩu |
 | LLM | Gemini Flash (vision, phân tích truy vấn, sinh câu trả lời) |
 | Embedding | Gemini Embedding, 768 chiều |
 | Vector DB | Supabase Postgres + pgvector, index HNSW |
-| Ingest | Python + PyMuPDF, chạy offline |
-| CI | GitHub Actions — lint, typecheck, build |
+| Render PDF | `pdfjs-dist`, chạy trong trình duyệt |
+| Ingest hàng loạt | Python + PyMuPDF, CLI nội bộ |
+| CI | GitHub Actions — lint, typecheck, test, build |
 
 ## Cấu trúc thư mục
 
 ```
-db/              schema SQL và RPC hybrid_search
-docs/            kế hoạch, requirements, sơ đồ, SKILL_MY_PROJECT
-ingest/          pipeline Python: render -> vision -> cache -> chunk -> embed -> store
-eval/            bộ câu hỏi đánh giá, metrics, harness
-src/             ứng dụng Next.js (UI + /api/chat)
-data/            PDF nguồn, ảnh trang, cache JSON — gitignored
+db/       6 migration SQL: schema, hybrid search, RLS, đa người dùng,
+          page cache, document overview
+docs/     kế hoạch, requirements, sơ đồ, SKILL_MY_PROJECT
+src/      ứng dụng Next.js — UI, route ingest, route chat, thư viện ingest TS
+ingest/   pipeline Python, dùng để nạp corpus lớn và sinh dữ liệu eval
+eval/     bộ câu hỏi đánh giá, metrics, harness
+data/     PDF nguồn, ảnh trang, cache JSON — gitignored
 ```
+
+Hai pipeline ingest cùng tồn tại có chủ ý: bản TypeScript phục vụ người dùng
+tải lên, bản Python phục vụ nạp hàng loạt và chạy eval. Chúng **bắt buộc phải
+sinh ra chunk giống hệt nhau** — có một parity test so từng byte, chạy bằng
+`npx vitest run parity`.
 
 ## Chạy tại máy
 
@@ -68,15 +99,23 @@ cp .env.example .env
 ```
 
 Điền `GEMINI_API_KEY` (lấy ở [aistudio.google.com](https://aistudio.google.com)),
-`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
+`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
 **2. Dựng cơ sở dữ liệu**
 
-Chạy `db/001_schema.sql` rồi `db/002_hybrid_search.sql` trong Supabase SQL editor.
+Chạy 6 file trong `db/` theo đúng thứ tự số, trong Supabase SQL Editor.
+
+Rồi tắt xác nhận email: Authentication → Sign In / Providers → Email →
+tắt **Confirm email**. Free tier không có SMTP nên bật nó sẽ chặn việc đăng ký.
 
 **3. Cài phụ thuộc**
 
-Python — tạo môi trường ảo riêng cho dự án, đừng cài vào env hệ thống:
+```bash
+npm install
+```
+
+Python (chỉ cần nếu dùng CLI nạp hàng loạt) — tạo môi trường ảo riêng:
 
 ```bash
 python -m venv .venv
@@ -86,44 +125,74 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -r ingest/requirements.txt
 ```
 
-Trên macOS/Linux đường dẫn là `.venv/bin/python`. Mọi lệnh `python -m ingest...`
-bên dưới đều chạy bằng interpreter trong `.venv`.
-
-Node:
-
-```bash
-npm install
-```
-
-**4. Kiểm tra model đọc được tài liệu của bạn**
-
-```bash
-python -m ingest.main spike data/raw/tai-lieu.pdf --pages 12,31,44
-```
-
-Đọc kết quả bằng mắt trước khi ingest cả tài liệu. Nếu công thức sai, tăng
-`RENDER_DPI` trong `ingest/config.py` rồi chạy lại.
-
-**5. Nạp tài liệu**
-
-```bash
-python -m ingest.main all data/raw/tai-lieu.pdf --title "Tên tài liệu"
-```
-
-Giai đoạn vision cache từng trang ra `data/cache/`. Lần chạy sau chỉ xử lí
-trang chưa có cache, nên chỉnh chunker hay đổi embedding model không tốn thêm
-quota vision.
-
-**6. Chạy web**
+**4. Chạy**
 
 ```bash
 npm run dev
 ```
 
+Đăng ký tài khoản, tải lên một PDF ≤ 25 trang, đợi xử lí xong rồi hỏi.
+**Giữ tab hiển thị** trong lúc xử lí — trình duyệt đình chỉ việc vẽ trang ở tab
+nền, và pdfjs sẽ dừng theo.
+
+## CLI nạp hàng loạt
+
+Dùng khi cần nạp corpus lớn hơn giới hạn 25 trang của giao diện, hoặc để chuẩn
+bị dữ liệu cho eval.
+
+```bash
+.venv/Scripts/python -m ingest.main models
+```
+
+```bash
+.venv/Scripts/python -m ingest.main check-db
+```
+
+```bash
+.venv/Scripts/python -m ingest.main spike data/raw/tai-lieu.pdf --pages 12,31,44
+```
+
+`spike` đọc vài trang khó nhất và in kết quả ra để người đọc tự đánh giá, không
+đụng database. Chạy nó trước khi nạp cả tài liệu.
+
+```bash
+.venv/Scripts/python -m ingest.main all data/raw/tai-lieu.pdf --title "Tên tài liệu"
+```
+
+```bash
+.venv/Scripts/python -m ingest.main query "câu hỏi thử"
+```
+
+Giai đoạn vision cache từng trang ra `data/cache/`. Lần chạy sau chỉ xử lí trang
+chưa có cache, nên chỉnh chunker hay đổi embedding model không tốn thêm quota.
+
+Nhớ đặt `INGEST_OWNER_ID` trong `.env`, nếu không tài liệu sẽ nạp thành công
+nhưng RLS ẩn nó khỏi mọi người dùng.
+
+## Kiểm thử
+
+```bash
+npm test
+```
+
+```bash
+.venv/Scripts/python -m pytest ingest/tests -q
+```
+
+Test chạy thật với Gemini và Supabase bị bỏ qua trừ khi bật cờ:
+
+```bash
+$env:RUN_LIVE=1
+```
+
+```bash
+npx vitest run live
+```
+
 ## Đánh giá
 
 ```bash
-python -m eval.run_eval --retrieval-only
+.venv/Scripts/python -m eval.run_eval --retrieval-only
 ```
 
 Bốn chỉ số, mỗi cái trả lời một câu hỏi khác nhau:
@@ -137,11 +206,20 @@ Bốn chỉ số, mỗi cái trả lời một câu hỏi khác nhau:
 
 ## Giới hạn đã biết
 
+**Quota là ràng buộc thật, không phải dung lượng.** Free tier cấp khoảng 20
+request vision mỗi ngày **cho mỗi model**. Gộp 8 trang một request và xoay vòng
+4 model được khoảng 640 trang/ngày — dùng chung cho toàn bộ người dùng. Vì vậy
+mỗi tài liệu giới hạn 25 trang và mỗi người 5 lượt tải/ngày.
+
 - Chỉ hỗ trợ PDF. DOCX/TXT nằm ở P1.
 - Không OCR tài liệu scan.
 - Full-text tiếng Việt dùng config `simple`, không stem được.
-- Ingest chạy tay ở máy cá nhân, không có giao diện upload.
+- Chuyển tab khi đang xử lí sẽ tạm dừng việc đọc trang.
+- Một số trang bị Gemini từ chối đọc vì `RECITATION`; chain model xử lí được
+  phần lớn nhưng không phải tất cả.
+- `document_pages` và PDF trong Storage chưa được dọn khi xoá tài liệu.
 
 ## Nguồn tài liệu
 
-*(Liệt kê tài liệu đã nạp kèm giấy phép. File PDF gốc không được commit.)*
+*(Liệt kê tài liệu dùng để thử nghiệm và đánh giá, kèm giấy phép. File PDF gốc
+không được commit.)*

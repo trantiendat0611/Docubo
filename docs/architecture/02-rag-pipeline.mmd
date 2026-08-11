@@ -1,21 +1,24 @@
 %% Sơ đồ 2 — Luồng RAG Pipeline (Task 1.4)
-%% Ý chính: mỗi chunk mang hai biểu diễn. embed_text để máy tìm, display_text để người đọc.
+%% Cập nhật 11/08. Hai ý chính:
+%%   1. Mỗi chunk mang hai biểu diễn — embed_text để máy tìm, display_text để người đọc
+%%   2. Câu hỏi mức tài liệu KHÔNG đi qua tìm kiếm tương đồng
 
 flowchart TB
-    subgraph ingest["Pha 1 — Ingest (offline, Python)"]
+    subgraph ingest["Pha 1 — Ingest (trình duyệt lái, từng lô)"]
         direction TB
-        A["Trang PDF"] -->|PyMuPDF, 200 dpi| B["Ảnh PNG<br/>p0001.png"]
-        B -->|Gemini vision<br/>1 request/trang| C["Page JSON<br/>markdown, formulas, figures"]
-        C --> D[("Cache trên đĩa<br/>không bao giờ gọi lại")]
-        D --> E{"Chunker<br/>700 token"}
+        A["File PDF<br/>tối đa 25 trang"] -->|pdfjs, 200 dpi| B["Ảnh PNG từng trang"]
+        B --> BB{"Gom theo<br/>ngân sách 3MB"}
+        BB -->|"8 trang nhẹ<br/>hoặc 3 trang nặng"| C["Gemini vision<br/>1 request mỗi lô"]
+        C --> D[("document_pages<br/>cache, không gọi lại")]
+        D --> E{"Chunker<br/>budget tính trên embed_text"}
         E --> F["display_text<br/>markdown + LaTeX"]
         E --> G["embed_text<br/>văn xuôi thuần"]
-        G -->|Gemini embedding<br/>RETRIEVAL_DOCUMENT| H["vector 768"]
+        G -->|"Gemini embedding<br/>RETRIEVAL_DOCUMENT"| H["vector 768"]
     end
 
-    subgraph store["Pha 2 — Lưu trữ (Supabase)"]
+    subgraph store["Pha 2 — Lưu trữ (Supabase, RLS bật)"]
         direction LR
-        I[("chunks")]
+        I[("chunks<br/>owner_id")]
         I --- I1["embedding<br/>HNSW cosine"]
         I --- I2["fts_en<br/>to_tsvector english"]
         I --- I3["fts_vi<br/>to_tsvector simple"]
@@ -24,21 +27,32 @@ flowchart TB
     F --> I
     H --> I
 
-    subgraph query["Pha 3 — Truy vấn (online, Vercel)"]
+    subgraph query["Pha 3 — Truy vấn (Vercel, dưới JWT người dùng)"]
         direction TB
-        Q["Câu hỏi<br/>VI hoặc EN"] --> R["Guardrail + phân tích<br/>1 lần gọi Gemini"]
+        Q["Câu hỏi<br/>VI hoặc EN"] --> R["Một lần gọi Gemini:<br/>an toàn · ngôn ngữ ·<br/>query_en/vi · wants_overview"]
         R -->|không an toàn| RX["Chặn"]
-        R --> S["query_en, query_vi,<br/>keywords, lang"]
-        S -->|RETRIEVAL_QUERY| T["vector câu hỏi"]
-        T --> U{{"hybrid_search<br/>RRF k=60"}}
-        S --> U
-        U --> V{"cosine_sim<br/>&ge; 0.35 ?"}
+        R --> SC{"Phạm vi tài liệu?<br/>chọn tay → nhắc tên →<br/>toàn corpus"}
+
+        SC --> OV{"Câu hỏi mức<br/>tài liệu?"}
+        OV -->|"có, chưa rõ tài liệu"| ASK["Hỏi lại: tài liệu nào?"]
+        OV -->|"có, đã rõ"| DOC["document_overview<br/>ntile 12 phần,<br/>trải đều theo thứ tự đọc"]
+        OV -->|không| T["Embed câu hỏi<br/>RETRIEVAL_QUERY"]
+
+        T --> U{{"hybrid_search<br/>dense + fts_en + fts_vi<br/>hợp nhất RRF k=60"}}
+        U --> V{"cosine_sim<br/>&ge; 0.60 ?"}
         V -->|không| W["Từ chối trả lời"]
-        V -->|có| X["Grounding prompt<br/>+ 8 context block"]
-        X -->|Gemini Flash, stream| Y["Câu trả lời<br/>+ marker trích dẫn"]
+        V -->|có| X["Grounding prompt"]
+        DOC --> X
+        X -->|"Gemini Flash, stream"| Y["Câu trả lời<br/>+ marker trích dẫn"]
         Y --> Z["UI: KaTeX + panel nguồn"]
     end
 
     I1 --> U
     I2 --> U
     I3 --> U
+    I --> DOC
+
+    %% Vì sao tách nhánh document_overview:
+    %% "Tóm tắt toàn bộ" không có đoạn nào tương đồng với nó, nên tìm kiếm
+    %% tương đồng trả về đoạn na ná chủ đề từ tài liệu bất kì — đã quan sát
+    %% thấy ở mức cosine 0.64, vừa đủ vượt ngưỡng từ chối.

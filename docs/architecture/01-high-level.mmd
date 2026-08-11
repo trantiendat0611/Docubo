@@ -1,44 +1,62 @@
 %% Sơ đồ 1 — Tổng quan hệ thống (Task 1.4)
-%% Xem trước: dán vào https://mermaid.live hoặc mở bằng extension Mermaid của VS Code
+%% Cập nhật 11/08: người dùng tự tải tài liệu lên, có đăng nhập và cô lập dữ liệu.
+%% Xem trước: dán vào https://mermaid.live hoặc extension Mermaid của VS Code
 
 graph TB
-    subgraph offline["Offline — máy cá nhân, chạy tay"]
-        PDF[("PDF nguồn<br/>data/raw")]
-        ING["Ingest pipeline<br/>Python"]
-        CACHE[("Cache JSON<br/>data/cache")]
-        PDF --> ING
-        ING <--> CACHE
+    USER(["Người dùng<br/>đăng nhập bằng email"])
+
+    subgraph browser["Trình duyệt"]
+        UI["Next.js UI<br/>chat · upload · danh sách tài liệu"]
+        PDFJS["pdfjs-dist<br/>render trang thành PNG"]
+    end
+
+    subgraph vercel["Vercel — Hobby, mỗi hàm 60s"]
+        MW["middleware<br/>làm mới session"]
+        UP["/api/upload<br/>tạo job, lưu PDF"]
+        STEP["/api/ingest/step<br/>đọc 1 lô trang"]
+        FIN["/api/ingest/finish<br/>chunk + embed"]
+        CHAT["/api/chat<br/>guardrail · truy hồi · sinh"]
     end
 
     subgraph google["Google AI — free tier"]
-        VIS["Gemini Flash<br/>đọc trang (vision)"]
+        VIS["Gemini Flash<br/>đọc trang (vision)<br/>~20 request/ngày mỗi model"]
         EMB["Gemini Embedding<br/>768 chiều"]
-        GEN["Gemini Flash<br/>sinh câu trả lời"]
+        GEN["Gemini Flash<br/>phân tích truy vấn<br/>+ sinh câu trả lời"]
     end
 
     subgraph supa["Supabase — free tier 500MB"]
-        DB[("Postgres + pgvector<br/>documents, chunks, query_log")]
+        AUTH[("Auth<br/>auth.users")]
+        DB[("Postgres + pgvector<br/>documents · chunks<br/>ingest_jobs · document_pages")]
+        ST[("Storage<br/>PDF gốc, riêng tư")]
     end
-
-    subgraph vercel["Vercel — Hobby plan"]
-        API["/api/chat<br/>Route Handler"]
-        UI["Next.js UI<br/>chat + KaTeX + citation"]
-    end
-
-    USER(["Người dùng<br/>hỏi tiếng Việt hoặc tiếng Anh"])
-
-    ING -->|1 request mỗi trang| VIS
-    ING -->|batch 32| EMB
-    ING -->|upsert| DB
 
     USER --> UI
-    UI --> API
-    API -->|phân tích truy vấn| GEN
-    API -->|embed câu hỏi| EMB
-    API -->|hybrid_search RPC| DB
-    API -->|sinh câu trả lời, stream| GEN
-    API -->|ghi log| DB
-    API -.->|SSE| UI
+    UI --> PDFJS
+    UI -.->|session cookie| MW
+
+    PDFJS -->|file PDF| UP
+    PDFJS -->|"ảnh trang, gom theo 3MB"| STEP
+    UI --> FIN
+    UI --> CHAT
+
+    UP --> ST
+    UP --> DB
+    STEP -->|"gộp 8 trang / request"| VIS
+    STEP --> DB
+    FIN --> EMB
+    FIN --> DB
+
+    CHAT --> GEN
+    CHAT --> EMB
+    CHAT -->|"hybrid_search / document_overview"| DB
+    CHAT -.->|"stream SSE"| UI
+
+    UI -->|"đọc danh sách tài liệu trực tiếp"| DB
+    MW --> AUTH
 
     classDef free fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     class google,supa,vercel free
+
+    %% Cô lập dữ liệu nằm ở database:
+    %% - đọc chạy dưới JWT người dùng, RLS quyết định thấy gì
+    %% - ghi chạy bằng service_role, tự đặt owner_id
