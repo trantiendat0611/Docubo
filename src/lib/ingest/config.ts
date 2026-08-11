@@ -35,6 +35,30 @@ export const MAX_UPLOAD_PAGES = 25;
 /** Render resolution for page images produced in the browser. */
 export const RENDER_SCALE = 200 / 72;
 
+/**
+ * Byte budget for one ingest request.
+ *
+ * A Vercel Hobby function rejects bodies over roughly 4.5MB. Page images at 200
+ * dpi average 480KB but reach 2MB on dense pages, so a fixed batch of eight
+ * fits on average and bursts past the limit whenever several heavy pages land
+ * together. Batching by size instead sends eight light pages or three heavy
+ * ones, and never a request that cannot be delivered.
+ *
+ * PNG rather than JPEG: slide pages are flat colour and large type, which PNG
+ * compresses better — a sample page measured 261KB as PNG against 358KB as
+ * JPEG at quality 85, with no artefacts around the formulas.
+ */
+export const UPLOAD_BYTES_PER_REQUEST = 3_000_000;
+
+/**
+ * Uploads per user per day.
+ *
+ * Vision quota is a shared, per-model daily budget across every user of the
+ * deployment, so one enthusiastic user can exhaust the corpus capacity for
+ * everyone. This is the cheapest possible fairness rule.
+ */
+export const MAX_UPLOADS_PER_DAY = 5;
+
 export function estimateTokens(text: string, lang: Lang = "en"): number {
   const ratio = CHARS_PER_TOKEN[lang] ?? 3.0;
   return Math.max(1, Math.floor(text.length / ratio));

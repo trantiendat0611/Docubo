@@ -97,8 +97,9 @@ function chain(): string[] {
 
 export interface PageImage {
   page: number;
-  /** Raw PNG bytes. */
+  /** Raw image bytes, PNG unless told otherwise. */
   bytes: Uint8Array;
+  mimeType?: string;
 }
 
 export class AllModelsExhausted extends Error {
@@ -128,12 +129,19 @@ export async function extractBatch(
   // One shape for every batch size, including one. A second schema for the
   // single-page case buys nothing and gives the two paths room to diverge.
   const content: Array<
-    { type: "text"; text: string } | { type: "image"; image: Uint8Array }
+    | { type: "text"; text: string }
+    | { type: "image"; image: Uint8Array; mimeType: string }
   > = [{ type: "text", text: PROMPT.replace("{page_instruction}", BATCH_INSTRUCTION) }];
 
   for (const img of images) {
     content.push({ type: "text", text: `--- PAGE ${img.page} ---` });
-    content.push({ type: "image", image: img.bytes });
+    // Stated rather than sniffed: the SDK can infer it, but a wrong guess
+    // surfaces as an unhelpful model error rather than a decode failure.
+    content.push({
+      type: "image",
+      image: img.bytes,
+      mimeType: img.mimeType ?? "image/png",
+    });
   }
 
   for (const model of chain()) {

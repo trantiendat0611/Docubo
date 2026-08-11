@@ -1,17 +1,41 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
+import { cookies, headers } from "next/headers";
 
 /**
- * Supabase client bound to the signed-in user's session.
+ * Supabase client bound to the caller's session.
  *
  * Use this for every read on the query path. Requests made through it carry the
  * user's JWT, so the row-level policies in db/004_multi_tenant.sql decide what
  * exists — a route handler that forgets to filter by owner gets an empty result
  * rather than someone else's documents.
  *
- * Never use this to write ingest data; that path needs `admin()`.
+ * Two ways to present a session:
+ *
+ *   cookies   the browser, managed by @supabase/ssr and the middleware.
+ *   bearer    `Authorization: Bearer <access_token>`, for anything that is not
+ *             a browser. The evaluation harness needs this to call /api/chat,
+ *             and it is what makes the routes testable without driving a real
+ *             session through a headless browser.
+ *
+ * Never use either to write ingest data; that path needs `admin()`.
  */
 export async function userClient() {
+  const bearer = (await headers()).get("authorization");
+
+  if (bearer?.toLowerCase().startsWith("bearer ")) {
+    // The token travels on every request this client makes, so RLS applies
+    // exactly as it does for a cookie session.
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { headers: { Authorization: bearer } },
+      },
+    );
+  }
+
   const store = await cookies();
 
   return createServerClient(
