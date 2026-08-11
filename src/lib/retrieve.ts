@@ -124,7 +124,21 @@ export async function retrieve(
   return (data ?? []) as RetrievedChunk[];
 }
 
-/** True when nothing retrieved is close enough to answer from. */
+/**
+ * True when nothing retrieved is close enough to answer from.
+ *
+ * Measured on the *highest* similarity in the result set, not on the first row.
+ * Those differ: hybrid_search orders by RRF, which rewards a chunk matched by
+ * several arms, and that chunk need not be the most similar one. A question
+ * about a table in the corpus was refused because the RRF winner scored 0.525
+ * while a chunk at rank two scored 0.608 — the retriever had found a good
+ * match and the check looked past it.
+ *
+ * Refusing when the corpus does contain the answer is the more expensive
+ * failure: the user concludes their document lacks the content.
+ */
 export function isUngrounded(chunks: RetrievedChunk[]): boolean {
-  return chunks.length === 0 || (chunks[0]?.cosine_sim ?? 0) < MIN_COSINE;
+  if (chunks.length === 0) return true;
+  const best = Math.max(...chunks.map((c) => c.cosine_sim ?? 0));
+  return best < MIN_COSINE;
 }

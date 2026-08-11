@@ -103,6 +103,27 @@ def search(
     return res.data or []
 
 
+def dense_search(
+    query_embedding: list[float],
+    match_limit: int = config.MATCH_LIMIT,
+) -> list[dict]:
+    """Vector similarity only, no lexical arms.
+
+    Exists so the contribution of the full-text arms can be measured rather
+    than assumed. Reporting hybrid numbers without this comparison says nothing
+    about whether the extra complexity earned its place.
+    """
+    res = (
+        _get()
+        .rpc(
+            "dense_search",
+            {"query_embedding": query_embedding, "match_limit": match_limit},
+        )
+        .execute()
+    )
+    return res.data or []
+
+
 def find_document(content_hash: str) -> dict | None:
     res = (
         _get()
