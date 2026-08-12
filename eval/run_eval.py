@@ -78,6 +78,34 @@ def from_expected_source(rows: list[dict], source: str | None) -> list[dict]:
     return [r for r in rows if r.get("filename") == source]
 
 
+def acceptable_locations(item: dict) -> list[tuple[str | None, list[int]]]:
+    """Every place in the corpus that genuinely answers the question.
+
+    Real corpora repeat themselves. "Học tăng cường quan tâm đến điều gì" is
+    answered by an English definition in one document and a shorter Vietnamese
+    description in another, and the system picked the Vietnamese one for a
+    Vietnamese question — a better choice than the single source the item
+    originally named. Scoring against one location marks that correct answer as
+    a miss and hides a real result behind a fake failure.
+    """
+    places = [(item.get("source"), item["expected_pages"])]
+    for alt in item.get("also_accept", []):
+        places.append((alt.get("source"), alt.get("pages", [])))
+    return places
+
+
+def score_against(rows: list[dict], item: dict) -> tuple[bool, float]:
+    """Best hit and MRR across every acceptable location."""
+    best_hit = False
+    best_mrr = 0.0
+    for source, expected in acceptable_locations(item):
+        pages = covered_pages(from_expected_source(rows, source))
+        if metrics.hit_at_k(pages, expected):
+            best_hit = True
+        best_mrr = max(best_mrr, metrics.mrr(pages, expected))
+    return best_hit, best_mrr
+
+
 def run_retrieval(items: list[dict], dense_only: bool) -> list[dict]:
     results: list[dict] = []
 
@@ -123,12 +151,17 @@ def run_retrieval(items: list[dict], dense_only: bool) -> list[dict]:
         }
 
         if item["category"] in RETRIEVABLE:
-            scoped = (
-                rows if dense_only else from_expected_source(rows, item.get("source"))
-            )
-            pages = covered_pages(scoped)
-            record["hit"] = metrics.hit_at_k(pages, item["expected_pages"])
-            record["mrr"] = round(metrics.mrr(pages, item["expected_pages"]), 3)
+            if dense_only:
+                # dense_search does not return a filename, so location filtering
+                # is not possible; score on pages alone.
+                pages = covered_pages(rows)
+                hit = metrics.hit_at_k(pages, item["expected_pages"])
+                mrr_score = metrics.mrr(pages, item["expected_pages"])
+            else:
+                hit, mrr_score = score_against(rows, item)
+                pages = covered_pages(rows)
+            record["hit"] = hit
+            record["mrr"] = round(mrr_score, 3)
             record["retrieved_pages"] = pages[:12]
         else:
             record["hit"] = None
@@ -203,15 +236,17 @@ def run_full(items: list[dict], api: str, token: str) -> list[dict]:
         }
 
         if item["category"] in RETRIEVABLE and kind == "answer":
-            pages: list[int] = []
-            for citation in citations:
-                if item.get("source") and citation.get("filename") != item["source"]:
-                    continue
-                for page in range(citation["pageStart"], citation["pageEnd"] + 1):
-                    if page not in pages:
-                        pages.append(page)
-            record["hit"] = metrics.hit_at_k(pages, item["expected_pages"])
-            record["mrr"] = round(metrics.mrr(pages, item["expected_pages"]), 3)
+            rows = [
+                {
+                    "filename": c.get("filename"),
+                    "page_start": c["pageStart"],
+                    "page_end": c["pageEnd"],
+                }
+                for c in citations
+            ]
+            hit, mrr_score = score_against(rows, item)
+            record["hit"] = hit
+            record["mrr"] = round(mrr_score, 3)
 
         results.append(record)
         print(f"  {item['id']:8} {item['category']:14} {kind:15} {latency:5}ms")

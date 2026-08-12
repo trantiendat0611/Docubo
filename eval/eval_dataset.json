@@ -28,7 +28,8 @@
     "source": "filename the answer lives in. null for should_refuse",
     "expected_pages": "pages that genuinely contain the answer. A retrieved chunk counts as a hit when its page range covers any of these. [] for should_refuse",
     "expected_points": "facts a correct answer must state. The LLM judge scores against these, not against a gold sentence",
-    "notes": "why this item is in the set, so it still makes sense in week 8"
+    "notes": "why this item is in the set, so it still makes sense in week 8",
+    "also_accept": "cac vi tri khac cung tra loi dung cau hoi, dang [{source, pages}]. Corpus that co noi dung trung lap; mot cau hoi tra loi duoc tu hai tai lieu thi ca hai deu dung, va ep mot nguon duy nhat se cham TRUOT mot cau tra loi dung."
   },
   "written": "2026-08-11, against the corpus above. Every question was written by reading the actual indexed chunks — no question asks about content that is not there, and no expected_pages value is a guess.",
   "items": [
@@ -123,9 +124,17 @@
         "cách một agent hành động trong môi trường",
         "để tối đa hoá một khái niệm phần thưởng tích luỹ"
       ],
-      "notes": "CROSS-LINGUAL. Thuật ngữ 'học tăng cường' phải khớp được với 'reinforcement learning' trong nguồn tiếng Anh.",
+      "notes": "CROSS-LINGUAL. Noi dung nay co o CA HAI tai lieu: dinh nghia tieng Anh o testta1 p21-22, va mo ta tieng Viet ngan hon o testtv1 p5. He thong tra loi tu ban tieng Viet cho cau hoi tieng Viet — hop li, va bo eval ban dau cham truot vi chi chap nhan mot nguon.",
       "query_en": "what is reinforcement learning objective",
-      "query_vi": "reinforcement learning quan tâm đến điều gì"
+      "query_vi": "reinforcement learning quan tâm đến điều gì",
+      "also_accept": [
+        {
+          "source": "testtv1.pdf",
+          "pages": [
+            5
+          ]
+        }
+      ]
     },
     {
       "id": "t-006",
