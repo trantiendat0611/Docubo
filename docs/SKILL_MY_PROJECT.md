@@ -26,10 +26,106 @@
 Dán output thật vào đây — đây là bằng chứng mạnh nhất cho quyết định kiến trúc,
 và cũng là slide đắt giá nhất trong buổi demo.)*
 
+Trang thử: `data/raw/testta1.pdf` trang 44 — hai công thức tích, chỉ số chồng,
+một phân số. Cùng một trang chạy qua ba đường: `pypdf 6.15.0`,
+`pymupdf 1.28.2`, và pipeline vision (`gemini-3.5-flash`).
+
+**Đường text layer — `pypdf.extract_text()`:**
+
 ```
-TODO: dán output rác của pypdf trên một trang công thức
-TODO: dán output của pipeline vision trên đúng trang đó
+Probabilistic graphical models
+Graph theory and Probability theory
+ A directed graphical model
+consists of a collection of prob.
+distributions that factorize as
+(pak = set of parent nodes of xk):
+𝑝 𝑥1, … , 𝑥𝑚 =  𝑝 (𝑥𝑘|pa𝑘)
+𝑘=1..𝑚
+
+ A undirected graphical model
+consists of a collection of
+probability distributions that
+factorize as
+𝑝 𝑥1, … , 𝑥𝑚 = 1
+𝑍  𝜓𝐶 (𝑥𝐶)
+𝐶∈𝒞
+
+𝒞 = {maximal cliques of graph},
+𝜓𝐶 is the compatibility function.
 ```
+
+`pymupdf` cho kết quả gần như trùng khít — khác vài khoảng trắng. Đây **không
+phải lỗi của một thư viện**, mà là giới hạn của chính lớp text trong PDF.
+
+**Đường vision — cùng trang 44:**
+
+```markdown
+- A directed graphical model consists of a collection of prob. distributions
+  that factorize as ($\text{pa}_k$ = set of parent nodes of $x_k$):
+
+$$p(x_1, ..., x_m) = \prod_{k=1..m} p(x_k|\text{pa}_k)$$
+
+- A undirected graphical model consists of a collection of probability
+  distributions that factorize as
+
+$$p(x_1, ..., x_m) = \frac{1}{Z} \prod_{C \in \mathcal{C}} \psi_C (x_C)$$
+```
+
+kèm `plain` cho mỗi công thức — bản diễn giải thành lời, thứ thật sự được embed:
+
+> The joint probability distribution of variables x 1 through x m is equal to
+> the product over k from 1 to m of the conditional probability of x k given
+> its parent nodes pa k.
+
+**Cái gì bị phá, chính xác:**
+
+| Hiện tượng | Bằng chứng | Hậu quả |
+|---|---|---|
+| Toán tử ∏ **biến mất hoàn toàn** | `"∏" in text → False` ở cả hai thư viện | `p(x₁…xₘ) = p(xₖ\|paₖ)` — đây là một **phương trình khác**, và là phương trình sai |
+| Cận của tích rơi xuống dòng riêng | `𝑘=1..𝑚` nằm sau thân công thức | Thứ tự đọc vỡ; không ghép lại được bằng heuristic |
+| Phân số tách làm hai dòng | `= 1` ⏎ `𝑍` | `1/Z` thành "1" và "Z" rời nhau. `"/" in text → False` |
+| Chỉ số dưới bị làm phẳng | `pa_k` → `pak`, `X_A` → `XA` | `pak` là một token không tồn tại trong bất kì câu hỏi nào |
+| Biến mã bằng Unicode math-italic | `𝑝` = U+1D45D, không phải `p` = U+0070 | Người dùng gõ `p(x)` không khớp `𝑝(𝑥)`. Cả embedding lẫn `tsvector` đều trượt |
+| Mũi tên → mất | `"→" in text → False` | "Consider all A, B, C  all cond. independence assertions" |
+
+Điểm đáng sợ nhất không phải chuỗi rác — mà là **văn xuôi vẫn sạch**. Prose
+quanh công thức đọc ra hoàn hảo. Một hệ RAG dựng trên đường này trông vẫn chạy
+tốt, chỉ âm thầm dạy sai người dùng đúng ở chỗ tài liệu có giá trị nhất.
+
+**Vật chứng thứ hai — trang 31, ba hình, không công thức:**
+
+```
+Structured prediction
+An umbrella term for machine learning and
+regression techniques that involve predicting
+structured objects. (liên quan việc đoán nhận các
+đối tượng có cấu trúc).
+<U+F06E> Examples
+<U+F071> Multi-class labeling
+...
+31
+b r e a c
+```
+
+Ba hình trên trang: minh hoạ nhận dạng chữ viết tay, phân đoạn point cloud 3D,
+và cây phân tích cú pháp. Hai hình sau đóng góp **0 kí tự**. Hình đầu rò ra
+`b r e a c` — các glyph rời của chữ "brace" trong ảnh, sai cả thứ tự. Bullet ra
+`U+F06E` / `U+F071`, tức Private Use Area (glyph Wingdings) — vô nghĩa với
+embedder và làm bẩn chỉ mục full-text.
+
+Vision trên cùng trang trả về ba mô tả dùng được, ví dụ hình thứ ba:
+
+> Input x is the sentence 'The dog chased the cat'. An arrow points to the
+> output y, which is a constituency parse tree. The root node is S, which
+> splits into NP and VP…
+
+Đó là toàn bộ lí lẽ cho quyết định ingest bằng vision: trang 44 cho **thông tin
+sai**, trang 31 cho **không thông tin gì**, và cả hai đều không kèm dấu hiệu
+báo lỗi nào.
+
+*(Tái lập: `pypdf` không nằm trong `ingest/requirements.txt` — nó chỉ dùng cho
+phép đo này. Cài rời bằng `pip install pypdf` rồi đọc trang 44 và 31 của
+`testta1.pdf`.)*
 
 ### 1.2 Vì sao mỗi chunk cần hai biểu diễn
 
