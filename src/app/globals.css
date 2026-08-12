@@ -53,7 +53,8 @@ header p {
 }
 
 .turn-refusal .prose,
-.turn-blocked .prose {
+.turn-blocked .prose,
+.turn-error .prose {
   color: var(--muted);
   font-style: italic;
 }

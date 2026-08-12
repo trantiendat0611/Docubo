@@ -1,11 +1,12 @@
 import { streamText } from "ai";
-import { CHAT_MODELS, NO_SDK_RETRIES, gemini } from "@/lib/gemini";
+import { CHAT_MODELS, NO_SDK_RETRIES, gemini, isDailyQuota } from "@/lib/gemini";
 import { analyseQuery } from "@/lib/guardrail";
 import {
   buildCitations,
   buildContext,
   buildSystemPrompt,
   blockedMessage,
+  generationFailedMessage,
   needsDocumentMessage,
   refusalMessage,
 } from "@/lib/prompt";
@@ -17,6 +18,7 @@ import {
   retrieveOverview,
 } from "@/lib/retrieve";
 import { logQuery } from "@/lib/log";
+import { openTextStream } from "@/lib/stream";
 import { currentUser } from "@/lib/supabase/server";
 
 // Node runtime, not edge: @supabase/supabase-js is happier here, and the
@@ -145,10 +147,34 @@ export async function POST(req: Request) {
     ...NO_SDK_RETRIES,
   });
 
+  // The first token is pulled before any header is committed, so a generation
+  // that fails outright still returns a status the client can act on. Without
+  // it the route answered 200 with an empty body and left each client to guess
+  // both that it failed and why — the eval harness guessed wrong and scored
+  // seventeen failed generations as answers with missing citations.
+  let body;
+
+  try {
+    body = await openTextStream(result.textStream);
+  } catch (error) {
+    const daily = isDailyQuota(error);
+    return Response.json(
+      {
+        type: "error",
+        message: generationFailedMessage(analysis.lang, daily),
+        // A spent daily budget and a per-minute limit need different advice,
+        // and only the server can tell them apart.
+        reason: daily ? "daily_quota" : "rate_limited",
+      },
+      { status: 503 },
+    );
+  }
+
   // Citations ride along in a header so the client can render the source panel
   // as soon as the stream opens, instead of waiting for the last token.
-  return result.toTextStreamResponse({
+  return new Response(body, {
     headers: {
+      "Content-Type": "text/plain; charset=utf-8",
       "X-Citations": encodeURIComponent(JSON.stringify(citations)),
       // Lets the client say the answer may be weaker than usual rather than
       // presenting a degraded result as a normal one.

@@ -10,7 +10,7 @@ interface Turn {
   question: string;
   answer: string;
   citations: Citation[];
-  kind: "answer" | "refusal" | "blocked" | "needs_document";
+  kind: "answer" | "refusal" | "blocked" | "needs_document" | "error";
 }
 
 export function ChatPanel({ reloadKey }: { reloadKey: number }) {
@@ -65,15 +65,16 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
       }
 
       // A stream that carries no tokens is a failed generation, not an answer.
-      // The route returns 200 with citations either way, so without this check
-      // the user sees a source panel above an empty reply and no explanation.
+      // The route now catches that before sending headers and returns 503 with
+      // the reason, so this only fires when generation dies partway through —
+      // after the status is already committed and no longer changeable. The
+      // cause is genuinely unknown here, so the message does not name one.
       if (!acc.trim()) {
         patchLast({
           answer:
-            "Không sinh được câu trả lời. Nhiều khả năng đã hết hạn mức xử lí " +
-            "trong ngày — nguồn trích dẫn ở dưới vẫn là các đoạn tìm được, và " +
-            "câu hỏi này thử lại vào ngày mai sẽ chạy.",
-          kind: "refusal",
+            "Không sinh được câu trả lời — luồng phản hồi dừng giữa chừng. " +
+            "Nguồn trích dẫn ở dưới vẫn là các đoạn tìm được. Thử hỏi lại.",
+          kind: "error",
         });
         return;
       }

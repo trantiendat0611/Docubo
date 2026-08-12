@@ -101,6 +101,30 @@ export function needsDocumentMessage(lang: "en" | "vi"): string {
     : "Which document would you like summarised? Pick one from the list above, or name it in your question.";
 }
 
+/**
+ * Retrieval worked and generation did not.
+ *
+ * The two cases carry different advice and the difference is not cosmetic: a
+ * per-minute limit clears in a minute, a daily one does not clear until the
+ * quota resets. Sending someone away until tomorrow when the answer is sixty
+ * seconds off is the more expensive of the two mistakes, so the distinction is
+ * made on the server — where the quota id is actually readable — rather than
+ * guessed at by each client.
+ */
+export function generationFailedMessage(
+  lang: "en" | "vi",
+  daily: boolean,
+): string {
+  if (daily) {
+    return lang === "vi"
+      ? "Đã hết hạn mức sinh câu trả lời trong ngày. Câu hỏi này thử lại vào ngày mai sẽ chạy."
+      : "The daily generation quota is spent. This question will work again tomorrow.";
+  }
+  return lang === "vi"
+    ? "Hệ thống đang bị giới hạn tần suất nên chưa sinh được câu trả lời. Thử lại sau khoảng một phút."
+    : "Generation is rate limited right now. Try again in about a minute.";
+}
+
 export function blockedMessage(lang: "en" | "vi"): string {
   return lang === "vi"
     ? "Câu hỏi này bị chặn bởi bộ lọc an toàn. Tôi chỉ trả lời câu hỏi về nội dung tài liệu đã nạp."

@@ -193,7 +193,15 @@ def call_api(api: str, token: str, question: str) -> dict:
             kind = response.headers.get("content-type", "")
             citations = response.headers.get("X-Citations")
     except urllib.error.HTTPError as exc:
-        return {"error": f"HTTP {exc.code}", "body": exc.read().decode()[:300]}
+        raw = exc.read().decode()[:300]
+        # 503 from the chat route carries type/message/reason, and `reason`
+        # separates a spent daily quota from a per-minute limit. Keeping it is
+        # the difference between "re-run tomorrow" and "re-run in a minute".
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            return {"error": f"HTTP {exc.code}", "body": raw}
+        return {**parsed, "status": exc.code}
 
     if "application/json" in kind:
         return json.loads(body)
@@ -257,6 +265,9 @@ def run_full(items: list[dict], api: str, token: str, delay: float) -> list[dict
             # one produce identical-looking reports.
             "model": response.get("model"),
             "degraded": response.get("degraded", False),
+            # Set on a 503: "daily_quota" or "rate_limited". Which one decides
+            # whether the rest of the run is worth attempting today.
+            "reason": response.get("reason"),
             "latency_ms": latency,
             "answer": answer[:800],
         }
@@ -331,8 +342,11 @@ def summarise(results: list[dict]) -> dict:
         # numbers say, so the count sits beside them rather than in a log line
         # nobody re-reads. citation_validity above is a mean over the answers
         # that exist, so it stays honest — but over a smaller n than n_items.
+        # "error" is the route reporting the failure properly; "empty" is the
+        # older shape, a 200 with nothing in it. Both are a question that did
+        # not get answered.
         summary["n_generation_failed"] = sum(
-            1 for r in results if r.get("type") == "empty"
+            1 for r in results if r.get("type") in ("empty", "error")
         )
         summary["n_degraded"] = sum(1 for r in results if r.get("degraded"))
 
