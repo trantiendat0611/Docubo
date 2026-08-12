@@ -1,12 +1,20 @@
 # KẾ HOẠCH THỰC TẬP 8 TUẦN — Docubo
 
-> Task 1.2. Cập nhật 11/08.
+> Task 1.2. Cập nhật 12/08.
 >
 > **Thay đổi phạm vi so với bản gửi mentor tuần 1:** đề tài ban đầu là trợ lí
 > hỏi đáp trên **corpus cố định do lập trình viên nạp sẵn**. Sau khi làm rõ yêu
 > cầu, sản phẩm là trợ lí hỏi đáp trên **tài liệu do người dùng tự tải lên** —
 > kéo theo xác thực, cô lập dữ liệu đa người dùng, và một đường ingest chạy
 > trong trình duyệt. Lộ trình bên dưới phản ánh phạm vi mới.
+>
+> **Lộ trình đặt lại mốc ngày 12/08:** phần kĩ thuật chạy nhanh hơn dự kiến —
+> hết tuần 2 thì toàn bộ AI engine, giao diện web, deploy và CI đều đã xong,
+> tức là các Task 3.1, 3.2, 3.3 vốn xếp ở tuần 6–7 đã hoàn thành ở tuần 2.
+> Thay vì để lộ trình cũ mô tả sai hiện trạng, tuần 3–8 được viết lại quanh
+> phần việc thật sự còn lại: **đo lường, đúc kết tài liệu, và báo cáo**. Lí do
+> giữ nguyên độ dài 8 tuần thay vì kết thúc sớm được ghi ở mục "Vì sao không
+> rút ngắn" bên dưới.
 
 **Đề tài:** Trợ lí hỏi đáp tài liệu do người dùng tải lên, song ngữ Việt – Anh,
 đọc được công thức toán và biểu đồ, trả lời có trích dẫn số trang.
@@ -82,52 +90,111 @@ hạn dung lượng.
 - [x] Xác thực + cô lập dữ liệu đa người dùng
 - [x] Đường tải lên: 3 route, ingest TypeScript, UI, parity test với Python
 - [x] Cập nhật `REQUIREMENTS.md` và 2 sơ đồ theo phạm vi mới
-- [ ] **Viết `eval_dataset.json` 20–25 câu** ← việc lớn nhất còn lại
-- [ ] Hoàn thiện `run_eval.py`
-
-### Giai đoạn 2 — Đo lường & củng cố (Tuần 3–5)
-
-Giai đoạn này đổi trọng tâm: phần lớn AI engine đã chạy sớm hơn kế hoạch, nên
-thời gian dồn vào **đo lường** và **triển khai sớm** thay vì xây thêm.
-
-**Tuần 3 · 17/08 – 23/08**
-- [ ] Chạy eval baseline, ghi báo cáo lần 1
-- [ ] So sánh `hybrid_search` với `dense_search` — định lượng đóng góp nhánh lexical
-- [ ] Hiệu chỉnh `CHARS_PER_TOKEN` tiếng Việt bằng `countTokens`
-- [x] **Deploy Vercel** — làm ở tuần 2 thay vì tuần 7. https://docubo.vercel.app,
+- [x] Viết `eval_dataset.json` — 26 câu, 6 nhóm, 8 câu xuyên ngôn ngữ
+- [x] Hoàn thiện `run_eval.py` — 3 chế độ: retrieval-only, dense-only, full
+- [x] Chạy eval baseline + so sánh `hybrid_search` với `dense_search`:
+      nhánh lexical đáng giá **16.7 điểm phần trăm** recall xuyên ngôn ngữ
+      (0.833 → 1.000)
+- [x] **Deploy Vercel** — sớm hơn lộ trình 5 tuần. https://docubo.vercel.app,
       region Singapore để cùng khu vực với Supabase (0.76s → 0.34s mỗi request)
+- [x] **Bật CI trên GitHub** — sớm hơn lộ trình 2 tuần. Hai job (Python và web):
+      lint, format, typecheck, test, build. Không dùng secret nào nên CI không
+      bao giờ tiêu quota Gemini
+- [x] `SKILL_MY_PROJECT.md` §1.1 — đo pypdf/pymupdf so với vision trên cùng
+      một trang công thức
+- [ ] Chạy full eval 26 câu trên production, đủ 4 chỉ số ← việc còn lại
 
-**Tuần 4 · 24/08 – 30/08**
-- [ ] Bật CI trên GitHub (workflow đã viết, mô phỏng local đều xanh)
-- [ ] Xử lí lỗi mạng phía client (E10)
-- [ ] Dọn `document_pages` và Storage khi xoá tài liệu
-- [ ] Viết `SKILL_MY_PROJECT.md` phần quy trình
+### Giai đoạn 2 — Đo lường & đúc kết (Tuần 3–5)
 
-**Tuần 5 · 31/08 – 06/09**
-- [ ] Chạy eval lần 2 sau khi tinh chỉnh, so với baseline
-- [ ] P1 nếu còn thời gian: trích dẫn mở ảnh trang gốc
-- [ ] **Mốc kiểm: sản phẩm chạy ổn định trên Vercel, có số eval**
+Trọng tâm đổi hẳn so với bản tuần 1: sản phẩm P0 đã xong, nên ba tuần này dùng
+để **đo cho đúng** và **viết cho đủ**, không xây thêm tính năng.
+
+**Tuần 3 · 17/08 – 23/08** — đóng nốt phần đo
+- [ ] Nối `faithfulness` vào harness (cờ `--judge`). Hiện `FAITHFULNESS_PROMPT`
+      đã viết trong `eval/metrics.py` nhưng chưa chỗ nào gọi, trong khi
+      `REQUIREMENTS.md` đặt ngưỡng ≥ 0.90 cho nó
+- [ ] Thêm `id` chunk vào citation để harness dựng lại đúng context đã sinh ra
+      câu trả lời
+- [ ] `SKILL` §1.2 — đo cosine: LaTeX thô so với bản diễn giải, cùng câu hỏi
+- [ ] `SKILL` §1.3 — thí nghiệm truy hồi xuyên ngôn ngữ có và không có `query_en`
+- [ ] Phân tích khoảng cách giữa full mode và retrieval-only, ghi vào `SKILL` §4
+
+**Tuần 4 · 24/08 – 30/08** — trả nợ kĩ thuật, mở rộng định dạng
+- [ ] Dọn `document_pages` và file Storage khi xoá tài liệu (rò rỉ đã biết)
+- [ ] Nạp **TXT và DOCX** — đóng nốt Task 2.1 của mentor. Cả hai không cần
+      vision; cần chốt trước cách đánh số trang cho định dạng không phân trang
+- [ ] Hiệu chỉnh `CHARS_PER_TOKEN` tiếng Việt bằng `countTokens`
+- [ ] `/api/health` + GitHub Action hàng tuần, chống Supabase ngủ sau 7 ngày
+- [ ] `SKILL` §2 — 8 bước quy trình xây dựng
+
+**Tuần 5 · 31/08 – 06/09** — báo cáo chương 1–2
+- [ ] `docs/BAO_CAO.md` chương 1 — Tổng quan
+- [ ] Chương 2 — Phân tích & Thiết kế
+- [ ] Kiểm tra 2 sơ đồ kiến trúc render đúng và còn khớp code
+- [ ] **Mốc kiểm: sản phẩm ổn định trên Vercel, đủ 4 chỉ số eval, xong 2/5 chương**
 
 ### Giai đoạn 3 — Hoàn thiện (Tuần 6–7)
 
-**Tuần 6 · 07/09 – 13/09**
-- [ ] Rà UI: thông báo lỗi, trạng thái rỗng, giao diện điện thoại
-- [ ] Kiểm thử với người dùng thật ngoài mình
-- [ ] Sửa theo phản hồi
+**Tuần 6 · 07/09 – 13/09** — báo cáo chương 3–4, người dùng thật
+- [ ] Chương 3 — Triển khai kỹ thuật (nguyên liệu: `SKILL` §2 và §3)
+- [ ] Chương 4 — Kết quả đánh giá. Một bảng duy nhất, ghi rõ chế độ chạy và cỡ
+      mẫu cho từng con số
+- [ ] Kiểm thử với ít nhất 2 người ngoài, ghi lại chỗ họ vấp
+- [ ] Rà UI theo phản hồi: thông báo lỗi, trạng thái rỗng, giao diện điện thoại
 
-**Tuần 7 · 14/09 – 20/09**
-- [ ] Chạy eval lần cuối trên bản production
+**Tuần 7 · 14/09 – 20/09** — chốt số, chốt sản phẩm
+- [ ] Chạy eval lần cuối trên production, đủ 26 câu và đủ 4 chỉ số
+- [ ] Chương 5 — Kết luận; `SKILL` §0, §5, §6
+- [ ] GIF demo vào `README.md`, bổ sung danh sách nguồn tài liệu
 - [ ] Kiểm tra ứng dụng chạy 24/7, đo latency thật
 - [ ] Chuẩn bị dữ liệu demo, tập kịch bản
 
 ### Giai đoạn 4 — Đóng gói & Demo (Tuần 8)
 
 **Tuần 8 · 21/09 – 27/09**
-- [ ] Báo cáo 5 chương
-- [ ] `README.md`: GIF demo, link Vercel, danh sách nguồn tài liệu
-- [ ] Hoàn thiện `SKILL_MY_PROJECT.md`
+- [ ] Xuất `BAO_CAO.md` sang `.docx` để nộp, canh lại mục lục và hình bảng
+- [ ] Rà `SKILL_MY_PROJECT.md` lần cuối, xoá các dòng hướng dẫn trong ngoặc
 - [ ] Release tag `v1.0.0-mvp`
-- [ ] Slide + tập thuyết trình 15 phút
+- [ ] Slide + tập thuyết trình 15 phút, có phần dự phòng câu phản biện
+
+---
+
+## Vì sao không rút ngắn kì thực tập
+
+Phần code xong sớm không có nghĩa là đồ án xong sớm. Đối chiếu thang điểm của
+mentor, hai tiêu chí nặng nhất còn lại **không phải là code**:
+
+| Tiêu chí | Trọng số | Hiện trạng ngày 12/08 |
+|---|---|---|
+| Tự lập kế hoạch | 20% | Lộ trình này, cập nhật mentor hằng tuần |
+| Thiết kế hệ thống | 20% | Xong — 2 sơ đồ, 22 edge case |
+| Code & `SKILL_MY_PROJECT.md` | 20% | Code xong; `SKILL` mới xong khoảng 1/3 |
+| Live App Vercel | 20% | Đang chạy; cần giữ sống tới tuần 8 |
+| Báo cáo & Thuyết trình | 20% | **Chưa bắt đầu** |
+
+40% điểm nằm ở tài liệu và thuyết trình. Thời gian dư vì thế dồn vào đó, chứ
+không dùng để thêm tính năng — toàn bộ danh sách P1 trong `REQUIREMENTS.md`
+chiếm 0% thang điểm. P1 chỉ được đụng tới nếu tuần 7 kết thúc sớm.
+
+## Đối chiếu với checklist của mentor
+
+| Task | Trạng thái | Ở đâu |
+|---|---|---|
+| 1.1 Chọn đề tài | Xong | Trợ lí hỏi đáp tài liệu chuyên ngành |
+| 1.2 `KE_HOACH_THUC_TAP.md` | Xong | File này |
+| 1.3 `REQUIREMENTS.md` | Xong | P0/P1, happy path, 22 edge case |
+| 1.4 Hai sơ đồ kiến trúc | Xong | `docs/architecture/*.mmd` |
+| 1.5 Khung `SKILL_MY_PROJECT.md` | Xong | Đang viết tiếp, hạn tuần 7 |
+| 2.1 Đọc PDF/DOCX/TXT | PDF xong | TXT/DOCX xếp tuần 4 |
+| 2.2 Vector DB + chunking | Xong | Supabase pgvector, HNSW, 768 chiều |
+| 2.3 Retriever + grounding prompt | Xong | Hybrid 3 nhánh RRF, trích dẫn số trang |
+| 2.4 Guardrail + eval 15–20 câu | Xong | `guardrail.ts`; bộ eval **26 câu** |
+| 3.1 Web UI có stream + trích dẫn | Xong | Next.js, KaTeX, panel nguồn |
+| 3.2 Deploy Vercel | Xong | docubo.vercel.app, region `sin1` |
+| 3.3 CI/CD | Xong | `.github/workflows/ci.yml`, 2 job, chạy trên mỗi push vào `main` |
+| 4.1 Báo cáo 5 chương | Chưa | Tuần 5–7 |
+| 4.2 README + tag `v1.0.0-mvp` | Một phần | GIF và tag ở tuần 7–8 |
+| 4.3 Slide demo 15 phút | Chưa | Tuần 8 |
 
 ---
 
@@ -139,7 +206,9 @@ thời gian dồn vào **đo lường** và **triển khai sớm** thay vì xây
 | Cạn quota vision khi demo | 429 `PerDay` | Nạp sẵn tài liệu demo từ hôm trước, không ingest live |
 | Trang bị `RECITATION` từ chối | Báo cáo cuối lệnh vision | Chain model xử lí phần lớn; ghi tỉ lệ mất vào giới hạn đã biết |
 | Truy hồi chéo ngôn ngữ kém | `retrieval_hit_at_8` thấp ở nhóm cross-lingual | Đã kiểm chứng hoạt động; nếu tệ thì embed thêm biến thể dịch |
-| Chậm tiến độ | Chưa xong eval hết tuần 3 | Cắt toàn bộ P1, giữ đúng P0 |
+| **App chết lúc mentor vào xem** | Không có dấu hiệu — chỉ biết khi mở ra thấy lỗi | Tuần 4 dựng `/api/health` + Action hàng tuần tự đánh thức. Trước đó tự mở app mỗi thứ Hai |
+| **Dồn báo cáo vào tuần 8** | Hết tuần 6 chưa xong 4/5 chương | Báo cáo bắt đầu từ tuần 5 và viết theo chương, không viết một lượt. Nguyên liệu lấy từ `SKILL` đã viết sẵn |
+| **Số eval không nhất quán giữa các chế độ** | Bảng chương 4 có số không ghi rõ chế độ và cỡ mẫu | Mỗi con số kèm chế độ chạy và `n`. Report JSON ghi cả endpoint |
 
 ## Cam kết
 
