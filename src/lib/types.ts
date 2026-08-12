@@ -45,6 +45,18 @@ export interface QueryAnalysis {
   query_vi: string;
   /** Technical terms worth matching literally, kept in English. */
   keywords: string[];
+  /** Which chat model answered, so generation can reuse a model with budget. */
+  model: string | null;
+  /**
+   * True when the analysis call failed and the raw question is standing in for
+   * the rewritten queries.
+   *
+   * Not cosmetic: without query_en the lexical arm cannot match an English
+   * document from a Vietnamese question, and cross-lingual recall drops from
+   * 1.0 to 0.5. The caller reports it rather than serving a quietly worse
+   * answer.
+   */
+  degraded: boolean;
   /**
    * True for whole-document requests — summarise, outline, what is this about.
    *

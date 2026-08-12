@@ -1,5 +1,5 @@
 import { streamText } from "ai";
-import { CHAT_MODEL, gemini } from "@/lib/gemini";
+import { CHAT_MODELS, NO_SDK_RETRIES, gemini } from "@/lib/gemini";
 import { analyseQuery } from "@/lib/guardrail";
 import {
   buildCitations,
@@ -132,11 +132,17 @@ export async function POST(req: Request) {
     latency_ms: Date.now() - started,
   });
 
+  // Reuse the model the analysis call just succeeded on. Rotation cannot help
+  // once a stream has started, so the model is chosen before streaming begins,
+  // by the one request that has already proved it has budget today.
+  const model = analysis.model ?? CHAT_MODELS[0];
+
   const result = streamText({
-    model: gemini(CHAT_MODEL),
+    model: gemini(model),
     system: buildSystemPrompt(analysis.lang, analysis.wants_overview),
     prompt: `<context>\n${buildContext(chunks)}\n</context>\n\n<question>\n${question}\n</question>`,
     temperature: 0.2,
+    ...NO_SDK_RETRIES,
   });
 
   // Citations ride along in a header so the client can render the source panel
@@ -144,6 +150,10 @@ export async function POST(req: Request) {
   return result.toTextStreamResponse({
     headers: {
       "X-Citations": encodeURIComponent(JSON.stringify(citations)),
+      // Lets the client say the answer may be weaker than usual rather than
+      // presenting a degraded result as a normal one.
+      "X-Degraded": analysis.degraded ? "1" : "0",
+      "X-Model": model,
     },
   });
 }

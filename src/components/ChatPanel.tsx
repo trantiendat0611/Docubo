@@ -52,6 +52,7 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
       if (header) {
         patchLast({ citations: JSON.parse(decodeURIComponent(header)) });
       }
+      const degraded = res.headers.get("X-Degraded") === "1";
 
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
@@ -61,6 +62,35 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
         if (done) break;
         acc += decoder.decode(value, { stream: true });
         patchLast({ answer: acc });
+      }
+
+      // A stream that carries no tokens is a failed generation, not an answer.
+      // The route returns 200 with citations either way, so without this check
+      // the user sees a source panel above an empty reply and no explanation.
+      if (!acc.trim()) {
+        patchLast({
+          answer:
+            "Không sinh được câu trả lời. Nhiều khả năng đã hết hạn mức xử lí " +
+            "trong ngày — nguồn trích dẫn ở dưới vẫn là các đoạn tìm được, và " +
+            "câu hỏi này thử lại vào ngày mai sẽ chạy.",
+          kind: "refusal",
+        });
+        return;
+      }
+
+      // The analysis step failed and the raw question was searched instead.
+      // Cross-lingual recall halves without it, so saying nothing would present
+      // a measurably worse answer as a normal one.
+      if (degraded) {
+        patchLast({
+          answer: [
+            acc,
+            "---",
+            "*Bước phân tích câu hỏi không chạy được, nên câu hỏi được tìm " +
+              "nguyên văn. Với câu hỏi tiếng Việt trên tài liệu tiếng Anh, " +
+              "kết quả có thể kém hơn bình thường.*",
+          ].join("\n\n"),
+        });
       }
     } catch {
       patchLast({ answer: "Có lỗi khi gọi API.", kind: "refusal" });
