@@ -94,10 +94,11 @@ thời gian dồn vào **đo lường** và **triển khai sớm** thay vì xây
 - [ ] Chạy eval baseline, ghi báo cáo lần 1
 - [ ] So sánh `hybrid_search` với `dense_search` — định lượng đóng góp nhánh lexical
 - [ ] Hiệu chỉnh `CHARS_PER_TOKEN` tiếng Việt bằng `countTokens`
-- [ ] **Deploy Vercel sớm** — kế hoạch cũ để tuần 7, quá muộn
+- [x] **Deploy Vercel** — làm ở tuần 2 thay vì tuần 7. https://docubo.vercel.app,
+      region Singapore để cùng khu vực với Supabase (0.76s → 0.34s mỗi request)
 
 **Tuần 4 · 24/08 – 30/08**
-- [ ] Bật CI trên GitHub, sửa cho xanh
+- [ ] Bật CI trên GitHub (workflow đã viết, mô phỏng local đều xanh)
 - [ ] Xử lí lỗi mạng phía client (E10)
 - [ ] Dọn `document_pages` và Storage khi xoá tài liệu
 - [ ] Viết `SKILL_MY_PROJECT.md` phần quy trình

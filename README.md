@@ -7,7 +7,7 @@ lời** khi tài liệu không chứa câu trả lời.
 > Đồ án cuối kì thực tập AI Engineer. Toàn bộ hạ tầng chạy trên free tier,
 > chi phí 0 đồng.
 
-**Live demo:** *(điền link `.vercel.app` ở tuần 7)*
+**Live demo:** https://docubo.vercel.app
 
 ![demo](docs/demo.gif) *(thêm ở tuần 8)*
 
@@ -204,12 +204,30 @@ Bốn chỉ số, mỗi cái trả lời một câu hỏi khác nhau:
 | `faithfulness` | Mọi khẳng định có nằm trong context không |
 | `refusal_rate` | Có từ chối đúng lúc khi tài liệu không chứa câu trả lời không |
 
+## Triển khai
+
+Chạy trên Vercel Hobby, region **Singapore (`sin1`)** — cùng khu vực với
+Supabase. Mặc định của Vercel là Washington D.C., và mỗi câu hỏi thực hiện
+khoảng ba vòng gọi database, nên chọn sai region cộng thêm gần một giây thuần
+độ trễ mạng. Đo trên cùng một request: 0.76s trước khi đổi, 0.34s sau.
+
+Chỉ bật environment **Production**. Không có Supabase project riêng cho preview,
+nên một bản deploy xem trước sẽ ghi vào cùng database và tiêu cùng hạn mức
+ngày với production. Đó là hệ quả trực tiếp của ràng buộc 0 đồng.
+
 ## Giới hạn đã biết
 
 **Quota là ràng buộc thật, không phải dung lượng.** Free tier cấp khoảng 20
 request vision mỗi ngày **cho mỗi model**. Gộp 8 trang một request và xoay vòng
 4 model được khoảng 640 trang/ngày — dùng chung cho toàn bộ người dùng. Vì vậy
 mỗi tài liệu giới hạn 25 trang và mỗi người 5 lượt tải/ngày.
+
+**Hạn mức là của cả ứng dụng, không phải của từng người.** Vài người dùng thật
+là hết ngày, và app ngừng trả lời cho tất cả. Ai cũng đăng ký được vì free tier
+không có SMTP để xác nhận email, nên link công khai là link ai có cũng vào được.
+
+**Supabase free tạm dừng sau 7 ngày không hoạt động.** Cần đánh thức trước khi
+demo nếu ứng dụng im lặng cả tuần.
 
 - Chỉ hỗ trợ PDF. DOCX/TXT nằm ở P1.
 - Không OCR tài liệu scan.

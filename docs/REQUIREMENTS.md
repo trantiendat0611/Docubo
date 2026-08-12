@@ -146,7 +146,7 @@ trong bất kì câu trả lời nào.
 | Tiêu chí | Mục tiêu | Ghi chú |
 |---|---|---|
 | Chi phí | 0 đồng | Ràng buộc cứng của đề bài |
-| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm |
+| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm. Đo trên production: request không đụng LLM mất ~0.34s sau khi đặt region Singapore, ~0.76s trước đó |
 | **Quota vision** | **~20 request/ngày mỗi model** | Ràng buộc thật của cả hệ thống. Chain 4 model, gộp 8 trang/request ≈ **640 trang/ngày cho toàn bộ người dùng** |
 | Giới hạn tài liệu | 25 trang | Không phải giới hạn dung lượng — là hệ quả của quota trên. 25 trang ≈ 4 request |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn ~4.5MB. Ảnh trang 200dpi trung bình 480KB, đỉnh 2MB |
