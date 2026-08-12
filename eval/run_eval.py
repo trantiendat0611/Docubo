@@ -223,7 +223,9 @@ def call_api(api: str, token: str, question: str) -> dict:
     return parsed
 
 
-def run_full(items: list[dict], api: str, token: str, delay: float) -> list[dict]:
+def run_full(
+    items: list[dict], api: str, token: str, delay: float, retry_wait: float
+) -> list[dict]:
     results: list[dict] = []
 
     for n, item in enumerate(items):
@@ -236,6 +238,18 @@ def run_full(items: list[dict], api: str, token: str, delay: float) -> list[dict
 
         started = time.time()
         response = call_api(api, token, item["question"])
+
+        # One retry when the server says the limit was per-minute. That clears
+        # on its own, and dropping the item instead costs a data point out of
+        # 26 on top of the two requests already spent on it. A spent daily
+        # quota is not retried: nothing will change until it resets.
+        retried = False
+        if response.get("reason") == "rate_limited" and retry_wait:
+            print(f"  {item['id']:8} rate limited, chờ {retry_wait:.0f}s rồi thử lại")
+            time.sleep(retry_wait)
+            response = call_api(api, token, item["question"])
+            retried = True
+
         latency = int((time.time() - started) * 1000)
 
         kind = response.get("type", "error")
@@ -267,6 +281,7 @@ def run_full(items: list[dict], api: str, token: str, delay: float) -> list[dict
             # Set on a 503: "daily_quota" or "rate_limited". Which one decides
             # whether the rest of the run is worth attempting today.
             "reason": response.get("reason"),
+            "retried": retried,
             "latency_ms": latency,
             "answer": answer[:800],
         }
@@ -385,6 +400,13 @@ def main() -> None:
         help="Seconds between questions in full mode, to stay under the "
         "per-minute allowance. 0 restores back-to-back requests.",
     )
+    parser.add_argument(
+        "--retry-wait",
+        type=float,
+        default=30.0,
+        help="Seconds to wait before retrying a question the server rejected "
+        "as rate limited. 0 disables the retry.",
+    )
     args = parser.parse_args()
 
     config.assert_ready()
@@ -408,7 +430,7 @@ def main() -> None:
                 "Retrieval-only needs neither:\n"
                 "  python -m eval.run_eval --retrieval-only"
             )
-        results = run_full(items, args.api, args.token, args.delay)
+        results = run_full(items, args.api, args.token, args.delay, args.retry_wait)
 
     summary = summarise(results)
     report = {
