@@ -139,12 +139,21 @@ export async function POST(req: Request) {
   // by the one request that has already proved it has budget today.
   const model = analysis.model ?? CHAT_MODELS[0];
 
+  // streamText reports a failed generation here rather than rejecting: the text
+  // stream just ends, empty and indistinguishable from a model that produced
+  // nothing. Without this callback the reason is unrecoverable by the time the
+  // response is built.
+  let generationError: unknown;
+
   const result = streamText({
     model: gemini(model),
     system: buildSystemPrompt(analysis.lang, analysis.wants_overview),
     prompt: `<context>\n${buildContext(chunks)}\n</context>\n\n<question>\n${question}\n</question>`,
     temperature: 0.2,
     ...NO_SDK_RETRIES,
+    onError: ({ error }) => {
+      generationError = error;
+    },
   });
 
   // The first token is pulled before any header is committed, so a generation
@@ -155,7 +164,7 @@ export async function POST(req: Request) {
   let body;
 
   try {
-    body = await openTextStream(result.textStream);
+    body = await openTextStream(result.textStream, () => generationError);
   } catch (error) {
     const daily = isDailyQuota(error);
     return Response.json(

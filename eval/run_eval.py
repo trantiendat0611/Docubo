@@ -213,13 +213,12 @@ def call_api(api: str, token: str, question: str) -> dict:
         "degraded": response.headers.get("X-Degraded") == "1",
     }
 
-    # A stream that carried no tokens is a failed generation, not an answer. The
-    # route returns 200 with citations either way — it has already flushed the
-    # headers by the time generation runs — so a harness that trusts the status
-    # code scores the failure as an answer with no citation markers, which reads
-    # as a citation problem. It cost a full 26-item production run to see that:
-    # citation_validity came out at 0.15 with nothing wrong with the citations.
-    # ChatPanel.tsx carries the same check for the same reason.
+    # A stream that carried no tokens is a failed generation, not an answer.
+    # The route reports that as a 503 now, but this check stays: it still
+    # catches a generation that dies partway, where the status is already sent,
+    # and it catches a deployment that predates the fix. Trusting the status
+    # code alone is what produced citation_validity 0.15 on a full production
+    # run with nothing whatsoever wrong with the citations.
     parsed["type"] = "answer" if body.strip() else "empty"
     return parsed
 
@@ -286,7 +285,9 @@ def run_full(items: list[dict], api: str, token: str, delay: float) -> list[dict
             record["mrr"] = round(mrr_score, 3)
 
         results.append(record)
-        flag = "  GENERATION FAILED" if kind == "empty" else ""
+        flag = ""
+        if kind in ("empty", "error"):
+            flag = f"  GENERATION FAILED {record['reason'] or 'no reason given'}"
         print(
             f"  {item['id']:8} {item['category']:14} {kind:15} {latency:5}ms "
             f"{record['model'] or '-':22}{flag}"
