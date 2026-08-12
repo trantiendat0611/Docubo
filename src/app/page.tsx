@@ -12,12 +12,11 @@ export default async function Home() {
       <header className="topbar">
         <div className="brand">
           <h1>Docubo</h1>
-          <span className="tagline">
-            Hỏi đáp tài liệu của bạn, có trích dẫn số trang
-          </span>
         </div>
         <div className="who">
-          <span className="email">{user.email}</span>
+          <span className="email" title={user.email}>
+            {user.email}
+          </span>
           <SignOutButton />
         </div>
       </header>

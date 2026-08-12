@@ -9,7 +9,7 @@ export function SignOutButton() {
   return (
     <button
       type="button"
-      className="link"
+      className="btn btn-secondary btn-compact"
       onClick={async () => {
         await browserClient().auth.signOut();
         router.push("/login");
