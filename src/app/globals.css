@@ -1,295 +1,891 @@
+/* =========================================================================
+   Docubo — design tokens
+
+   One scale per dimension. Every value in this file comes from a token; a
+   literal that appears in a rule below is a bug, because the eleven ad-hoc
+   spacing values the previous sheet accumulated are exactly what made the
+   layout feel unresolved.
+   ========================================================================= */
+
 :root {
+  /* Surfaces, back to front. `raised` is for anything that sits on top of the
+     page rather than in it — cards, the composer, the source panel. */
   --bg: #ffffff;
-  --fg: #1a1a1a;
-  --muted: #666666;
-  --border: #e2e2e2;
+  --surface: #f7f8f9;
+  --raised: #ffffff;
+
+  --border: #e4e6e9;
+  --border-strong: #cfd3d8;
+
+  /* Text, strongest to weakest. `subtle` is the floor: it still clears 4.5:1
+     on --bg, so nothing here is decorative-only. */
+  --fg: #16181d;
+  --fg-muted: #5b6270;
+  --fg-subtle: #6b7280;
+
   --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-fg: #ffffff;
+  --accent-weak: #eff4ff;
+
+  --danger: #b42318;
+  --danger-weak: #fef3f2;
+  --success: #067647;
+  --success-weak: #ecfdf3;
+
+  --focus: #2563eb;
+
+  /* Type scale, 1.2-ish. Sizes are rem so browser zoom and user font settings
+     keep working. */
+  --text-2xs: 0.6875rem; /* 11px — score badges only */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.8125rem;  /* 13px */
+  --text-base: 0.9375rem;/* 15px — body */
+  --text-md: 1rem;       /* 16px — composer, never smaller: iOS zooms below 16 */
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  --leading-tight: 1.25;
+  --leading-snug: 1.4;
+  --leading-normal: 1.65;
+
+  /* Spacing, 4px base. */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+  --s8: 4rem;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow: 0 4px 12px -2px rgb(16 24 40 / 0.08), 0 2px 4px -2px rgb(16 24 40 / 0.04);
+
+  /* Minimum comfortable hit area. The previous sheet produced 21px controls. */
+  --tap: 2.75rem; /* 44px */
+
+  --measure: 68ch; /* prose line length */
+  --shell: 1180px;
+  --rail: 300px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111111;
-    --fg: #ededed;
-    --muted: #9a9a9a;
-    --border: #2c2c2c;
-    --accent: #60a5fa;
+    --bg: #0d0f12;
+    --surface: #14171c;
+    --raised: #171a20;
+
+    --border: #262b33;
+    --border-strong: #363c47;
+
+    --fg: #e9ecf1;
+    --fg-muted: #a2abba;
+    --fg-subtle: #8b94a3;
+
+    --accent: #6aa5ff;
+    --accent-hover: #8bbaff;
+    --accent-fg: #0d0f12;
+    --accent-weak: #16243c;
+
+    --danger: #ff9086;
+    --danger-weak: #2a1512;
+    --success: #63d19a;
+    --success-weak: #10241a;
+
+    --focus: #6aa5ff;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow: 0 4px 14px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
   }
 }
 
-* {
+/* =========================================================================
+   Base
+   ========================================================================= */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  line-height: 1.6;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
 }
 
-main {
-  max-width: 820px;
-  margin: 0 auto;
-  padding: 2rem 1rem 4rem;
-}
-
-header h1 {
-  margin-bottom: 0.25rem;
-}
-
-header p {
-  color: var(--muted);
-  margin-top: 0;
-}
-
-.turn {
-  border-top: 1px solid var(--border);
-  padding: 1.25rem 0;
-}
-
-.turn .question {
-  font-weight: 500;
-}
-
-.turn-refusal .prose,
-.turn-blocked .prose,
-.turn-error .prose {
-  color: var(--muted);
-  font-style: italic;
-}
-
-.citations {
-  margin-top: 1rem;
-  border-left: 3px solid var(--accent);
-  padding: 0.5rem 0 0.5rem 0.75rem;
-  font-size: 0.9rem;
-}
-
-.citations h3 {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin: 0 0 0.5rem;
-}
-
-.citations ol {
+h1,
+h2,
+h3 {
+  line-height: var(--leading-tight);
+  letter-spacing: -0.011em;
   margin: 0;
-  padding-left: 1rem;
 }
 
-.citations .score {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+p {
+  margin: 0;
 }
 
-form {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
+/* One focus treatment for the whole app. Keyboard users had no visible focus
+   anywhere before this. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
-form input {
-  flex: 1;
-  padding: 0.7rem 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--fg);
-  font-size: 1rem;
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
-form button {
-  padding: 0.7rem 1.2rem;
-  border: none;
-  border-radius: 8px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =========================================================================
+   Controls
+   ========================================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: var(--tap);
+  padding: 0 var(--s4);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
   background: var(--accent);
-  color: #fff;
-  font-size: 1rem;
+  color: var(--accent-fg);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: 550;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-form button:disabled {
-  opacity: 0.5;
+.btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* Long display formulas must scroll rather than widen the page. */
-.katex-display {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 0.25rem 0;
+.btn-secondary {
+  background: var(--raised);
+  border-color: var(--border-strong);
+  color: var(--fg);
 }
 
-/* --- auth --- */
-.auth {
-  max-width: 380px;
+.btn-secondary:hover:not(:disabled) {
+  background: var(--surface);
 }
 
-.auth .lead {
-  color: var(--muted);
+.field {
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.auth form {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.35rem;
+.field::placeholder {
+  color: var(--fg-subtle);
 }
 
-.auth label {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-top: 0.6rem;
+.field:hover:not(:disabled) {
+  border-color: var(--fg-subtle);
 }
 
-.auth button[type="submit"] {
-  margin-top: 1.2rem;
+.field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
 }
 
-.auth .message {
-  color: var(--text-warning, #b45309);
-  font-size: 0.9rem;
+.field:disabled {
+  background: var(--surface);
+  cursor: not-allowed;
 }
 
-.header-row {
+button.link {
+  min-height: var(--tap);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+button.link:hover {
+  color: var(--accent-hover);
+}
+
+button.link-danger {
+  color: var(--fg-subtle);
+  text-decoration: none;
+}
+
+button.link-danger:hover {
+  color: var(--danger);
+  text-decoration: underline;
+}
+
+.muted {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+/* =========================================================================
+   App shell — chat is the main column, documents sit in a rail beside it.
+   Before this everything stacked in one column with the chat last, which put
+   the thing users do constantly below two things they do once.
+   ========================================================================= */
+
+.shell {
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: var(--s5) var(--s4) var(--s8);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: var(--s3);
+  min-width: 0;
+}
+
+.brand h1 {
+  font-size: var(--text-xl);
+  font-weight: 650;
+}
+
+.brand .tagline {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .who {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  color: var(--muted);
+  gap: var(--s3);
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
 }
 
-button.link {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--accent);
-  font-size: 0.85rem;
-  cursor: pointer;
-  text-decoration: underline;
+.who .email {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* --- upload --- */
-.upload {
-  margin: 1.5rem 0;
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rail);
+  gap: var(--s6);
+  align-items: start;
+  margin-top: var(--s5);
 }
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+  position: sticky;
+  top: var(--s5);
+}
+
+.rail h2 {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-subtle);
+  margin-bottom: var(--s3);
+}
+
+/* =========================================================================
+   Upload
+   ========================================================================= */
 
 .upload-drop {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 1.4rem 1rem;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s5) var(--s4);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   text-align: center;
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.upload-drop:hover {
+.upload-drop:hover,
+.upload-drop.is-dragging {
   border-color: var(--accent);
+  background: var(--accent-weak);
+}
+
+.upload-drop:has(input:disabled) {
+  cursor: progress;
 }
 
 .upload-drop input {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-drop .headline {
+  font-size: var(--text-base);
+  font-weight: 550;
 }
 
 .upload-drop small {
-  color: var(--muted);
-  font-size: 0.8rem;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
 }
 
 .progress {
   height: 6px;
-  margin-top: 0.75rem;
+  margin-top: var(--s3);
   background: var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .progress > div {
   height: 100%;
   background: var(--accent);
+  border-radius: inherit;
   transition: width 0.3s ease;
 }
 
-.message {
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
-  color: var(--muted);
+.note {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--fg-muted);
+  background: var(--surface);
 }
 
-.message.error {
-  color: #b45309;
+.note-error {
+  color: var(--danger);
+  background: var(--danger-weak);
 }
 
-.muted {
-  color: var(--muted);
-  font-size: 0.9rem;
+.note-success {
+  color: var(--success);
+  background: var(--success-weak);
 }
 
-/* --- documents --- */
-.docs {
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
-}
-
-.docs summary {
-  cursor: pointer;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
+/* =========================================================================
+   Documents
+   ========================================================================= */
 
 .doclist {
   list-style: none;
   padding: 0;
-  margin: 0.75rem 0 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
 }
 
 .doclist li {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+.doclist li:hover {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.doc-main {
+  min-width: 0;
 }
 
 .doc-title {
   display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .doc-meta {
-  font-size: 0.8rem;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--fg-subtle);
+}
+
+/* The delete control only resolves on hover, so a rail of documents does not
+   read as a row of buttons. It stays reachable by keyboard. */
+.doclist .remove {
+  opacity: 0;
+  flex: none;
+  min-height: auto;
+  font-size: var(--text-xs);
+}
+
+.doclist li:hover .remove,
+.doclist .remove:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .doclist .remove {
+    opacity: 1;
+  }
+}
+
+/* =========================================================================
+   Chat
+   ========================================================================= */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+}
+
+.transcript {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+  flex: 1;
+}
+
+.turn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+/* The question reads as something the user said, not as a heading of the
+   answer. Before, the only difference between the two was font-weight 500. */
+.turn .question {
+  align-self: flex-start;
+  max-width: 90%;
+  padding: var(--s2) var(--s4);
+  border-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+.turn .prose {
+  max-width: var(--measure);
+}
+
+.turn .prose > :first-child {
+  margin-top: 0;
+}
+
+.turn .prose > :last-child {
+  margin-bottom: 0;
+}
+
+.turn .prose p,
+.turn .prose ul,
+.turn .prose ol {
+  margin: 0 0 var(--s3);
+}
+
+.turn .prose ul,
+.turn .prose ol {
+  padding-left: var(--s5);
+}
+
+.turn .prose li {
+  margin-bottom: var(--s1);
+}
+
+.turn .prose code {
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.9em;
+}
+
+.turn-refusal .prose,
+.turn-blocked .prose,
+.turn-error .prose,
+.turn-needs_document .prose {
+  padding: var(--s3) var(--s4);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface);
+  color: var(--fg-muted);
+}
+
+.turn-error .prose {
+  border-left-color: var(--danger);
+}
+
+/* Answer still streaming. */
+.turn .thinking {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  height: 1.65em;
+}
+
+.turn .thinking span {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--fg-subtle);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.turn .thinking span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.turn .thinking span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes pulse {
+  0%, 60%, 100% { opacity: 0.25; }
+  30% { opacity: 1; }
+}
+
+/* =========================================================================
+   Citations — the product's central claim, so it is styled as evidence
+   rather than as a footnote.
+   ========================================================================= */
+
+.citations {
+  /* Aligned to the prose it supports. Left to fill the column it ran 816px
+     wide under a 550px paragraph, which read as a separate panel rather than
+     as the evidence for that answer. */
+  max-width: var(--measure);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--raised);
+  overflow: hidden;
+}
+
+.citations h3 {
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-subtle);
+}
+
+.citations ol {
+  list-style: none;
+  margin: 0;
+  padding: var(--s1);
+  display: flex;
+  flex-direction: column;
+}
+
+.citations li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  padding: var(--s2) var(--s2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.citations .marker {
+  flex: none;
+  min-width: 1.5rem;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-weak);
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.citations .file {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.citations .pages {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.citations .score {
+  flex: none;
+  margin-left: auto;
+  color: var(--fg-subtle);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================================
+   Composer
+   ========================================================================= */
+
+.composer {
+  position: sticky;
+  bottom: 0;
+  margin-top: var(--s6);
+  padding-top: var(--s4);
+  padding-bottom: var(--s4);
+  background: linear-gradient(to bottom, transparent, var(--bg) var(--s4));
+}
+
+.composer form {
+  display: flex;
+  gap: var(--s2);
+  align-items: flex-end;
+}
+
+.composer .field {
+  flex: 1;
 }
 
 .scope {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-  font-size: 0.85rem;
-  color: var(--muted);
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
 }
 
 .scope select {
-  flex: 1;
-  padding: 0.35rem 0.5rem;
+  min-height: 2rem;
+  max-width: 24ch;
+  padding: 0 var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
   color: var(--fg);
-  font-size: 0.85rem;
+  font: inherit;
+  font-size: var(--text-sm);
 }
 
-.turn-needs_document .prose {
-  color: var(--muted);
+/* =========================================================================
+   Empty state
+   ========================================================================= */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s7) var(--s4);
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+.empty strong {
+  color: var(--fg);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.empty ul {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  align-items: center;
+  font-size: var(--text-sm);
+}
+
+.empty li {
+  padding: var(--s1) var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+}
+
+/* =========================================================================
+   Auth
+   ========================================================================= */
+
+.auth {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--s5) var(--s4);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 25rem;
+  padding: var(--s6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow);
+}
+
+.auth-card h1 {
+  font-size: var(--text-2xl);
+  font-weight: 650;
+}
+
+.auth-card .lead {
+  margin-top: var(--s2);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  margin-top: var(--s5);
+}
+
+.auth-card label {
+  margin-top: var(--s3);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.auth-card .btn {
+  margin-top: var(--s5);
+  width: 100%;
+}
+
+.auth-alt {
+  margin-top: var(--s4);
+  text-align: center;
+}
+
+/* Long display formulas scroll rather than widening the page. */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--s1) 0;
+}
+
+/* =========================================================================
+   Responsive — the previous sheet had no media queries at all, so the chat
+   form stayed a horizontal flex row down to 320px.
+   ========================================================================= */
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s5);
+  }
+
+  .rail {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .shell {
+    padding: var(--s4) var(--s3) var(--s7);
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s2);
+  }
+
+  .brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .brand .tagline {
+    white-space: normal;
+  }
+
+  .composer form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .turn .question {
+    max-width: 100%;
+  }
+
+  .citations .score {
+    display: none;
+  }
 }

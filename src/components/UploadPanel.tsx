@@ -27,6 +27,7 @@ export function UploadPanel({ onDone }: Props) {
   const [done, setDone] = useState(0);
   const [total, setTotal] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   const busy = phase !== "idle" && phase !== "error";
 
@@ -168,8 +169,23 @@ export function UploadPanel({ onDone }: Props) {
   };
 
   return (
-    <section className="upload">
-      <label className="upload-drop">
+    <div className="upload">
+      <label
+        className={`upload-drop${dragging ? " is-dragging" : ""}`}
+        onDragOver={(e) => {
+          if (busy) return;
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (busy) return;
+          const file = e.dataTransfer.files?.[0];
+          if (file) void start(file);
+        }}
+      >
         <input
           ref={input}
           type="file"
@@ -180,17 +196,11 @@ export function UploadPanel({ onDone }: Props) {
             if (file) void start(file);
           }}
         />
-        <span>{busy ? label[phase] : "Chọn file PDF để tải lên"}</span>
+        <span className="headline">
+          {busy ? label[phase] : "Kéo PDF vào đây, hoặc bấm để chọn"}
+        </span>
         <small>Tối đa {MAX_UPLOAD_PAGES} trang · tiếng Việt hoặc tiếng Anh</small>
       </label>
-
-      {phase === "extracting" && (
-        // Pages are rendered by this tab. Browsers suspend the animation frame
-        // loop in a background tab, which stalls pdfjs rather than failing it,
-        // so the honest thing is to say so before the progress bar appears to
-        // freeze for no reason.
-        <p className="muted">Giữ tab này hiển thị — chuyển tab sẽ tạm dừng việc đọc trang.</p>
-      )}
 
       {phase === "extracting" && total > 0 && (
         <div
@@ -204,9 +214,19 @@ export function UploadPanel({ onDone }: Props) {
         </div>
       )}
 
-      {message && (
-        <p className={phase === "error" ? "message error" : "message"}>{message}</p>
+      {phase === "extracting" && (
+        // Pages are rendered by this tab. Browsers suspend the animation frame
+        // loop in a background tab, which stalls pdfjs rather than failing it,
+        // so the honest thing is to say so before the progress bar appears to
+        // freeze for no reason.
+        <p className="note">Giữ tab này hiển thị — chuyển tab sẽ tạm dừng việc đọc trang.</p>
       )}
-    </section>
+
+      {message && (
+        <p className={phase === "error" ? "note note-error" : "note note-success"}>
+          {message}
+        </p>
+      )}
+    </div>
   );
 }

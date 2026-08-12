@@ -52,25 +52,26 @@ export function DocumentList({ reloadKey }: { reloadKey: number }) {
   if (loading) return <p className="muted">Đang tải danh sách…</p>;
 
   if (docs.length === 0) {
-    return (
-      <p className="muted">
-        Chưa có tài liệu nào. Tải một file PDF lên để bắt đầu hỏi.
-      </p>
-    );
+    return <p className="muted">Chưa có tài liệu nào.</p>;
   }
 
   return (
     <ul className="doclist">
       {docs.map((doc) => (
         <li key={doc.id}>
-          <div>
+          <div className="doc-main">
             <span className="doc-title">{doc.title ?? doc.filename}</span>
             <span className="doc-meta">
               {doc.n_pages ? `${doc.n_pages} trang · ` : ""}
               {doc.lang}
             </span>
           </div>
-          <button type="button" className="link" onClick={() => void remove(doc)}>
+          <button
+            type="button"
+            className="link link-danger remove"
+            aria-label={`Xoá ${doc.title ?? doc.filename}`}
+            onClick={() => void remove(doc)}
+          >
             Xoá
           </button>
         </li>

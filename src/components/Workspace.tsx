@@ -14,13 +14,21 @@ export function Workspace() {
   const [reloadKey, setReloadKey] = useState(0);
 
   return (
-    <>
-      <UploadPanel onDone={() => setReloadKey((n) => n + 1)} />
-      <details className="docs">
-        <summary>Tài liệu của bạn</summary>
-        <DocumentList reloadKey={reloadKey} />
-      </details>
+    <div className="workspace">
+      {/* Chat first in the DOM as well as on screen: it is what the page is
+          for, and it is what a screen reader should reach first. */}
       <ChatPanel reloadKey={reloadKey} />
-    </>
+
+      <aside className="rail">
+        <section>
+          <h2>Tải tài liệu</h2>
+          <UploadPanel onDone={() => setReloadKey((n) => n + 1)} />
+        </section>
+        <section>
+          <h2>Tài liệu của bạn</h2>
+          <DocumentList reloadKey={reloadKey} />
+        </section>
+      </aside>
+    </div>
   );
 }

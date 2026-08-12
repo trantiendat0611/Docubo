@@ -109,28 +109,60 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
   return (
     <div className="chat">
       <div className="transcript">
-        {turns.map((t, i) => (
-          <div key={i} className={`turn turn-${t.kind}`}>
-            <p className="question">{t.question}</p>
-            <Markdown>{t.answer}</Markdown>
-            <CitationList citations={t.citations} />
+        {turns.length === 0 && (
+          // A blank column tells a first-time user nothing about what the tool
+          // answers well. These are the four question shapes the system is
+          // actually built for, so showing them is orientation, not decoration.
+          <div className="empty">
+            <strong>Hỏi gì cũng được, miễn là tài liệu có câu trả lời</strong>
+            <p>
+              Tải một PDF lên ở bên phải, rồi hỏi bằng tiếng Việt hoặc tiếng
+              Anh. Nếu tài liệu không chứa câu trả lời, Docubo sẽ nói vậy thay
+              vì đoán.
+            </p>
+            <ul>
+              <li>Tóm tắt tài liệu này</li>
+              <li>Công thức ở trang 44 nghĩa là gì?</li>
+              <li>Biểu đồ mô tả điều gì?</li>
+              <li>What is semi-supervised learning?</li>
+            </ul>
           </div>
+        )}
+
+        {turns.map((t, i) => (
+          <article key={i} className={`turn turn-${t.kind}`}>
+            <p className="question">{t.question}</p>
+            {t.answer ? (
+              <Markdown>{t.answer}</Markdown>
+            ) : (
+              <p className="thinking" aria-label="Đang soạn câu trả lời">
+                <span />
+                <span />
+                <span />
+              </p>
+            )}
+            <CitationList citations={t.citations} />
+          </article>
         ))}
       </div>
 
-      <ScopePicker value={scope} onChange={setScope} reloadKey={reloadKey} />
+      <div className="composer">
+        <ScopePicker value={scope} onChange={setScope} reloadKey={reloadKey} />
 
-      <form onSubmit={send}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Hỏi về tài liệu đã nạp — tiếng Việt hoặc tiếng Anh"
-          disabled={busy}
-        />
-        <button type="submit" disabled={busy || !input.trim()}>
-          {busy ? "Đang trả lời…" : "Gửi"}
-        </button>
-      </form>
+        <form onSubmit={send}>
+          <input
+            className="field"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Hỏi về tài liệu đã nạp — tiếng Việt hoặc tiếng Anh"
+            aria-label="Câu hỏi"
+            disabled={busy}
+          />
+          <button className="btn" type="submit" disabled={busy || !input.trim()}>
+            {busy ? "Đang trả lời…" : "Gửi"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

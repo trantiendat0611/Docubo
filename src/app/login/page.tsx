@@ -48,50 +48,64 @@ export default function LoginPage() {
 
   return (
     <main className="auth">
-      <h1>Docubo</h1>
-      <p className="lead">
-        {mode === "signin" ? "Đăng nhập để hỏi tài liệu của bạn." : "Tạo tài khoản mới."}
-      </p>
+      <div className="auth-card">
+        <h1>Docubo</h1>
+        <p className="lead">
+          {mode === "signin"
+            ? "Đăng nhập để hỏi tài liệu của bạn."
+            : "Tạo tài khoản để bắt đầu tải tài liệu lên."}
+        </p>
 
-      <form onSubmit={submit}>
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          required
-        />
+        <form onSubmit={submit}>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            className="field"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+          />
 
-        <label htmlFor="password">Mật khẩu</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete={mode === "signin" ? "current-password" : "new-password"}
-          minLength={8}
-          required
-        />
+          <label htmlFor="password">Mật khẩu</label>
+          <input
+            id="password"
+            className="field"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            minLength={8}
+            required
+          />
 
-        <button type="submit" disabled={busy}>
-          {busy ? "Đang xử lí…" : mode === "signin" ? "Đăng nhập" : "Đăng ký"}
-        </button>
-      </form>
+          <button className="btn" type="submit" disabled={busy}>
+            {busy ? "Đang xử lí…" : mode === "signin" ? "Đăng nhập" : "Đăng ký"}
+          </button>
+        </form>
 
-      {message && <p className="message">{message}</p>}
+        {message && (
+          <p className="note note-error" role="alert">
+            {message}
+          </p>
+        )}
 
-      <button
-        type="button"
-        className="link"
-        onClick={() => {
-          setMode(mode === "signin" ? "signup" : "signin");
-          setMessage(null);
-        }}
-      >
-        {mode === "signin" ? "Chưa có tài khoản? Đăng ký" : "Đã có tài khoản? Đăng nhập"}
-      </button>
+        <p className="auth-alt">
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setMessage(null);
+            }}
+          >
+            {mode === "signin"
+              ? "Chưa có tài khoản? Đăng ký"
+              : "Đã có tài khoản? Đăng nhập"}
+          </button>
+        </p>
+      </div>
     </main>
   );
 }

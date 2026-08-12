@@ -8,19 +8,18 @@ export default async function Home() {
   if (!user) redirect("/login");
 
   return (
-    <main>
-      <header>
-        <div className="header-row">
+    <main className="shell">
+      <header className="topbar">
+        <div className="brand">
           <h1>Docubo</h1>
-          <div className="who">
-            <span>{user.email}</span>
-            <SignOutButton />
-          </div>
+          <span className="tagline">
+            Hỏi đáp tài liệu của bạn, có trích dẫn số trang
+          </span>
         </div>
-        <p>
-          Hỏi đáp tài liệu chuyên ngành tiếng Việt và tiếng Anh. Mọi câu trả lời
-          đều dựa trên tài liệu bạn đã tải lên và có trích dẫn số trang.
-        </p>
+        <div className="who">
+          <span className="email">{user.email}</span>
+          <SignOutButton />
+        </div>
       </header>
       <Workspace />
     </main>
