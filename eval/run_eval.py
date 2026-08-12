@@ -353,6 +353,9 @@ def main() -> None:
     report = {
         "mode": mode,
         "run_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        # Which deployment produced these numbers. A full-mode report that does
+        # not say whether it hit localhost or production cannot be cited.
+        "api": None if retrieval_only else args.api,
         "min_cosine": config.MIN_COSINE,
         "summary": summary,
         "results": results,
