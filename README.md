@@ -7,6 +7,8 @@ lời** khi tài liệu không chứa câu trả lời.
 > Đồ án cuối kì thực tập AI Engineer. Toàn bộ hạ tầng chạy trên free tier,
 > chi phí 0 đồng.
 
+[![CI](https://github.com/trantiendat0611/Docubo/actions/workflows/ci.yml/badge.svg)](https://github.com/trantiendat0611/Docubo/actions/workflows/ci.yml)
+
 **Live demo:** https://docubo.vercel.app
 
 ![demo](docs/demo.gif) *(thêm ở tuần 8)*
