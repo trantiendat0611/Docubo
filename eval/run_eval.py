@@ -198,17 +198,35 @@ def call_api(api: str, token: str, question: str) -> dict:
     if "application/json" in kind:
         return json.loads(body)
 
-    return {
-        "type": "answer",
+    parsed = {
         "answer": body,
         "citations": json.loads(urllib.parse.unquote(citations)) if citations else [],
+        "model": response.headers.get("X-Model"),
+        "degraded": response.headers.get("X-Degraded") == "1",
     }
 
+    # A stream that carried no tokens is a failed generation, not an answer. The
+    # route returns 200 with citations either way — it has already flushed the
+    # headers by the time generation runs — so a harness that trusts the status
+    # code scores the failure as an answer with no citation markers, which reads
+    # as a citation problem. It cost a full 26-item production run to see that:
+    # citation_validity came out at 0.15 with nothing wrong with the citations.
+    # ChatPanel.tsx carries the same check for the same reason.
+    parsed["type"] = "answer" if body.strip() else "empty"
+    return parsed
 
-def run_full(items: list[dict], api: str, token: str) -> list[dict]:
+
+def run_full(items: list[dict], api: str, token: str, delay: float) -> list[dict]:
     results: list[dict] = []
 
-    for item in items:
+    for n, item in enumerate(items):
+        # Space the requests out. Each question costs two model calls and the
+        # generation call carries eight context blocks, so firing 26 of them
+        # back to back leans on the per-minute allowance far harder than the
+        # per-day one. The run that found this failed from item 4 onward.
+        if n and delay:
+            time.sleep(delay)
+
         started = time.time()
         response = call_api(api, token, item["question"])
         latency = int((time.time() - started) * 1000)
@@ -225,12 +243,20 @@ def run_full(items: list[dict], api: str, token: str) -> list[dict]:
             "type": kind,
             "refused": kind in ("refusal", "blocked"),
             "needs_document": kind == "needs_document",
+            # Only a generated answer can be scored. Leaving this None for the
+            # other kinds keeps a failed generation out of the mean instead of
+            # entering it as a zero.
             "citation_validity": round(
                 metrics.citation_validity(answer, len(citations)), 3
             )
             if kind == "answer"
             else None,
             "cited_sources": sorted({c.get("filename") for c in citations if c}),
+            # Which model served the question, and whether query analysis fell
+            # back to the raw question. Without these a degraded run and a clean
+            # one produce identical-looking reports.
+            "model": response.get("model"),
+            "degraded": response.get("degraded", False),
             "latency_ms": latency,
             "answer": answer[:800],
         }
@@ -249,7 +275,11 @@ def run_full(items: list[dict], api: str, token: str) -> list[dict]:
             record["mrr"] = round(mrr_score, 3)
 
         results.append(record)
-        print(f"  {item['id']:8} {item['category']:14} {kind:15} {latency:5}ms")
+        flag = "  GENERATION FAILED" if kind == "empty" else ""
+        print(
+            f"  {item['id']:8} {item['category']:14} {kind:15} {latency:5}ms "
+            f"{record['model'] or '-':22}{flag}"
+        )
 
     return results
 
@@ -296,6 +326,15 @@ def summarise(results: list[dict]) -> dict:
         summary["overview_asked_for_document"] = mean(
             [float(r.get("needs_document", False)) for r in overview if not r.get("hit")]
         )
+        # How much of the run actually produced an answer. A run with failed
+        # generations has not measured answer quality no matter what the other
+        # numbers say, so the count sits beside them rather than in a log line
+        # nobody re-reads. citation_validity above is a mean over the answers
+        # that exist, so it stays honest — but over a smaller n than n_items.
+        summary["n_generation_failed"] = sum(
+            1 for r in results if r.get("type") == "empty"
+        )
+        summary["n_degraded"] = sum(1 for r in results if r.get("degraded"))
 
     return summary
 
@@ -324,6 +363,13 @@ def main() -> None:
         "EVAL_ACCESS_TOKEN. Sign in and copy it from the session.",
     )
     parser.add_argument("--limit", type=int, help="Run only the first N items.")
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=5.0,
+        help="Seconds between questions in full mode, to stay under the "
+        "per-minute allowance. 0 restores back-to-back requests.",
+    )
     args = parser.parse_args()
 
     config.assert_ready()
@@ -347,7 +393,7 @@ def main() -> None:
                 "Retrieval-only needs neither:\n"
                 "  python -m eval.run_eval --retrieval-only"
             )
-        results = run_full(items, args.api, args.token)
+        results = run_full(items, args.api, args.token, args.delay)
 
     summary = summarise(results)
     report = {
