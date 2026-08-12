@@ -239,6 +239,20 @@ def run_full(
         started = time.time()
         response = call_api(api, token, item["question"])
 
+        # Stop dead on an expired token. Supabase tokens are short-lived and a
+        # 26-item run outlives one, at which point every remaining request 401s
+        # in milliseconds and lands in the report as a failed question. That is
+        # how a run produced refusal_rate 0.0 — sixteen questions that never
+        # reached the refusal path at all, averaged as refusals that did not
+        # happen. Better to stop with an instruction than to finish and file a
+        # report whose worst-looking numbers are artefacts.
+        if response.get("status") == 401:
+            raise SystemExit(
+                f"\n{item['id']}: 401 unauthenticated — access token đã hết hạn.\n"
+                f"Đã chạy {len(results)}/{len(items)} câu. Lấy token mới rồi chạy lại:\n"
+                "  .venv/Scripts/python -m eval.get_token\n"
+            )
+
         # One retry when the server says the limit was per-minute. That clears
         # on its own, and dropping the item instead costs a data point out of
         # 26 on top of the two requests already spent on it. A spent daily
@@ -316,14 +330,30 @@ def summarise(results: list[dict]) -> dict:
         clean = [v for v in values if v is not None]
         return round(sum(clean) / len(clean), 3) if clean else None
 
-    retrievable = [r for r in results if r["category"] in RETRIEVABLE]
-    refuse = [r for r in results if r["category"] == "should_refuse"]
-    overview = [r for r in results if r["category"] == "overview"]
+    def served(record: dict) -> bool:
+        """The request came back with a real response.
+
+        A request that failed measures the transport, not the system, and
+        averaging it in produces a number that reads as a verdict. One run
+        reported refusal_rate 0.0 — perfect grounding inverted into "never
+        refuses" — because sixteen questions 401'd on an expired token and were
+        counted as questions the system declined to refuse. Retrieval-only
+        records carry no "type" at all and are always served.
+        """
+        return record.get("type") not in ("error", "empty")
+
+    scored = [r for r in results if served(r)]
+    retrievable = [r for r in scored if r["category"] in RETRIEVABLE]
+    refuse = [r for r in scored if r["category"] == "should_refuse"]
+    overview = [r for r in scored if r["category"] == "overview"]
     cross = [r for r in retrievable if r["cross_lingual"]]
     same = [r for r in retrievable if not r["cross_lingual"]]
 
     summary = {
         "n_items": len(results),
+        # Every rate below is over this, not over n_items. A run where the two
+        # differ has not measured the whole eval set, whatever the rates say.
+        "n_scored": len(scored),
         "retrieval_hit_at_8": mean(
             [float(r["hit"]) for r in retrievable if r.get("hit") is not None]
         ),
@@ -343,13 +373,13 @@ def summarise(results: list[dict]) -> dict:
         # failure — worse than a wrong answer, because the user assumes the
         # document lacks the content.
         "false_refusal_rate": mean([float(r["refused"]) for r in retrievable]),
-        "median_latency_ms": sorted(r["latency_ms"] for r in results)[len(results) // 2]
-        if results
+        "median_latency_ms": sorted(r["latency_ms"] for r in scored)[len(scored) // 2]
+        if scored
         else 0,
     }
 
     if any("citation_validity" in r for r in results):
-        summary["citation_validity"] = mean([r.get("citation_validity") for r in results])
+        summary["citation_validity"] = mean([r.get("citation_validity") for r in scored])
         summary["overview_asked_for_document"] = mean(
             [float(r.get("needs_document", False)) for r in overview if not r.get("hit")]
         )
