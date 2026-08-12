@@ -15,7 +15,11 @@
   --raised: #ffffff;
 
   --border: #e4e6e9;
-  --border-strong: #cfd3d8;
+  /* Field and control outlines. A field's fill matches the card behind it, so
+     this border is the only thing that says "you can type here" — which makes
+     it a UI component boundary under WCAG 1.4.11 and puts a 3:1 floor on it.
+     The comfortable-looking #cfd3d8 measured 1.50 and had to go. */
+  --border-strong: #8c93a0;
 
   /* Text, strongest to weakest. `subtle` is the floor: it still clears 4.5:1
      on --bg, so nothing here is decorative-only. */
@@ -23,10 +27,11 @@
   --fg-muted: #5b6270;
   --fg-subtle: #6b7280;
 
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
+  --accent: #2f5fd8;
+  --accent-hover: #2650bb;
+  --accent-border: #2450bd;
   --accent-fg: #ffffff;
-  --accent-weak: #eff4ff;
+  --accent-weak: #eaf0ff;
 
   --danger: #b42318;
   --danger-weak: #fef3f2;
@@ -83,16 +88,18 @@
     --raised: #171a20;
 
     --border: #262b33;
-    --border-strong: #363c47;
+    /* Same 3:1 floor, measured against --raised rather than white. */
+    --border-strong: #606876;
 
     --fg: #e9ecf1;
     --fg-muted: #a2abba;
     --fg-subtle: #8b94a3;
 
-    --accent: #6aa5ff;
-    --accent-hover: #8bbaff;
-    --accent-fg: #0d0f12;
-    --accent-weak: #16243c;
+    --accent: #5b93f5;
+    --accent-hover: #7aa9fa;
+    --accent-border: #7fb0ff;
+    --accent-fg: #0a0d15;
+    --accent-weak: #17233c;
 
     --danger: #ff9086;
     --danger-weak: #2a1512;
@@ -175,24 +182,39 @@ p {
   justify-content: center;
   gap: var(--s2);
   min-height: var(--tap);
-  padding: 0 var(--s4);
-  border: 1px solid transparent;
+  padding: 0 var(--s5);
+  /* A real border, not a transparent placeholder. The fill alone left the
+     button edgeless against the page; the border is what gives it a shape you
+     can see before you hover it. */
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius);
   background: var(--accent);
   color: var(--accent-fg);
+  box-shadow: var(--shadow-sm);
   font: inherit;
   font-size: var(--text-base);
   font-weight: 550;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.06s ease;
 }
 
 .btn:hover:not(:disabled) {
   background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Fading the whole button to 45% read as broken rather than unavailable —
+   the label blurred along with the fill. Stating the disabled colours keeps
+   the text legible and the shape intact. */
 .btn:disabled {
-  opacity: 0.45;
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--fg-subtle);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -238,6 +260,20 @@ p {
   cursor: not-allowed;
 }
 
+/* Chrome paints autofilled fields with its own near-white background, set with
+   a priority ordinary declarations cannot reach — which turned both login
+   inputs into light-mode boxes sitting in a dark card. An inset shadow the
+   height of the field is the one thing that paints over it. The absurd
+   transition delay stops the yellow flash on submit. */
+.field:-webkit-autofill,
+.field:-webkit-autofill:hover,
+.field:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--fg);
+  -webkit-box-shadow: 0 0 0 100px var(--raised) inset;
+  caret-color: var(--fg);
+  transition: background-color 100000s ease-in-out 0s;
+}
+
 button.link {
   min-height: var(--tap);
   padding: 0;
@@ -279,7 +315,13 @@ button.link-danger:hover {
 .shell {
   max-width: var(--shell);
   margin: 0 auto;
-  padding: var(--s5) var(--s4) var(--s8);
+  padding: var(--s5) var(--s4) var(--s6);
+  /* Full height so the composer can anchor to the bottom of the viewport
+     instead of floating wherever the transcript happens to end. At a fixed
+     60vh the empty state left 243px of dead space beneath it. */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -330,11 +372,15 @@ button.link-danger:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--rail);
   gap: var(--s6);
-  align-items: start;
   margin-top: var(--s5);
+  flex: 1;
+  min-height: 0;
 }
 
+/* The chat column stretches with the grid; the rail hugs its own content so
+   sticky still has somewhere to travel. */
 .rail {
+  align-self: start;
   display: flex;
   flex-direction: column;
   gap: var(--s5);
@@ -508,7 +554,7 @@ button.link-danger:hover {
 .chat {
   display: flex;
   flex-direction: column;
-  min-height: 60vh;
+  min-height: 0;
 }
 
 .transcript {
@@ -745,8 +791,14 @@ button.link-danger:hover {
 .empty {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--s2);
-  padding: var(--s7) var(--s4);
+  /* Held to the same measure as an answer. Left to fill the column the
+     paragraph ran nearly 1000px wide while the prose beneath it was capped at
+     550, so the two read as belonging to different pages. */
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--s7) 0;
   text-align: center;
   color: var(--fg-muted);
 }
@@ -757,22 +809,38 @@ button.link-danger:hover {
   font-weight: 600;
 }
 
-.empty ul {
-  list-style: none;
-  margin: var(--s3) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2);
-  align-items: center;
-  font-size: var(--text-sm);
+.empty p {
+  max-width: 48ch;
 }
 
-.empty li {
-  padding: var(--s1) var(--s3);
+.suggestions {
+  list-style: none;
+  margin: var(--s4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s2);
+}
+
+/* These looked like buttons and did nothing. Now they are buttons. */
+.suggestion {
+  min-height: var(--tap);
+  padding: 0 var(--s4);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.suggestion:hover {
+  border-color: var(--accent);
+  background: var(--accent-weak);
+  color: var(--accent);
 }
 
 /* =========================================================================

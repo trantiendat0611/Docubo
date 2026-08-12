@@ -13,6 +13,14 @@ interface Turn {
   kind: "answer" | "refusal" | "blocked" | "needs_document" | "error";
 }
 
+/** The four question shapes the system is actually built for. */
+const SUGGESTIONS = [
+  "Tóm tắt tài liệu này",
+  "Công thức ở trang 44 nghĩa là gì?",
+  "Biểu đồ mô tả điều gì?",
+  "What is semi-supervised learning?",
+];
+
 export function ChatPanel({ reloadKey }: { reloadKey: number }) {
   const [input, setInput] = useState("");
   const [scope, setScope] = useState("");
@@ -120,11 +128,18 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
               Anh. Nếu tài liệu không chứa câu trả lời, Docubo sẽ nói vậy thay
               vì đoán.
             </p>
-            <ul>
-              <li>Tóm tắt tài liệu này</li>
-              <li>Công thức ở trang 44 nghĩa là gì?</li>
-              <li>Biểu đồ mô tả điều gì?</li>
-              <li>What is semi-supervised learning?</li>
+            <ul className="suggestions">
+              {SUGGESTIONS.map((s) => (
+                <li key={s}>
+                  <button
+                    type="button"
+                    className="suggestion"
+                    onClick={() => setInput(s)}
+                  >
+                    {s}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         )}
