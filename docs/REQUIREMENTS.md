@@ -72,7 +72,8 @@ trong bất kì câu trả lời nào.
 - [x] Giới hạn 5 lượt tải lên mỗi người mỗi ngày
 
 **Đánh giá**
-- [ ] Bộ eval 20–25 câu, báo cáo 4 chỉ số ← **chưa làm**
+- [x] Bộ eval **26 câu**, chạy đủ trên production, báo cáo 3/4 chỉ số
+      (`faithfulness` còn thiếu — xem bảng ngưỡng bên dưới)
 
 ### P1 — làm nếu còn thời gian
 
@@ -170,13 +171,26 @@ trong bất kì câu trả lời nào.
 
 Hệ thống coi là đạt khi trên `eval/eval_dataset.json`:
 
-| Chỉ số | Ngưỡng | Ghi chú |
+Đo lần đầu đầy đủ ngày **13/08/2026** trên production, 26/26 câu, không câu nào
+hỏng: `eval/reports/eval-full-20260813-100813.json`.
+
+| Chỉ số | Ngưỡng | Đo được | Ghi chú |
+|---|---|---|---|
+| `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
+| `citation_validity` | ≥ 0.95 | **1.000** | Đạt. Trích dẫn sai là lỗi nghiêm trọng nhất |
+| `refusal_rate` | ≥ 0.90 | **1.000** | Đạt. Trên nhóm `should_refuse`, `false_refusal_rate` = 0 |
+| `faithfulness` | ≥ 0.90 | — | **Chưa nối vào harness.** `FAITHFULNESS_PROMPT` đã viết trong `eval/metrics.py` nhưng chưa chỗ nào gọi |
+| `latex_exact_match` | Chưa chốt | — | Cần nguồn có `.tex` gốc để so |
+
+Chỉ số phụ trong cùng lần chạy:
+
+| Chỉ số | Đo được | Nghĩa |
 |---|---|---|
-| `retrieval_hit_at_8` | ≥ 0.85 | |
-| `citation_validity` | ≥ 0.95 | Trích dẫn sai là lỗi nghiêm trọng nhất |
-| `faithfulness` | ≥ 0.90 | |
-| `refusal_rate` | ≥ 0.90 | Trên nhóm `should_refuse` |
-| `latex_exact_match` | Chưa chốt | Cần nguồn có `.tex` gốc để so |
+| `hit_cross_lingual` | 1.000 | Hỏi tiếng Việt trên tài liệu tiếng Anh |
+| `retrieval_mrr` | 0.882 | Thứ hạng của đoạn đúng |
+| `overview_asked_for_document` | 1.000 | Câu tóm tắt không nêu tài liệu thì hỏi lại (1/1) |
+| `overview_answered_when_named` | 1.000 | Câu có nêu tài liệu thì trả lời thẳng (2/2) |
+| `median_latency_ms` | 6874 | Thời gian đọc xong **toàn bộ** câu trả lời, đã bỏ 4 câu bị cộng thời gian chờ thử lại. Đây **không phải** thời gian tới token đầu tiên — ngưỡng NFR đó vẫn chưa được đo |
 
 ## 8. Câu hỏi còn mở
 

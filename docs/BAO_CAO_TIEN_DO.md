@@ -71,18 +71,27 @@ trả ra thứ *đọc như đúng* ở đúng chỗ tài liệu có giá trị 
 
 Bộ đánh giá **26 câu**, 6 nhóm, 8 câu xuyên ngôn ngữ.
 
-| Chỉ số | Giá trị | Cỡ mẫu | Ghi chú |
+Chạy đầy đủ trên production ngày **13/08**, 26/26 câu, **không câu nào hỏng**.
+
+| Chỉ số | Giá trị | Ngưỡng | Ghi chú |
 |---|---|---|---|
-| `retrieval_hit_at_8` | **1.000** | n = 26 | Chế độ truy hồi |
-| `hit_cross_lingual` | **1.000** | n = 26 | Hỏi tiếng Việt trên tài liệu tiếng Anh |
-| `retrieval_mrr` | **0.926** | n = 26 | |
-| `refusal_rate` | **1.000** | nhóm `should_refuse` | |
-| `citation_validity` | 1.000 | **n = 5** | Mẫu còn quá nhỏ để chốt |
-| `faithfulness` | — | — | **Chưa nối vào harness** |
+| `retrieval_hit_at_8` | **1.000** | ≥ 0.85 | Đạt |
+| `citation_validity` | **1.000** | ≥ 0.95 | Đạt |
+| `refusal_rate` | **1.000** | ≥ 0.90 | Đạt, `false_refusal_rate` = 0 |
+| `hit_cross_lingual` | **1.000** | — | Hỏi tiếng Việt trên tài liệu tiếng Anh |
+| `retrieval_mrr` | 0.882 | — | Thứ hạng của đoạn đúng |
+| `faithfulness` | — | ≥ 0.90 | **Chưa nối vào harness** |
+
+Lần chạy này cũng là lần đầu quan sát được **cơ chế xoay model** hoạt động: 9 câu
+đầu chạy trên `gemini-3.5-flash`, sau đó tự chuyển sang `gemini-2.5-flash` khi
+model đầu cạn hạn mức ngày. Bốn lần gặp giới hạn theo phút, cả bốn đều tự thử lại
+thành công.
 
 ### Nhánh full-text đáng giá bao nhiêu
 
-Chạy lại đúng bộ 26 câu với `dense_search` thay cho `hybrid_search`:
+Chạy lại đúng bộ 26 câu với `dense_search` thay cho `hybrid_search`. Cả hai chạy ở
+chế độ **chỉ-truy-hồi** (không gọi model sinh văn bản), để phép so cô lập đúng
+phần truy hồi:
 
 | Chế độ | hit@8 | Xuyên ngôn ngữ | MRR |
 |---|---|---|---|
@@ -90,17 +99,22 @@ Chạy lại đúng bộ 26 câu với `dense_search` thay cho `hybrid_search`:
 | Chỉ vector | 0.941 | 0.833 | 0.868 |
 | **Chênh lệch** | +5.9 đ% | **+16.7 đ%** | +0.058 |
 
+> MRR ở đây là 0.926, còn bảng trên ghi 0.882 — không mâu thuẫn. Bảng trên là chế
+> độ **full** chạy qua production, nơi biến thể truy vấn được sinh trực tiếp mỗi
+> lần gọi; bảng này dùng biến thể đã lưu sẵn trong bộ dữ liệu nên lặp lại được.
+> Mọi con số đều ghi kèm chế độ chạy, vì trộn hai chế độ vào một bảng là cách dễ
+> nhất để tạo ra một kết quả không ai kiểm chứng lại được.
+
 Nhánh lexical đáng giá **16.7 điểm phần trăm** recall xuyên ngôn ngữ. Trước khi
 đo, đó là một lời khẳng định; giờ nó là một con số.
 
-### Ba chỗ chưa đủ điều kiện chốt
+### Hai chỗ chưa đủ điều kiện chốt
 
-- `citation_validity` mới có n = 5 vì chế độ full chưa lần nào chạy trọn 26 câu
-  trên production — hạn mức ngày cạn giữa chừng.
 - `faithfulness` đang được hứa trong `REQUIREMENTS.md` với ngưỡng ≥ 0.90 nhưng
   chưa có code gọi.
-- Ngưỡng "token đầu tiên < 3s" chưa có gì đo — harness đo tổng thời gian đọc xong
-  câu trả lời, không phải thời gian tới token đầu.
+- Ngưỡng "token đầu tiên < 3s" chưa có gì đo — harness đo **tổng thời gian đọc
+  xong** câu trả lời (trung vị 6.9 giây), không phải thời gian tới token đầu.
+  Hai đại lượng khác nhau, nên chưa thể nói ngưỡng đó đạt hay không.
 
 ---
 
@@ -186,7 +200,6 @@ Bảng đầy đủ 16 mục ở `SKILL_MY_PROJECT.md` §3.
 |---|---|---|
 | `faithfulness` hứa ở 4 chỗ, chưa có code gọi | Ngưỡng ≥ 0.90 hiện không đo được | Tuần 3 |
 | Ngưỡng "token đầu tiên < 3s" chưa đo | Harness đo tổng thời gian, không phải TTFT | Tuần 3 |
-| Chế độ full chưa chạy trọn 26 câu trên production | `citation_validity` mới có n = 5 | Sau 14:00 hôm nay |
 | `document_pages` và file Storage không được dọn khi xoá tài liệu | Rò rỉ thật với hạn 500MB của Supabase | Tuần 4 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
 | Đường hội thoại chưa kiểm chứng khi chạy thật | Mới qua trình biên dịch và test | Hôm nay |
@@ -197,7 +210,7 @@ Bảng đầy đủ 16 mục ở `SKILL_MY_PROJECT.md` §3.
 
 | Tuần | Trọng tâm |
 |---|---|
-| **T2 · 10–16/08** | Chạy full eval 26 câu trên production, đủ 4 chỉ số |
+| ~~T2 · 10–16/08~~ | **Xong.** Full eval 26 câu trên production, 3/4 chỉ số đạt ngưỡng |
 | T3 · 17–23/08 | Nối `faithfulness`, đo TTFT, viết mục lí lẽ trong tài liệu đúc kết |
 | T4 · 24–30/08 | Dọn Storage khi xoá, nạp TXT/DOCX, chống Supabase ngủ sau 7 ngày |
 | T5 · 31/08–06/09 | Báo cáo chương 1–2: Tổng quan; Phân tích & Thiết kế |

@@ -102,7 +102,9 @@ hạn dung lượng.
       bao giờ tiêu quota Gemini
 - [x] `SKILL_MY_PROJECT.md` §1.1 — đo pypdf/pymupdf so với vision trên cùng
       một trang công thức
-- [ ] Chạy full eval 26 câu trên production, đủ 4 chỉ số ← việc còn lại
+- [x] **Chạy full eval 26 câu trên production** — 13/08, 26/26 câu, không câu nào
+      hỏng. `hit@8` 1.000 · `citation_validity` 1.000 · `refusal_rate` 1.000 ·
+      xuyên ngôn ngữ 1.000. `faithfulness` vẫn thiếu, chuyển sang tuần 3
 
 ### Giai đoạn 2 — Đo lường & đúc kết (Tuần 3–5)
 

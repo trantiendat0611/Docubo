@@ -261,6 +261,11 @@ def run_full(
         if response.get("reason") == "rate_limited" and retry_wait:
             print(f"  {item['id']:8} rate limited, chờ {retry_wait:.0f}s rồi thử lại")
             time.sleep(retry_wait)
+            # Restart the clock. Leaving it would bill the deliberate wait to the
+            # system's response time: the first clean run reported 39s and 44s
+            # for questions that answered in nine, and those are the numbers that
+            # would have been quoted as latency.
+            started = time.time()
             response = call_api(api, token, item["question"])
             retried = True
 
@@ -278,6 +283,9 @@ def run_full(
             "type": kind,
             "refused": kind in ("refusal", "blocked"),
             "needs_document": kind == "needs_document",
+            # What the dataset says should happen: only some overview questions
+            # name a document, and only those that do not should be deflected.
+            "expect_needs_document": bool(item.get("expect_needs_document")),
             # Only a generated answer can be scored. Leaving this None for the
             # other kinds keeps a failed generation out of the mean instead of
             # entering it as a zero.
@@ -380,8 +388,20 @@ def summarise(results: list[dict]) -> dict:
 
     if any("citation_validity" in r for r in results):
         summary["citation_validity"] = mean([r.get("citation_validity") for r in scored])
+        # Split by what each item is supposed to do. Dividing by every overview
+        # item scored a clean run at 0.333 — two of the three questions name a
+        # document and are meant to be answered, so counting them as failures to
+        # ask made a perfect result read as a failing one.
+        must_ask = [r for r in overview if r.get("expect_needs_document")]
+        can_answer = [r for r in overview if not r.get("expect_needs_document")]
+
         summary["overview_asked_for_document"] = mean(
-            [float(r.get("needs_document", False)) for r in overview if not r.get("hit")]
+            [float(r.get("needs_document", False)) for r in must_ask]
+        )
+        # The other half: a question that does name a document must not be
+        # deflected back with "which one?".
+        summary["overview_answered_when_named"] = mean(
+            [float(r.get("type") == "answer") for r in can_answer]
         )
         # How much of the run actually produced an answer. A run with failed
         # generations has not measured answer quality no matter what the other
