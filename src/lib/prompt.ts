@@ -116,9 +116,12 @@ export function generationFailedMessage(
   daily: boolean,
 ): string {
   if (daily) {
+    // No "tomorrow" here. The budget refills at midnight Pacific, which is the
+    // same afternoon in Vietnam — the client is given the instant and says when
+    // in local time.
     return lang === "vi"
-      ? "Đã hết hạn mức sinh câu trả lời trong ngày. Câu hỏi này thử lại vào ngày mai sẽ chạy."
-      : "The daily generation quota is spent. This question will work again tomorrow.";
+      ? "Đã hết hạn mức sinh câu trả lời trong ngày, trên cả bốn model."
+      : "The daily generation quota is spent on all four models.";
   }
   return lang === "vi"
     ? "Hệ thống đang bị giới hạn tần suất nên chưa sinh được câu trả lời. Thử lại sau khoảng một phút."

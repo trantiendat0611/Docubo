@@ -114,6 +114,35 @@ export function isDailyQuota(error: unknown): boolean {
  */
 export const NO_SDK_RETRIES = { maxRetries: 0 } as const;
 
+/**
+ * When the per-day budget next refills.
+ *
+ * Google resets these at midnight Pacific, which is not midnight anywhere the
+ * users are — in Vietnam it lands at 14:00 the same afternoon. Telling someone
+ * to come back "tomorrow" therefore costs them most of a day they did not need
+ * to wait, so the server returns the instant and lets the client say it in
+ * local time.
+ *
+ * Derived from the wall clock in Los Angeles rather than a fixed offset, so it
+ * follows daylight saving. On the two transition days itself it can be an hour
+ * out, which is close enough for a "try again after" hint.
+ */
+export function nextQuotaReset(now: Date = new Date()): Date {
+  const [h, m, s] = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Los_Angeles",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+    .format(now)
+    .split(":")
+    .map(Number);
+
+  const secondsIntoDay = h * 3600 + m * 60 + s;
+  return new Date(now.getTime() + (86_400 - secondsIntoDay) * 1000);
+}
+
 export function availableChatModels(): string[] {
   const remaining = CHAT_MODELS.filter((m) => !exhausted.has(m));
   // All spent: let the caller try the first one anyway and surface the real

@@ -1,5 +1,12 @@
 import { streamText } from "ai";
-import { CHAT_MODELS, NO_SDK_RETRIES, gemini, isDailyQuota } from "@/lib/gemini";
+import {
+  AllChatModelsExhausted,
+  NO_SDK_RETRIES,
+  gemini,
+  isDailyQuota,
+  nextQuotaReset,
+  withChatModel,
+} from "@/lib/gemini";
 import { analyseQuery } from "@/lib/guardrail";
 import {
   buildCitations,
@@ -200,66 +207,75 @@ export async function POST(req: Request) {
     latency_ms: Date.now() - started,
   });
 
-  // Reuse the model the analysis call just succeeded on. Rotation cannot help
-  // once a stream has started, so the model is chosen before streaming begins,
-  // by the one request that has already proved it has budget today.
-  const model = analysis.model ?? CHAT_MODELS[0];
-
-  // streamText reports a failed generation here rather than rejecting: the text
-  // stream just ends, empty and indistinguishable from a model that produced
-  // nothing. Without this callback the reason is unrecoverable by the time the
-  // response is built.
-  let generationError: unknown;
-
   // Earlier turns, so "what about the second one?" resolves. Read from the
   // database rather than taken from the request body: a client that supplied
   // its own history could put words in the user's mouth, and the prompt below
   // presents these as things the user actually asked.
   const history = inConversation ? await recentTurns(conversationId!) : [];
 
-  const result = streamText({
-    model: gemini(model),
-    system: buildSystemPrompt(analysis.lang, analysis.wants_overview),
-    messages: [
-      ...history.map((t) => ({ role: t.role, content: t.content })),
-      {
-        role: "user" as const,
-        content: `<context>\n${buildContext(chunks)}\n</context>\n\n<question>\n${question}\n</question>`,
-      },
-    ],
-    temperature: 0.2,
-    ...NO_SDK_RETRIES,
-    onError: ({ error }) => {
-      generationError = error;
+  const prompt = [
+    ...history.map((t) => ({ role: t.role, content: t.content })),
+    {
+      role: "user" as const,
+      content: `<context>\n${buildContext(chunks)}\n</context>\n\n<question>\n${question}\n</question>`,
     },
-    // Fires once the client has drained the stream, which is the only point the
-    // whole answer exists in one piece on this side. Stopping early leaves
-    // whatever arrived, which is what the user saw and so what should be saved.
-    onFinish: ({ text }) => {
-      if (inConversation && text.trim()) {
-        void saveMessage({
-          conversationId: conversationId!,
-          ownerId: user.id,
-          role: "assistant",
-          content: text,
-          kind: "answer",
-          citations,
-        });
-      }
-    },
-  });
+  ];
 
-  // The first token is pulled before any header is committed, so a generation
-  // that fails outright still returns a status the client can act on. Without
-  // it the route answered 200 with an empty body and left each client to guess
-  // both that it failed and why — the eval harness guessed wrong and scored
-  // seventeen failed generations as answers with missing citations.
-  let body;
+  /**
+   * Generate, moving to the next model when one has spent its day.
+   *
+   * This used to pick a single model — whichever the analysis call had just
+   * proved had budget — on the grounds that rotation cannot help once a stream
+   * has started. That was true while the route committed its headers before
+   * calling the model. It stopped being true when openTextStream started
+   * pulling the first token first: the failure now surfaces while the response
+   * is still ours to shape, so there is a second chance to take. Without this,
+   * analysis succeeding on the last request a model had left would strand the
+   * question even with three untouched models behind it.
+   */
+  const attempt = async (model: string) => {
+    // streamText reports a failed generation through this callback rather than
+    // by rejecting: the text stream just ends, empty and indistinguishable from
+    // a model that produced nothing.
+    let generationError: unknown;
+
+    const result = streamText({
+      model: gemini(model),
+      system: buildSystemPrompt(analysis.lang, analysis.wants_overview),
+      messages: prompt,
+      temperature: 0.2,
+      ...NO_SDK_RETRIES,
+      onError: ({ error }) => {
+        generationError = error;
+      },
+      // Fires once the client has drained the stream, which is the only point
+      // the whole answer exists in one piece on this side. Stopping early
+      // leaves whatever arrived, which is what the user saw and so what should
+      // be saved.
+      onFinish: ({ text }) => {
+        if (inConversation && text.trim()) {
+          void saveMessage({
+            conversationId: conversationId!,
+            ownerId: user.id,
+            role: "assistant",
+            content: text,
+            kind: "answer",
+            citations,
+          });
+        }
+      },
+    });
+
+    return openTextStream(result.textStream, () => generationError);
+  };
+
+  let body: ReadableStream<Uint8Array>;
+  let model: string;
 
   try {
-    body = await openTextStream(result.textStream, () => generationError);
+    ({ result: body, model } = await withChatModel(attempt));
   } catch (error) {
-    const daily = isDailyQuota(error);
+    const daily = error instanceof AllChatModelsExhausted || isDailyQuota(error);
     return replyWith(
       {
         type: "error",
@@ -267,6 +283,10 @@ export async function POST(req: Request) {
         // A spent daily budget and a per-minute limit need different advice,
         // and only the server can tell them apart.
         reason: daily ? "daily_quota" : "rate_limited",
+        // When the budget resets, as an instant rather than a word. "Tomorrow"
+        // is wrong for most of the world: the reset is midnight Pacific, which
+        // is the middle of the afternoon in Vietnam.
+        resetAt: daily ? nextQuotaReset().toISOString() : undefined,
       },
       { status: 503 },
     );

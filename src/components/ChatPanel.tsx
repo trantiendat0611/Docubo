@@ -24,6 +24,29 @@ const SUGGESTIONS = [
   "What is semi-supervised learning?",
 ];
 
+/**
+ * Say when the quota comes back, in the reader's own clock.
+ *
+ * The server sends an instant rather than a word because the reset is midnight
+ * Pacific — which is 14:00 in Vietnam, so "tomorrow" would send someone away
+ * for most of a day they did not need to wait.
+ */
+function resetHint(resetAt?: string): string {
+  if (!resetAt) return "";
+
+  const at = new Date(resetAt);
+  if (Number.isNaN(at.getTime())) return "";
+
+  const hours = (at.getTime() - Date.now()) / 3_600_000;
+  const clock = at.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const day = at.toDateString() === new Date().toDateString() ? "hôm nay" : "ngày mai";
+
+  return ` Hạn mức đặt lại lúc ${clock} ${day} — còn khoảng ${Math.max(1, Math.round(hours))} giờ.`;
+}
+
 export function ChatPanel({
   conversationId,
   reloadKey,
@@ -123,7 +146,10 @@ export function ChatPanel({
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
         const data = await res.json();
-        patchLast({ answer: data.message, kind: data.type ?? "refusal" });
+        patchLast({
+          answer: data.message + resetHint(data.resetAt),
+          kind: data.type ?? "refusal",
+        });
         return;
       }
 
