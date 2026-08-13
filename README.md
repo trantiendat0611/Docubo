@@ -80,7 +80,8 @@ nhập đều thấy 0 dòng ở cả bốn bảng.
 ```
 db/       7 migration SQL: schema, hybrid search, RLS, đa người dùng,
           page cache, document overview, hội thoại
-docs/     kế hoạch, requirements, sơ đồ, SKILL_MY_PROJECT
+docs/     kế hoạch, requirements, sơ đồ, SKILL_MY_PROJECT,
+          báo cáo tiến độ gửi mentor
 src/      ứng dụng Next.js — UI, route ingest, route chat, thư viện ingest TS
 ingest/   pipeline Python, dùng để nạp corpus lớn và sinh dữ liệu eval
 eval/     bộ câu hỏi đánh giá, metrics, harness
