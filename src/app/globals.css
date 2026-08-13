@@ -1,10 +1,12 @@
 /* =========================================================================
    Docubo — design tokens
 
-   One scale per dimension. Every value in this file comes from a token; a
-   literal that appears in a rule below is a bug, because the eleven ad-hoc
-   spacing values the previous sheet accumulated are exactly what made the
-   layout feel unresolved.
+   One scale per dimension. Reach for a token first — the eleven ad-hoc spacing
+   values the previous sheet accumulated are what made the layout feel
+   unresolved. A handful of literals remain on purpose, where the scale has no
+   opinion: the 6px indicator dots, a 1.65em line box, and the ch-based widths
+   that key off text rather than off the grid. Those aside, a raw length in a
+   rule below means a token was missed.
    ========================================================================= */
 
 :root {
@@ -420,7 +422,11 @@ button.link-danger:hover {
 }
 
 .upload-drop:hover,
-.upload-drop.is-dragging {
+.upload-drop.is-dragging,
+/* The input is visually hidden but still in the tab order, so the global
+   focus ring paints around a 1px transparent box and shows nothing. The
+   label has to carry the focus state instead. */
+.upload-drop:focus-within {
   border-color: var(--accent);
   background: var(--accent-weak);
 }
@@ -533,10 +539,13 @@ button.link-danger:hover {
 
 /* The delete control only resolves on hover, so a rail of documents does not
    read as a row of buttons. It stays reachable by keyboard. */
+/* Keeps button.link's --tap height rather than overriding it to auto, which
+   collapsed a destructive control to about 20px — on touch, where the rule
+   below keeps it permanently visible, that is exactly where the floor matters. */
 .doclist .remove {
   opacity: 0;
   flex: none;
-  min-height: auto;
+  padding: 0 var(--s2);
   font-size: var(--text-xs);
 }
 
@@ -641,7 +650,7 @@ button.link-danger:hover {
 /* Answer still streaming. */
 .turn .thinking {
   display: inline-flex;
-  gap: 4px;
+  gap: var(--s1);
   align-items: center;
   height: 1.65em;
 }
@@ -807,7 +816,7 @@ button.link-danger:hover {
   color: var(--fg-muted);
 }
 
-.empty strong {
+.empty h2 {
   color: var(--fg);
   font-size: var(--text-lg);
   font-weight: 600;

@@ -173,11 +173,24 @@ export function UploadPanel({ onDone }: Props) {
       <label
         className={`upload-drop${dragging ? " is-dragging" : ""}`}
         onDragOver={(e) => {
-          if (busy) return;
+          // preventDefault unconditionally, before the busy check. An element
+          // is only a drop target while its dragover is cancelled; skip it and
+          // the browser runs its own default for a dropped file, which is to
+          // navigate the tab to it. Mid-ingest that tears down the page, aborts
+          // the in-flight step request, and strands the job server-side. The
+          // busy case still refuses the file — but in onDrop, where refusing
+          // costs nothing.
           e.preventDefault();
+          if (busy) return;
           setDragging(true);
         }}
-        onDragLeave={() => setDragging(false)}
+        onDragLeave={(e) => {
+          // Moving onto a child fires dragleave on the label before the child's
+          // dragover bubbles back up, so an unguarded handler flickers the
+          // highlight every time the cursor crosses the text inside.
+          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+          setDragging(false);
+        }}
         onDrop={(e) => {
           e.preventDefault();
           setDragging(false);

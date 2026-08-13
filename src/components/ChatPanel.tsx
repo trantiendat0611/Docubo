@@ -122,11 +122,14 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
           // answers well. These are the four question shapes the system is
           // actually built for, so showing them is orientation, not decoration.
           <div className="empty">
-            <strong>Hỏi gì cũng được, miễn là tài liệu có câu trả lời</strong>
+            {/* A heading, not styled-up <strong>: below 900px the rail moves
+                above the chat, and without this the main column contributes
+                nothing to the heading outline at all. */}
+            <h2>Hỏi gì cũng được, miễn là tài liệu có câu trả lời</h2>
             <p>
-              Tải một PDF lên ở bên phải, rồi hỏi bằng tiếng Việt hoặc tiếng
-              Anh. Nếu tài liệu không chứa câu trả lời, Docubo sẽ nói vậy thay
-              vì đoán.
+              Tải một PDF lên ở khu vực tải tài liệu, rồi hỏi bằng tiếng Việt
+              hoặc tiếng Anh. Nếu tài liệu không chứa câu trả lời, Docubo sẽ
+              nói vậy thay vì đoán.
             </p>
             <ul className="suggestions">
               {SUGGESTIONS.map((s) => (

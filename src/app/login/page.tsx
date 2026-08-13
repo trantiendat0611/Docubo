@@ -11,7 +11,13 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  // Two different things end up here: a Supabase failure, and the note telling
+  // a new user to go confirm their email. Styling both as an error told people
+  // their successful signup had failed.
+  const [message, setMessage] = useState<{
+    text: string;
+    kind: "info" | "error";
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -28,7 +34,7 @@ export default function LoginPage() {
     setBusy(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage({ text: error.message, kind: "error" });
       return;
     }
 
@@ -37,7 +43,10 @@ export default function LoginPage() {
       // session yet and the user has to click a link first.
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        setMessage("Kiểm tra email để xác nhận tài khoản, rồi đăng nhập.");
+        setMessage({
+          text: "Đã tạo tài khoản. Kiểm tra email để xác nhận, rồi đăng nhập.",
+          kind: "info",
+        });
         return;
       }
     }
@@ -86,8 +95,13 @@ export default function LoginPage() {
         </form>
 
         {message && (
-          <p className="note note-error" role="alert">
-            {message}
+          <p
+            className={
+              message.kind === "error" ? "note note-error" : "note note-success"
+            }
+            role={message.kind === "error" ? "alert" : "status"}
+          >
+            {message.text}
           </p>
         )}
 
