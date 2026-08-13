@@ -47,6 +47,15 @@ trong bất kì câu trả lời nào.
 - [x] Hiện tiến độ thật theo số trang server đã xử lí
 - [x] Xem và xoá tài liệu của mình
 
+**Hội thoại**
+- [x] Nhiều khung chat, mỗi khung có lịch sử riêng, lưu trong database
+- [x] Tài liệu tải lên gắn vào khung đang mở; câu hỏi chỉ được trả lời từ tài
+      liệu của khung đó
+- [x] Một tài liệu dùng lại được ở nhiều khung, không phải nạp lại
+- [x] Đặt tên khung theo câu hỏi đầu tiên, đổi tên và xoá khung
+- [x] Hội thoại nhiều lượt — 3 lượt gần nhất đi kèm làm ngữ cảnh
+- [x] Dừng khi đang sinh, và sinh lại câu trả lời
+
 **Truy hồi và trả lời**
 - [x] Chunk mang hai biểu diễn (`embed_text` / `display_text`)
 - [x] Truy hồi hybrid: vector + full-text hai ngôn ngữ, hợp nhất bằng RRF
@@ -70,8 +79,9 @@ trong bất kì câu trả lời nào.
 - [ ] Trích dẫn mở ra ảnh trang gốc (ảnh đã render sẵn lúc ingest)
 - [ ] Rerank top-20 xuống top-5 bằng Gemini
 - [ ] Nạp DOCX / TXT
-- [ ] Lịch sử hội thoại nhiều lượt
 - [ ] Dọn `document_pages` và file Storage khi xoá tài liệu
+- [ ] Đính tài liệu có sẵn vào khung chat từ giao diện — hiện chỉ gắn được
+      bằng cách tải lên trong khung đó, dù schema đã hỗ trợ dùng lại
 
 ### Không làm — ghi rõ để bảo vệ khi phản biện
 
@@ -140,6 +150,10 @@ trong bất kì câu trả lời nào.
 | **E20** | **Hỏi tóm tắt mà chưa rõ tài liệu nào** | Hỏi lại kèm danh sách, không đoán | `api/chat` |
 | **E21** | **Tài liệu người khác** | RLS chặn ở database, không phải ở code | `004_multi_tenant.sql` |
 | **E22** | **Tải lên quá nhiều trong ngày** | Chặn ở 5 lượt/24h — quota vision là ngân sách chung | `api/upload` |
+| **E23** | **Hỏi trong khung chat chưa có tài liệu nào** | Trả `needs_document` ngay, không gọi model | `api/chat` |
+| **E24** | **Gửi `conversationId` của người khác** | RLS trả rỗng → route trả 404, không lộ sự tồn tại | `conversation.ts` |
+| **E25** | **Xoá khung chat** | Lịch sử mất theo, tài liệu vẫn còn ở các khung khác | `007_conversations.sql` |
+| **E26** | **Người thứ hai tải lên đúng file người thứ nhất đã có** | `content_hash` unique theo từng chủ sở hữu, không toàn cục | `007_conversations.sql` |
 
 ## 6. Ràng buộc phi chức năng
 

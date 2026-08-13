@@ -22,31 +22,80 @@ interface Doc {
   created_at: string;
 }
 
-export function DocumentList({ reloadKey }: { reloadKey: number }) {
+export function DocumentList({
+  conversationId,
+  reloadKey,
+  onChange,
+}: {
+  conversationId: string | null;
+  reloadKey: number;
+  onChange: () => void;
+}) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const { data } = await browserClient()
+    const client = browserClient();
+
+    // Inside a conversation the list is what that conversation can answer from,
+    // which is the join table rather than everything the user owns.
+    let ids: string[] | null = null;
+    if (conversationId) {
+      const { data } = await client
+        .from("conversation_documents")
+        .select("document_id")
+        .eq("conversation_id", conversationId);
+      ids = (data ?? []).map((r) => r.document_id as string);
+    }
+
+    if (ids?.length === 0) {
+      setDocs([]);
+      setLoading(false);
+      return;
+    }
+
+    let query = client
       .from("documents")
       .select("id, filename, title, lang, n_pages, created_at")
       .order("created_at", { ascending: false });
 
+    if (ids) query = query.in("id", ids);
+
+    const { data } = await query;
     setDocs((data as Doc[]) ?? []);
     setLoading(false);
-  }, []);
+  }, [conversationId]);
 
   useEffect(() => {
     void load();
   }, [load, reloadKey]);
 
+  /**
+   * Inside a conversation, removing detaches; outside it, it deletes.
+   *
+   * A document can belong to several conversations, so destroying the file
+   * because it was removed from one of them would take it out of the others
+   * too — and re-ingesting costs vision quota that the join table exists to
+   * avoid spending twice.
+   */
   async function remove(doc: Doc) {
     const label = doc.title ?? doc.filename;
-    if (!confirm(`Xoá "${label}"? Các đoạn đã lập chỉ mục cũng bị xoá theo.`)) return;
+    const client = browserClient();
 
-    // Chunks go with it: the foreign key cascades.
-    await browserClient().from("documents").delete().eq("id", doc.id);
-    void load();
+    if (conversationId) {
+      if (!confirm(`Bỏ "${label}" khỏi khung chat này? Tài liệu vẫn được giữ lại.`)) return;
+      await client
+        .from("conversation_documents")
+        .delete()
+        .eq("conversation_id", conversationId)
+        .eq("document_id", doc.id);
+    } else {
+      if (!confirm(`Xoá hẳn "${label}"? Các đoạn đã lập chỉ mục cũng bị xoá theo.`)) return;
+      // Chunks go with it: the foreign key cascades.
+      await client.from("documents").delete().eq("id", doc.id);
+    }
+
+    onChange();
   }
 
   if (loading) return <p className="muted">Đang tải danh sách…</p>;
@@ -69,10 +118,10 @@ export function DocumentList({ reloadKey }: { reloadKey: number }) {
           <button
             type="button"
             className="link link-danger remove"
-            aria-label={`Xoá ${doc.title ?? doc.filename}`}
+            aria-label={`${conversationId ? "Bỏ khỏi khung chat" : "Xoá"} ${doc.title ?? doc.filename}`}
             onClick={() => void remove(doc)}
           >
-            Xoá
+            {conversationId ? "Bỏ ra" : "Xoá"}
           </button>
         </li>
       ))}

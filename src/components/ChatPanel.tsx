@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CitationList } from "./CitationList";
 import { ScopePicker } from "./ScopePicker";
 import { Markdown } from "./Markdown";
+import { browserClient } from "@/lib/supabase/client";
 import type { Citation } from "@/lib/types";
+
+type Kind = "answer" | "refusal" | "blocked" | "needs_document" | "error";
 
 interface Turn {
   question: string;
   answer: string;
   citations: Citation[];
-  kind: "answer" | "refusal" | "blocked" | "needs_document" | "error";
+  kind: Kind;
 }
 
 /** The four question shapes the system is actually built for. */
@@ -21,34 +24,102 @@ const SUGGESTIONS = [
   "What is semi-supervised learning?",
 ];
 
-export function ChatPanel({ reloadKey }: { reloadKey: number }) {
+export function ChatPanel({
+  conversationId,
+  reloadKey,
+  onTitled,
+}: {
+  conversationId: string | null;
+  reloadKey: number;
+  onTitled: () => void;
+}) {
   const [input, setInput] = useState("");
   const [scope, setScope] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
+  const abort = useRef<AbortController | null>(null);
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    const question = input.trim();
-    if (!question || busy) return;
+  /**
+   * Rebuild the transcript when the conversation changes.
+   *
+   * Messages are stored one row per speaker, which is the right shape for the
+   * model but not for the screen — the UI pairs a question with the answer that
+   * followed it. Pairing here rather than in the schema keeps a user turn with
+   * no reply yet (generation failed, or the tab closed mid-stream) visible
+   * instead of dropping it.
+   */
+  const loadHistory = useCallback(async () => {
+    if (!conversationId) {
+      setTurns([]);
+      return;
+    }
 
-    setInput("");
+    const { data } = await browserClient()
+      .from("messages")
+      .select("role, content, kind, citations")
+      .eq("conversation_id", conversationId)
+      .order("id", { ascending: true });
+
+    const rebuilt: Turn[] = [];
+    for (const m of data ?? []) {
+      if (m.role === "user") {
+        rebuilt.push({ question: m.content, answer: "", citations: [], kind: "answer" });
+      } else if (rebuilt.length) {
+        const last = rebuilt[rebuilt.length - 1];
+        last.answer = m.content;
+        last.kind = (m.kind as Kind) ?? "answer";
+        last.citations = (m.citations as Citation[]) ?? [];
+      }
+    }
+    setTurns(rebuilt);
+  }, [conversationId]);
+
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
+
+  function patchLast(patch: Partial<Turn>) {
+    setTurns((t) => t.map((turn, i) => (i === t.length - 1 ? { ...turn, ...patch } : turn)));
+  }
+
+  /** Name an untitled conversation after its opening question. No model call. */
+  async function titleFrom(question: string) {
+    if (!conversationId) return;
+    const client = browserClient();
+    const { data } = await client
+      .from("conversations")
+      .select("title")
+      .eq("id", conversationId)
+      .maybeSingle();
+
+    if (data && !data.title) {
+      const title = question.length > 60 ? `${question.slice(0, 57)}…` : question;
+      await client.from("conversations").update({ title }).eq("id", conversationId);
+      onTitled();
+    }
+  }
+
+  async function ask(question: string) {
     setBusy(true);
-    setTurns((t) => [
-      ...t,
-      { question, answer: "", citations: [], kind: "answer" },
-    ]);
+    const controller = new AbortController();
+    abort.current = controller;
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Empty scope means the whole corpus; the server also resolves a
-        // document named in the question itself.
-        body: JSON.stringify({ question, documentId: scope || undefined }),
+        signal: controller.signal,
+        // Empty scope means every document the conversation holds; the server
+        // also resolves a document named in the question itself.
+        body: JSON.stringify({
+          question,
+          documentId: scope || undefined,
+          conversationId: conversationId ?? undefined,
+        }),
       });
 
-      // Refusals and blocks come back as JSON, answers as a token stream.
+      // Refusals, blocks and generation failures come back as JSON, answers as
+      // a token stream.
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
         const data = await res.json();
@@ -57,9 +128,7 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
       }
 
       const header = res.headers.get("X-Citations");
-      if (header) {
-        patchLast({ citations: JSON.parse(decodeURIComponent(header)) });
-      }
+      if (header) patchLast({ citations: JSON.parse(decodeURIComponent(header)) });
       const degraded = res.headers.get("X-Degraded") === "1";
 
       const reader = res.body?.getReader();
@@ -73,10 +142,10 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
       }
 
       // A stream that carries no tokens is a failed generation, not an answer.
-      // The route now catches that before sending headers and returns 503 with
-      // the reason, so this only fires when generation dies partway through —
-      // after the status is already committed and no longer changeable. The
-      // cause is genuinely unknown here, so the message does not name one.
+      // The route catches that before sending headers and returns 503 with the
+      // reason, so this only fires when generation dies partway through — after
+      // the status is already committed and no longer changeable. The cause is
+      // genuinely unknown here, so the message does not name one.
       if (!acc.trim()) {
         patchLast({
           answer:
@@ -101,26 +170,60 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
           ].join("\n\n"),
         });
       }
-    } catch {
-      patchLast({ answer: "Có lỗi khi gọi API.", kind: "refusal" });
+    } catch (error) {
+      // Stopping is a choice, not a failure: keep the partial answer as it was
+      // when the user pressed the button.
+      if ((error as Error)?.name === "AbortError") {
+        setTurns((t) =>
+          t.map((turn, i) =>
+            i === t.length - 1 && !turn.answer.trim()
+              ? { ...turn, answer: "Đã dừng trước khi có câu trả lời.", kind: "error" }
+              : turn,
+          ),
+        );
+        return;
+      }
+      patchLast({ answer: "Có lỗi khi gọi API.", kind: "error" });
     } finally {
+      abort.current = null;
       setBusy(false);
     }
   }
 
-  function patchLast(patch: Partial<Turn>) {
-    setTurns((t) =>
-      t.map((turn, i) => (i === t.length - 1 ? { ...turn, ...patch } : turn)),
-    );
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    const question = input.trim();
+    if (!question || busy) return;
+
+    setInput("");
+    setTurns((t) => [...t, { question, answer: "", citations: [], kind: "answer" }]);
+    void titleFrom(question);
+    await ask(question);
   }
+
+  /**
+   * Ask the last question again.
+   *
+   * The replaced turn stays in the stored transcript — this appends rather than
+   * rewrites history, so what the model was asked and what it produced both
+   * remain on record.
+   */
+  async function regenerate() {
+    const last = turns[turns.length - 1];
+    if (!last || busy) return;
+    setTurns((t) => [
+      ...t,
+      { question: last.question, answer: "", citations: [], kind: "answer" },
+    ]);
+    await ask(last.question);
+  }
+
+  const canRegenerate = !busy && turns.length > 0 && Boolean(turns[turns.length - 1].answer);
 
   return (
     <div className="chat">
       <div className="transcript">
         {turns.length === 0 && (
-          // A blank column tells a first-time user nothing about what the tool
-          // answers well. These are the four question shapes the system is
-          // actually built for, so showing them is orientation, not decoration.
           <div className="empty">
             {/* A heading, not styled-up <strong>: below 900px the rail moves
                 above the chat, and without this the main column contributes
@@ -134,11 +237,7 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
             <ul className="suggestions">
               {SUGGESTIONS.map((s) => (
                 <li key={s}>
-                  <button
-                    type="button"
-                    className="suggestion"
-                    onClick={() => setInput(s)}
-                  >
+                  <button type="button" className="suggestion" onClick={() => setInput(s)}>
                     {s}
                   </button>
                 </li>
@@ -165,7 +264,33 @@ export function ChatPanel({ reloadKey }: { reloadKey: number }) {
       </div>
 
       <div className="composer">
-        <ScopePicker value={scope} onChange={setScope} reloadKey={reloadKey} />
+        <div className="composer-tools">
+          <ScopePicker
+            value={scope}
+            onChange={setScope}
+            reloadKey={reloadKey}
+            conversationId={conversationId}
+          />
+          {busy ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-compact"
+              onClick={() => abort.current?.abort()}
+            >
+              Dừng
+            </button>
+          ) : (
+            canRegenerate && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-compact"
+                onClick={() => void regenerate()}
+              >
+                Sinh lại
+              </button>
+            )
+          )}
+        </div>
 
         <form onSubmit={send}>
           <input

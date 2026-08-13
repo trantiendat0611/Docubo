@@ -21,20 +21,42 @@ export function ScopePicker({
   value,
   onChange,
   reloadKey,
+  conversationId,
 }: {
   value: string;
   onChange: (id: string) => void;
   reloadKey: number;
+  conversationId: string | null;
 }) {
   const [options, setOptions] = useState<ScopeOption[]>([]);
 
   useEffect(() => {
     void (async () => {
-      const { data } = await browserClient()
+      const client = browserClient();
+
+      // Narrowing within a conversation can only offer what that conversation
+      // holds; a document from another chat is not in scope to begin with.
+      let ids: string[] | null = null;
+      if (conversationId) {
+        const { data } = await client
+          .from("conversation_documents")
+          .select("document_id")
+          .eq("conversation_id", conversationId);
+        ids = (data ?? []).map((r) => r.document_id as string);
+        if (ids.length === 0) {
+          setOptions([]);
+          return;
+        }
+      }
+
+      let query = client
         .from("documents")
         .select("id, filename, title")
         .order("created_at", { ascending: false });
 
+      if (ids) query = query.in("id", ids);
+
+      const { data } = await query;
       setOptions(
         (data ?? []).map((d) => ({
           id: d.id as string,
@@ -42,7 +64,7 @@ export function ScopePicker({
         })),
       );
     })();
-  }, [reloadKey]);
+  }, [reloadKey, conversationId]);
 
   // One document is its own scope; a picker would be noise.
   if (options.length < 2) return null;

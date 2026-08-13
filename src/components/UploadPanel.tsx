@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { shouldFlushBefore } from "@/lib/ingest/batching";
 import { MAX_UPLOAD_PAGES } from "@/lib/ingest/config";
 import { openPdf, renderPage } from "@/lib/ingest/pdf";
+import { browserClient } from "@/lib/supabase/client";
 
 /**
  * Upload a PDF and drive its ingest to completion.
@@ -16,12 +17,14 @@ import { openPdf, renderPage } from "@/lib/ingest/pdf";
  */
 
 interface Props {
+  /** Attach the finished document here. Null uploads into the library only. */
+  conversationId: string | null;
   onDone: () => void;
 }
 
 type Phase = "idle" | "reading" | "uploading" | "extracting" | "indexing" | "error";
 
-export function UploadPanel({ onDone }: Props) {
+export function UploadPanel({ conversationId, onDone }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [done, setDone] = useState(0);
@@ -152,7 +155,30 @@ export function UploadPanel({ onDone }: Props) {
       return;
     }
 
-    const { chunks } = (await finished.json()) as { chunks: number };
+    const { chunks, documentId } = (await finished.json()) as {
+      chunks: number;
+      documentId: string;
+    };
+
+    // Attach to the open conversation so the question that follows is answered
+    // from it. upsert rather than insert: re-uploading a document already in
+    // this conversation is a no-op, not a primary-key violation.
+    if (conversationId && documentId) {
+      const { data: me } = await browserClient().auth.getUser();
+      if (me.user) {
+        await browserClient()
+          .from("conversation_documents")
+          .upsert(
+            {
+              conversation_id: conversationId,
+              document_id: documentId,
+              owner_id: me.user.id,
+            },
+            { onConflict: "conversation_id,document_id" },
+          );
+      }
+    }
+
     setPhase("idle");
     setMessage(`Đã nạp xong ${nPages} trang thành ${chunks} đoạn. Hỏi được rồi.`);
     if (input.current) input.current.value = "";

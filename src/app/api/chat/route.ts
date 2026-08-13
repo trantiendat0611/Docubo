@@ -17,6 +17,12 @@ import {
   retrieve,
   retrieveOverview,
 } from "@/lib/retrieve";
+import {
+  conversationDocumentIds,
+  ownsConversation,
+  recentTurns,
+  saveMessage,
+} from "@/lib/conversation";
 import { logQuery } from "@/lib/log";
 import { openTextStream } from "@/lib/stream";
 import { currentUser } from "@/lib/supabase/server";
@@ -37,13 +43,65 @@ export async function POST(req: Request) {
     return Response.json({ error: "unauthenticated" }, { status: 401 });
   }
 
-  const { question, documentId } = (await req.json()) as {
+  const { question, documentId, conversationId } = (await req.json()) as {
     question?: string;
     documentId?: string;
+    conversationId?: string;
   };
 
   if (!question?.trim()) {
     return Response.json({ error: "question is required" }, { status: 400 });
+  }
+
+  // A conversation owns its documents. Omitting the id keeps the original
+  // behaviour — search everything the user has — which is what the eval harness
+  // relies on and what a single-document account still wants.
+  const inConversation = conversationId
+    ? await ownsConversation(conversationId)
+    : false;
+
+  if (conversationId && !inConversation) {
+    return Response.json({ error: "conversation not found" }, { status: 404 });
+  }
+
+  const conversationDocs = inConversation
+    ? await conversationDocumentIds(conversationId!)
+    : null;
+
+  if (inConversation) {
+    void saveMessage({
+      conversationId: conversationId!,
+      ownerId: user.id,
+      role: "user",
+      content: question,
+    });
+  }
+
+  /** Persist the assistant turn and hand the response straight back. */
+  const replyWith = (
+    body: { type: string; message: string } & Record<string, unknown>,
+    init?: ResponseInit,
+  ) => {
+    if (inConversation) {
+      void saveMessage({
+        conversationId: conversationId!,
+        ownerId: user.id,
+        role: "assistant",
+        content: body.message,
+        kind: body.type,
+      });
+    }
+    return Response.json(body, init);
+  };
+
+  // An empty conversation can only refuse. Saying so here costs no model call
+  // and gives a clearer answer than a similarity search over nothing.
+  if (conversationDocs?.length === 0) {
+    return replyWith({
+      type: "needs_document",
+      message: needsDocumentMessage("vi"),
+      documents: [],
+    });
   }
 
   const analysis = await analyseQuery(question);
@@ -56,7 +114,7 @@ export async function POST(req: Request) {
       blocked_by: analysis.reason,
       latency_ms: Date.now() - started,
     });
-    return Response.json({
+    return replyWith({
       type: "blocked",
       message: blockedMessage(analysis.lang),
       reason: analysis.reason,
@@ -64,8 +122,13 @@ export async function POST(req: Request) {
   }
 
   // Resolve which document the question is about, in order of confidence:
-  // an explicit selection, then a document named in the question itself.
-  const documents = await listDocuments();
+  // an explicit selection, then a document named in the question itself. Inside
+  // a conversation the candidates are its own documents — naming a document
+  // that lives in a different chat must not pull it in.
+  const all = await listDocuments();
+  const documents = conversationDocs
+    ? all.filter((d) => conversationDocs.includes(d.id))
+    : all;
   const mentioned = resolveMentionedDocument(question, documents);
   const scopedId =
     documentId && documents.some((d) => d.id === documentId)
@@ -89,7 +152,7 @@ export async function POST(req: Request) {
         blocked_by: "needs_document",
         latency_ms: Date.now() - started,
       });
-      return Response.json({
+      return replyWith({
         type: "needs_document",
         message: needsDocumentMessage(analysis.lang),
         documents: documents.map((d) => ({ id: d.id, title: d.title ?? d.filename })),
@@ -98,7 +161,10 @@ export async function POST(req: Request) {
 
     chunks = await retrieveOverview(target);
   } else {
-    chunks = await retrieve(analysis, question, scopedId ? [scopedId] : undefined);
+    // Narrowest scope wins: an explicit document, else the conversation's set,
+    // else everything.
+    const scope = scopedId ? [scopedId] : (conversationDocs ?? undefined);
+    chunks = await retrieve(analysis, question, scope);
   }
 
   // The refusal path. Every question that reaches the model must have context
@@ -115,7 +181,7 @@ export async function POST(req: Request) {
       n_results: chunks.length,
       latency_ms: Date.now() - started,
     });
-    return Response.json({
+    return replyWith({
       type: "refusal",
       message: refusalMessage(analysis.lang),
       citations: [],
@@ -145,14 +211,41 @@ export async function POST(req: Request) {
   // response is built.
   let generationError: unknown;
 
+  // Earlier turns, so "what about the second one?" resolves. Read from the
+  // database rather than taken from the request body: a client that supplied
+  // its own history could put words in the user's mouth, and the prompt below
+  // presents these as things the user actually asked.
+  const history = inConversation ? await recentTurns(conversationId!) : [];
+
   const result = streamText({
     model: gemini(model),
     system: buildSystemPrompt(analysis.lang, analysis.wants_overview),
-    prompt: `<context>\n${buildContext(chunks)}\n</context>\n\n<question>\n${question}\n</question>`,
+    messages: [
+      ...history.map((t) => ({ role: t.role, content: t.content })),
+      {
+        role: "user" as const,
+        content: `<context>\n${buildContext(chunks)}\n</context>\n\n<question>\n${question}\n</question>`,
+      },
+    ],
     temperature: 0.2,
     ...NO_SDK_RETRIES,
     onError: ({ error }) => {
       generationError = error;
+    },
+    // Fires once the client has drained the stream, which is the only point the
+    // whole answer exists in one piece on this side. Stopping early leaves
+    // whatever arrived, which is what the user saw and so what should be saved.
+    onFinish: ({ text }) => {
+      if (inConversation && text.trim()) {
+        void saveMessage({
+          conversationId: conversationId!,
+          ownerId: user.id,
+          role: "assistant",
+          content: text,
+          kind: "answer",
+          citations,
+        });
+      }
     },
   });
 
@@ -167,7 +260,7 @@ export async function POST(req: Request) {
     body = await openTextStream(result.textStream, () => generationError);
   } catch (error) {
     const daily = isDailyQuota(error);
-    return Response.json(
+    return replyWith(
       {
         type: "error",
         message: generationFailedMessage(analysis.lang, daily),

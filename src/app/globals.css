@@ -79,8 +79,9 @@
   --tap: 2.75rem; /* 44px */
 
   --measure: 68ch; /* prose line length */
-  --shell: 1180px;
-  --rail: 300px;
+  --shell: 1440px;
+  --sidebar: 232px;
+  --rail: 288px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -376,8 +377,8 @@ button.link-danger:hover {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--rail);
-  gap: var(--s6);
+  grid-template-columns: var(--sidebar) minmax(0, 1fr) var(--rail);
+  gap: var(--s5);
   margin-top: var(--s5);
   flex: 1;
   min-height: 0;
@@ -401,6 +402,106 @@ button.link-danger:hover {
   letter-spacing: 0.06em;
   color: var(--fg-subtle);
   margin-bottom: var(--s3);
+}
+
+/* =========================================================================
+   Conversation sidebar
+   ========================================================================= */
+
+.convo {
+  align-self: start;
+  position: sticky;
+  top: var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  min-width: 0;
+}
+
+.convo-new {
+  width: 100%;
+}
+
+.convo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.convo-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  border-radius: var(--radius-sm);
+  padding-right: var(--s1);
+}
+
+.convo-list li:hover {
+  background: var(--surface);
+}
+
+.convo-list li.is-current {
+  background: var(--accent-weak);
+}
+
+.convo-open {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 var(--s2);
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.convo-list li.is-current .convo-open {
+  color: var(--accent);
+  font-weight: 550;
+}
+
+/* Held back until the row is wanted, so a column of chats does not read as a
+   column of buttons. Keyboard focus brings them back. */
+.convo-actions {
+  display: flex;
+  gap: var(--s2);
+  opacity: 0;
+  flex: none;
+}
+
+.convo-list li:hover .convo-actions,
+.convo-actions:focus-within {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .convo-actions {
+    opacity: 1;
+  }
+}
+
+.convo-actions .link {
+  font-size: var(--text-xs);
+  text-decoration: none;
+  padding: 0 var(--s1);
+}
+
+.convo-actions .link:hover {
+  text-decoration: underline;
+}
+
+.convo-rename {
+  min-height: 2.25rem;
+  font-size: var(--text-sm);
 }
 
 /* =========================================================================
@@ -776,11 +877,25 @@ button.link-danger:hover {
   flex: 1;
 }
 
+.composer-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  min-height: var(--tap);
+  margin-bottom: var(--s2);
+}
+
+/* Keeps the row from collapsing when the scope picker is absent, so Dừng and
+   Sinh lại do not jump position between one document and several. */
+.composer-tools > *:only-child {
+  margin-left: auto;
+}
+
 .scope {
   display: flex;
   align-items: center;
   gap: var(--s2);
-  margin-bottom: var(--s2);
   font-size: var(--text-sm);
   color: var(--fg-muted);
 }
@@ -924,15 +1039,44 @@ button.link-danger:hover {
    form stayed a horizontal flex row down to 320px.
    ========================================================================= */
 
+/* Three columns need roughly 1200px. Below that the document rail folds under
+   the chat first, because the sidebar is how you move between chats and losing
+   it costs more than losing the document list. */
+@media (max-width: 1200px) {
+  .workspace {
+    grid-template-columns: var(--sidebar) minmax(0, 1fr);
+  }
+
+  .rail {
+    grid-column: 1 / -1;
+    position: static;
+  }
+}
+
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--s5);
   }
 
+  .convo,
   .rail {
     position: static;
+    grid-column: auto;
+  }
+
+  .convo {
+    order: -2;
+  }
+
+  .rail {
     order: -1;
+  }
+
+  /* A stacked sidebar should not push the chat off screen. */
+  .convo-list {
+    max-height: 12rem;
+    overflow-y: auto;
   }
 }
 

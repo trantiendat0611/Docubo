@@ -78,8 +78,8 @@ nhập đều thấy 0 dòng ở cả bốn bảng.
 ## Cấu trúc thư mục
 
 ```
-db/       6 migration SQL: schema, hybrid search, RLS, đa người dùng,
-          page cache, document overview
+db/       7 migration SQL: schema, hybrid search, RLS, đa người dùng,
+          page cache, document overview, hội thoại
 docs/     kế hoạch, requirements, sơ đồ, SKILL_MY_PROJECT
 src/      ứng dụng Next.js — UI, route ingest, route chat, thư viện ingest TS
 ingest/   pipeline Python, dùng để nạp corpus lớn và sinh dữ liệu eval
@@ -106,7 +106,7 @@ cp .env.example .env
 
 **2. Dựng cơ sở dữ liệu**
 
-Chạy 6 file trong `db/` theo đúng thứ tự số, trong Supabase SQL Editor.
+Chạy 7 file trong `db/` theo đúng thứ tự số, trong Supabase SQL Editor.
 
 Rồi tắt xác nhận email: Authentication → Sign In / Providers → Email →
 tắt **Confirm email**. Free tier không có SMTP nên bật nó sẽ chặn việc đăng ký.
