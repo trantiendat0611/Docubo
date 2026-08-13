@@ -34,3 +34,6 @@ next-env.d.ts
 Thumbs.db
 .idea/
 .vscode/
+
+# Kế hoạch cá nhân, không thuộc về đồ án.
+ke-hoach-hang-ngay.tsv
