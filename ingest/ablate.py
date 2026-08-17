@@ -59,6 +59,59 @@ EXPERIMENTS: dict[str, dict[str, object]] = {
 }
 
 
+def baseline_spread(doc: str, page_no: int, runs: int) -> None:
+    """Run the unmodified prompt several times and report how much it moves.
+
+    An ablation compares one run against one run, which only means something if
+    the same prompt twice means the same thing. Dropping rule 5 — a rule about
+    not inventing content — took a page from nine figures to one, and rule 5 has
+    nothing to do with figure detection. Either that rule has a wildly indirect
+    effect, or a single run cannot separate the prompt from the noise. This
+    measures which.
+    """
+    image = Path(config.ROOT) / "data" / "pages" / doc / f"p{page_no:04d}.png"
+    if not image.exists():
+        raise SystemExit(f"thiếu ảnh trang: {image}")
+
+    print(f"Chạy {runs} lần trên {doc} p{page_no:04d}, prompt KHÔNG đổi")
+    print(f"Tốn {runs} request.\n")
+
+    rows = []
+    for i in range(1, runs + 1):
+        print(f"  … lần {i}/{runs}")
+        page, model, _ = vision.extract_page(image, page_no)
+        d = (page.model_dump() if hasattr(page, "model_dump") else page) or {}
+        rows.append(
+            {
+                "lần": i,
+                "model": model,
+                "hình": len(d.get("figures") or []),
+                "công thức": len(d.get("formulas") or []),
+                "kí tự": len(d.get("markdown") or ""),
+                "boilerplate": d.get("is_boilerplate"),
+            }
+        )
+
+    print(f"\n{'lần':>4} {'hình':>5} {'công thức':>10} {'kí tự':>7}  boilerplate  model")
+    for r in rows:
+        print(
+            f"{r['lần']:>4} {r['hình']:>5} {r['công thức']:>10} {r['kí tự']:>7}  "
+            f"{str(r['boilerplate']):>11}  {r['model']}"
+        )
+
+    for key in ("hình", "kí tự"):
+        vals = [r[key] for r in rows]
+        lo, hi = min(vals), max(vals)
+        spread = f"{lo}–{hi}" if lo != hi else str(lo)
+        verdict = "ỔN ĐỊNH" if lo == hi else f"DAO ĐỘNG {hi - lo}"
+        print(f"\n  {key}: {spread}   → {verdict}")
+
+    print(
+        "\nNếu dao động ở đây cỡ bằng 'tác dụng' đo được lúc bỏ quy tắc,\n"
+        "thì một lần chạy mỗi phía không đủ để kết luận gì về quy tắc đó."
+    )
+
+
 def drop_rule(prompt: str, n: int) -> str:
     """Remove one numbered rule from the Rules section.
 
@@ -94,15 +147,26 @@ def summarise(page: object | None, label: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("experiment", nargs="?", choices=sorted(EXPERIMENTS))
+    ap.add_argument("experiment", nargs="?", choices=[*sorted(EXPERIMENTS), "baseline"])
     ap.add_argument("--list", action="store_true", help="Liệt kê thí nghiệm rồi thoát.")
+    ap.add_argument(
+        "--runs", type=int, default=3, help="Số lần chạy cho 'baseline' (mặc định 3)."
+    )
     args = ap.parse_args()
+
+    if args.experiment == "baseline":
+        baseline_spread("testta1", 15, args.runs)
+        return
 
     if args.list or not args.experiment:
         print("Các thí nghiệm có sẵn (mỗi cái tốn 1 request vision):\n")
         for name, e in EXPERIMENTS.items():
             print(f"  {name:12} bỏ quy tắc {e['rule']} · {e['doc']} trang {e['page']}")
             print(f"  {'':12} {e['claim']}\n")
+        print("  baseline     chạy cùng một trang nhiều lần, prompt không đổi")
+        print("  {:12} Đo nhiễu giữa các lần chạy. Không có nó thì mọi".format(""))
+        print("  {:12} kết quả ở trên đều không diễn giải được.".format(""))
+        print("  {:12} (--runs, mặc định 3)".format(""))
         return
 
     e = EXPERIMENTS[args.experiment]
