@@ -31,6 +31,7 @@ export function ConversationList({
   const [loading, setLoading] = useState(true);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await browserClient()
@@ -47,16 +48,32 @@ export function ConversationList({
   }, [load, reloadKey]);
 
   async function create() {
-    const { data } = await browserClient()
+    setError(null);
+    const client = browserClient();
+
+    // owner_id is NOT NULL with no default, and the insert policy checks it
+    // against auth.uid(). Sending an empty row failed both, and because only
+    // `data` was read the failure went nowhere: the button did nothing and said
+    // nothing.
+    const { data: me } = await client.auth.getUser();
+    if (!me.user) {
+      setError("Phiên đăng nhập đã hết hạn. Tải lại trang rồi đăng nhập lại.");
+      return;
+    }
+
+    const { data, error } = await client
       .from("conversations")
-      .insert({})
+      .insert({ owner_id: me.user.id })
       .select("id, title, updated_at")
       .single();
 
-    if (data) {
-      setItems((prev) => [data as Conversation, ...prev]);
-      onSelect((data as Conversation).id);
+    if (error || !data) {
+      setError(`Không tạo được hội thoại: ${error?.message ?? "không rõ lí do"}`);
+      return;
     }
+
+    setItems((prev) => [data as Conversation, ...prev]);
+    onSelect((data as Conversation).id);
   }
 
   async function remove(c: Conversation) {
@@ -69,7 +86,16 @@ export function ConversationList({
       return;
     }
 
-    await browserClient().from("conversations").delete().eq("id", c.id);
+    const { error } = await browserClient()
+      .from("conversations")
+      .delete()
+      .eq("id", c.id);
+
+    if (error) {
+      setError(`Không xoá được: ${error.message}`);
+      return;
+    }
+
     setItems((prev) => prev.filter((x) => x.id !== c.id));
     if (currentId === c.id) onSelect(null);
   }
@@ -79,7 +105,16 @@ export function ConversationList({
     setRenaming(null);
     if (!title) return;
 
-    await browserClient().from("conversations").update({ title }).eq("id", id);
+    const { error } = await browserClient()
+      .from("conversations")
+      .update({ title })
+      .eq("id", id);
+
+    if (error) {
+      setError(`Không đổi tên được: ${error.message}`);
+      return;
+    }
+
     setItems((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
   }
 
@@ -88,6 +123,12 @@ export function ConversationList({
       <button type="button" className="btn btn-secondary convo-new" onClick={() => void create()}>
         + Chat mới
       </button>
+
+      {error && (
+        <p className="note note-error" role="alert">
+          {error}
+        </p>
+      )}
 
       {loading ? (
         <p className="muted">Đang tải…</p>
