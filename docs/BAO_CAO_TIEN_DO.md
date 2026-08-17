@@ -175,9 +175,16 @@ Lí do là quota: ghim tài liệu vào đúng một khung nghĩa là phải n�
 vision lần nữa cho những byte đã trích xuất rồi. Một dòng join tốn 0 đồng và dùng
 lại nguyên các đoạn cũ.
 
-**Phần này chưa được kiểm chứng khi chạy thật.** Migration đã chạy, code qua
-typecheck, lint và 53 test, CI xanh — nhưng đường tạo khung, chuyển khung, nạp
-lịch sử và gắn tài liệu chưa từng được bấm thử trên giao diện.
+**Đã kiểm chứng trên giao diện ngày 13/08.** Hai phép thử quan trọng nhất đều
+đúng: khung chat thứ hai **từ chối** đúng câu hỏi mà khung thứ nhất trả lời được
+— chứng minh tài liệu thật sự bị cô lập theo từng khung; và lịch sử hội thoại
+còn nguyên sau khi tải lại trang — chứng minh dữ liệu vào database chứ không nằm
+trong bộ nhớ trình duyệt.
+
+Lần kiểm này cũng tìm ra một lỗi: nút "Chat mới" không tạo được khung nào vì
+lệnh ghi thiếu `owner_id`, và lỗi bị nuốt mất nên nút bấm không báo gì. Đã sửa.
+Đáng nói là **53 test đều xanh trong suốt thời gian đó** — không test nào gọi
+Supabase thật, nên toàn bộ nhánh này chưa từng được chạy trước khi bị gọi là xong.
 
 ---
 

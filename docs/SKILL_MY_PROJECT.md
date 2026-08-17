@@ -145,6 +145,24 @@ tiếng Việt trên tài liệu tiếng Anh, kết quả khi có và không có
 *(Vì sao: nếu model không đọc nổi tài liệu của bạn thì mọi thiết kế phía sau là
 vô nghĩa. Ghi lại bạn đã chọn trang nào để spike và vì sao.)*
 
+Chọn **6 trang, 2 tài liệu, 2 ngôn ngữ** — không phải 6 trang bất kì mà là 6
+trang **khó nhất** tìm được: trang dày công thức, trang toàn biểu đồ, trang trộn
+Việt–Anh trong cùng một đoạn. Nếu spike chạy được trên những trang này thì phần
+còn lại của corpus là chuyện dễ.
+
+Sáu trang đó lôi ra **bốn lỗi** mà đọc code bao nhiêu lần cũng không thấy:
+
+| Lỗi | Triệu chứng | Cách sửa |
+|---|---|---|
+| Model mặc định không có quota | `gemini-2.0-flash` trả 429 với `limit: 0` — **không phải cạn quota, mà là chưa từng có** | Đổi sang `gemini-3.5-flash`. Thêm lệnh `ingest.main models` để lần sau tự chẩn được |
+| LaTeX làm vỡ JSON | Chỉ yêu cầu JSON bằng mime type thì model trả `\prod` với một dấu gạch chéo. `\p` không phải escape hợp lệ trong JSON — **cả trang trích xuất đúng bị mất ở khâu parse** | Ràng buộc bằng `response_schema` để sửa từ gốc, thêm `_repair_escapes` làm lưới đỡ |
+| Trang bị `RECITATION` | Một số trang trả về rỗng với `finish_reason=RECITATION` — model từ chối chép lại văn bản nó nhận ra là đã xuất bản | Đổi sang model dự phòng. Ghi lại model nào đọc trang nào, để tỉ lệ này thành **một con số báo cáo được** thay vì một phỏng đoán |
+| Khối quá khổ lọt lưới | Model dự phòng đôi khi trả markdown không có dòng trắng, làm cả trang co lại thành **một khối duy nhất** — mà một khối thì chưa bao giờ bị cắt, nên nó thoát khỏi ngân sách token | Cắt theo câu cho khối vượt `MAX_TOKENS` |
+
+**Điều đáng rút ra:** cả bốn lỗi đều chỉ lộ ra khi **chạy trên dữ liệu thật**.
+Nếu nhảy thẳng vào chạy `all` trên tài liệu 300 trang thì lỗi thứ nhất đốt quota
+vô ích, còn lỗi thứ ba **âm thầm mất trang mà không ai biết**.
+
 ### Bước 2 — Cache trước khi gọi API lần thứ hai
 *(Ghi lại: bạn đã chỉnh prompt ingest bao nhiêu lần? Nếu không có cache thì mỗi
 lần chỉnh tốn bao nhiêu request?)*
@@ -157,8 +175,57 @@ thêm "never invent" giảm bao nhiêu ca bịa nội dung ở vùng mờ.)*
 *(Ghi lại: kích thước nào thử, hỏng ra sao. Đặc biệt là ca công thức bị cắt rời
 khỏi đoạn giải thích.)*
 
+Lỗi đắt nhất ở bước này không phải chọn sai kích thước, mà là **đo sai thứ**.
+
+Vòng gói chunk tính ngân sách trên **markdown**, trong khi `n_tokens` lại đo trên
+**`embed_text`**. Hai độ dài đó không hề gần nhau: `[[FIGURE:x]]` chỉ là **17 kí
+tự** markdown, nhưng nở ra hàng trăm kí tự mô tả trong `embed_text`.
+
+Hệ quả: **chỉ những chunk chứa biểu đồ mới tràn**, và tràn khoảng **40%** — tức
+đúng loại nội dung mà cả dự án này sinh ra để làm cho truy hồi được.
+
+Đo trên một lần ingest thật, trước và sau khi sửa:
+
+| | Số chunk | Token mỗi chunk |
+|---|---|---|
+| Tính trên markdown | 3 | 1067, 1233, … |
+| Tính trên `embed_text` | 4 | 712, 831, 757, 548 |
+
+Sau khi sửa, biểu đồ nằm trong chunk riêng thay vì bị nhồi chung.
+
+**Quy tắc rút ra: ngân sách phải đo trên đúng chuỗi sẽ được embed và lập chỉ
+mục** — không phải chuỗi dùng để hiển thị. Khi một hệ thống có hai biểu diễn cho
+cùng một nội dung, mọi phép đếm đều phải nói rõ nó đang đếm bản nào.
+
 ### Bước 5 — Schema và index
 *(Ghi lại: vì sao 768 chiều, vì sao HNSW, vì sao hai cột tsvector.)*
+
+**Vì sao 768 chiều.** Đây là số chiều `gemini-embedding-001` trả về, và cột được
+khai `vector(768)` để **khoá cứng** hai bên với nhau. Đổi model embedding là phải
+nạp lại vector cho toàn bộ corpus — không có đường tắt, vì vector của hai model
+khác nhau không nằm chung một không gian. Khoá cứng ở schema biến việc đó từ một
+lỗi âm thầm thành một lỗi báo ngay khi insert.
+
+**Vì sao HNSW.** Nó là chỉ mục láng giềng gần **xấp xỉ**: thay vì quét toàn bộ
+vector, nó đi trên một đồ thị nhiều tầng. Đổi một chút độ chính xác lấy tốc độ
+nhanh hơn nhiều bậc. Lưu ý vận hành: nếu corpus vượt khoảng 50 nghìn chunk thì
+nên **xoá chỉ mục trước khi nạp lại toàn bộ rồi tạo lại sau** — dựng chỉ mục một
+lần nhanh hơn nhiều so với cập nhật nó theo từng dòng insert.
+
+**Vì sao hai cột tsvector.** Đây là chỗ hai loại tìm kiếm hành xử ngược nhau:
+
+| | Đa ngữ | Xử lí thế nào |
+|---|---|---|
+| Vector | **Có** — model embedding đa ngữ, nên chunk tiếng Anh và câu hỏi tiếng Việt vẫn nằm gần nhau | Một không gian chung cho cả hai ngôn ngữ |
+| Full-text | **Không** — hoàn toàn khớp theo mặt chữ | Mỗi ngôn ngữ một cột, cấu hình khác nhau |
+
+Postgres có bộ gốc từ tiếng Anh nhưng **không có từ điển tiếng Việt**. Áp
+`'english'` lên tiếng Việt sẽ cắt gốc từ sai. `fts_vi` vì thế dùng `'simple'` —
+chỉ hạ chữ thường và tách token, không cắt gốc, không bỏ stopword. Đó là mức tốt
+nhất Postgres làm được cho tiếng Việt nếu không cài từ điển riêng.
+
+Cả hai cột đều đánh chỉ mục GIN, và đều được sinh bằng trigger từ `embed_text` —
+để không đường ghi nào có thể quên cập nhật chúng.
 
 ### Bước 6 — Grounding prompt
 *(Ghi lại các phiên bản. Câu nào làm model ngừng bịa. Câu nào làm nó từ chối
@@ -168,9 +235,74 @@ quá đà.)*
 *(Ghi lại quá trình dò `MIN_COSINE`: giá trị nào cho refusal_rate bao nhiêu,
 đánh đổi với hit rate ra sao. Kèm bảng.)*
 
+Ngưỡng ban đầu đặt là **0.35**, chọn theo cảm tính. Đo bảy câu hỏi trên corpus
+thật:
+
+| Loại câu hỏi | Khoảng cosine đo được |
+|---|---|
+| Trong phạm vi tài liệu | **0.648 – 0.750** |
+| Hoàn toàn không liên quan | **0.462 – 0.566** |
+
+Ở 0.35, **mọi câu hỏi lạc đề đều đi thẳng tới model** trong khi hàng rào trông
+vẫn như đang hoạt động. Nâng lên **0.60**, sửa ở cả `config.py` và `retrieve.ts`
+để hai đường ingest không lệch nhau.
+
+**Điều chuyển giao được là cái sàn, không phải con số.** `gemini-embedding-001`
+chấm văn bản hoàn toàn không liên quan quanh **0.5** — nên không có ngưỡng nào
+mang từ trực giác hay từ một model khác sang mà tin được. Với mỗi model và mỗi
+corpus, phải đo lại.
+
+Cách đo rẻ nhất: lấy vài câu chắc chắn trong phạm vi và vài câu chắc chắn lạc đề
+(kiểu "cách nấu phở bò"), chạy truy hồi, xem cosine cao nhất của từng nhóm. Ngưỡng
+nằm ở khe giữa hai nhóm. Nếu hai nhóm chồng lấn thì vấn đề nằm ở chunking hoặc ở
+`embed_text`, không phải ở ngưỡng.
+
 ### Bước 8 — Đo, rồi mới sửa
 *(Ghi lại: chỉ số nào chỉ ra vấn đề gì. Ví dụ hit_at_8 cao nhưng faithfulness
 thấp nghĩa là lỗi ở prompt chứ không ở retriever.)*
+
+**Vì sao bốn chỉ số chứ không một.** Một con "độ chính xác" gộp lại che mất nửa
+nào của pipeline đang hỏng:
+
+| Chỉ số | Trả lời câu hỏi | Nếu thấp thì sửa ở đâu |
+|---|---|---|
+| `hit@k` | Trang đúng có được truy hồi về không | **Retriever** — chunking, embedding, ngưỡng |
+| `MRR` | Nó nằm ở hạng mấy | Hợp nhất RRF, trọng số các nhánh |
+| `citation_validity` | Marker `[n]` có trỏ vào đoạn thật sự được cấp không | **Prompt** |
+| `refusal_rate` | Có từ chối đúng lúc không | Ngưỡng cosine |
+
+Quy tắc chẩn đoán: **`hit@k` cao mà chất lượng trả lời thấp → lỗi ở prompt.
+`hit@k` thấp → chỉnh prompt là công cốc.** Không tách hai tầng ra thì mọi giờ
+tinh chỉnh đều là đoán mò.
+
+**Nhưng bài học đắt nhất của bước này là về chính bộ đo.**
+
+Có lần bộ đo báo `citation_validity = 0.15` trong khi ngưỡng cần là 0.95. Suýt
+nữa thì đi sửa phần sinh trích dẫn. Mở dữ liệu thô ra xem: **17/26 câu có thân
+response rỗng** vì hết hạn mức, và hàm đo trả 0.0 khi không tìm thấy marker. Trên
+những câu thật sự sinh được, trích dẫn đạt **1.000**.
+
+Chuyện tương tự lặp lại ba lần nữa với ba chỉ số khác:
+
+| Hiện ra là | Thực chất là |
+|---|---|
+| `citation_validity: 0.15` | 17 câu thân rỗng, chấm thành "trả lời thiếu trích dẫn" |
+| `refusal_rate: 0.0` | 6 câu `should_refuse` chưa từng chạy tới đường từ chối — token hết hạn giữa chừng |
+| `median_latency_ms: 733` | Trung vị của một loạt lỗi 401 tức thời |
+| `overview_asked_for_document: 0.333` | Cả 3 câu đều đúng; mẫu số tính cả 2 câu lẽ ra phải trả lời chứ không phải hỏi lại |
+
+Bốn lần, cùng một hình dạng: **một chỉ số tính trên sai tập dòng, đọc lên như một
+phán quyết.** Và ba trong bốn sai **theo hướng bi quan**.
+
+**Quy tắc rút ra:** chỉ số sai theo hướng bi quan nguy hiểm ngang chỉ số sai theo
+hướng lạc quan. Cái lạc quan làm mình tưởng đã xong; cái bi quan **dụ mình đi sửa
+thứ vốn đang chạy tốt**. Trước khi tin một chỉ số tụt, mở vài ca hỏng ra xem đã —
+ở đây chỉ cần nhìn cột latency là thấy: 950ms cho một câu trả lời có sinh văn bản
+là bất khả thi.
+
+Hệ quả về thiết kế harness: **request hỏng phải bị loại khỏi mẫu, không được chấm
+0.** Và mọi tỉ lệ phải kèm cỡ mẫu thật sự chấm được (`n_scored`), chứ không phải
+số câu đã gửi đi.
 
 ---
 
