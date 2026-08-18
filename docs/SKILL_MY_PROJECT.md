@@ -167,9 +167,82 @@ vô ích, còn lỗi thứ ba **âm thầm mất trang mà không ai biết**.
 *(Ghi lại: bạn đã chỉnh prompt ingest bao nhiêu lần? Nếu không có cache thì mỗi
 lần chỉnh tốn bao nhiêu request?)*
 
+Cache đặt ở mức **từng trang**, ghi ra `data/cache/<tài liệu>/pNNNN.json`. Nghĩa
+là chỉnh prompt xong chạy lại thì chỉ những trang thật sự cần đọc lại mới tốn
+request; phần còn lại đọc từ đĩa.
+
+Giá trị của nó tính được chính xác:
+
+| | |
+|---|---|
+| Corpus hiện tại | 83 trang |
+| Gộp 8 trang mỗi request | **11 request** cho một lần chạy lại toàn bộ |
+| Ngân sách | ~20 request/ngày/model |
+
+Tức **một lần chỉnh prompt mà không có cache tốn quá nửa ngân sách ngày của một
+model.** Hai lần chỉnh là hết sạch một model, và phải đợi sang hôm sau mới chỉnh
+được lần thứ ba.
+
+Số lần chỉnh thực tế **không được ghi lại** — đó chính là khoảng trống mà mục
+này lẽ ra phải lấp, và là lí do Bước 3 phải đo lại thay vì tra cứu. Xem §5.
+
+**Quy tắc rút ra:** với bất kì bước nào gọi API tốn tiền hoặc tốn quota, cache
+trước khi gọi lần thứ hai — không phải khi thấy chậm. Lần chỉnh prompt đầu tiên
+là lúc đã muộn.
+
 ### Bước 3 — Prompt trích xuất
 *(Ghi lại các phiên bản prompt. Câu nào thêm vào thì sửa được lỗi gì. Ví dụ:
 thêm "never invent" giảm bao nhiêu ca bịa nội dung ở vùng mờ.)*
+
+Không có bản ghi nào cho câu hỏi này. Prompt được chỉnh nhiều lần mà **không
+commit theo từng lần**, nên lí do từng quy tắc ra đời chỉ còn trong trí nhớ.
+
+Nên tôi đo lại thay vì dựng lại: bỏ từng quy tắc, chạy lại đúng trang đã có
+trong cache, so hai bên. Cache giữ sẵn phía "có quy tắc" nên mỗi phép so chỉ tốn
+một request. Công cụ ở `ingest/ablate.py`.
+
+| Bỏ quy tắc | Giả thuyết | Đo được |
+|---|---|---|
+| 2 · *Do not translate* | Model dịch trang tiếng Việt sang tiếng Anh | Không dịch. `lang=vi` cả hai bên, markdown lệch 7 kí tự |
+| 5 · *Never invent* | Model bịa nội dung ở vùng mờ | Không bịa. Nhưng số hình tụt **9 → 1** |
+| 6 · `is_boilerplate` | Trang mục lục không bị đánh dấu | `True → false`, phần còn lại của trang gần như không đổi |
+| 7 · *bỏ header/footer* | Header lọt vào markdown | Không lọt. Dòng ghi nguồn có mặt ở **cả hai** bên |
+
+**Rồi một câu hỏi làm hỏng cả bảng trên:** cùng một prompt chạy hai lần có ra
+cùng kết quả không? Quy tắc 5 nói về việc *đừng bịa* — nó không liên quan gì đến
+nhận diện hình, mà quy tắc 4 (về hình) có mặt trong mọi lần chạy. Vậy tại sao bỏ
+nó lại làm số hình tụt 9 xuống 1?
+
+Chạy ba lần, cùng trang, **prompt không đổi**:
+
+| Lần | Số hình | Kí tự |
+|---|---|---|
+| 1 | **1** | 527 |
+| 2 | **9** | 745 |
+| 3 | **9** | 745 |
+
+**Dao động 1–9 hình — đúng bằng "tác dụng" đo được khi bỏ quy tắc 5.** Nghĩa là
+ba trong bốn kết quả ở bảng trên **không kết luận được gì**; chúng chỉ là hai
+lần bốc thăm trùng hoặc lệch nhau.
+
+Chỉ `boilerplate` sống sót, và lí do nó sống sót đáng ghi: trường đó là **phát
+biểu lại trực tiếp** của chính quy tắc bị bỏ, và phần còn lại của trang ổn định
+giữa hai lần (212 vs 211 kí tự). Tín hiệu vượt được nhiễu vì nhiễu ở chỗ đó nhỏ.
+
+Chi tiết cuối: lần 2 và 3 **trùng khít từng byte**, lần 1 khác hẳn. Đây không
+phải nhiễu rải quanh một giá trị trung bình — nó là **hai chế độ hành vi**:
+model hoặc coi tám tấm ảnh là figure riêng, hoặc gộp hết thành gạch đầu dòng.
+
+**Ba điều rút ra:**
+
+1. **Muốn kết luận bất cứ điều gì về một thay đổi trong prompt, phải chạy lặp
+   lại.** Một lần mỗi phía đo được may rủi, không đo được prompt.
+2. **Đo baseline trước khi đo tác dụng.** Nếu tôi chạy `baseline` trước, tôi đã
+   biết ngay bốn thí nghiệm kia thiếu lực mà không phải diễn giải nhầm chúng.
+3. Quy tắc 2 và 7 **có thể đã không còn cần thiết** với model hiện tại. Nhưng
+   với cỡ mẫu này thì chưa nói được, và bỏ một quy tắc phòng thủ dựa trên một
+   lần chạy là đúng loại sai lầm mà mục này tồn tại để ngăn.
+
 
 ### Bước 4 — Chunking
 *(Ghi lại: kích thước nào thử, hỏng ra sao. Đặc biệt là ca công thức bị cắt rời
@@ -329,6 +402,8 @@ Ghi ngay lúc vừa gỡ xong, đừng để đến tuần 8 mới nhớ lại.)
 | 13 | Batch 8 trang vỡ giới hạn body của Vercel | Ảnh trang trung bình 480KB nhưng **đỉnh 2MB**. Batch cố định vừa đủ ở mức trung bình và vỡ khi vài trang nặng rơi cùng nhau | Gom theo **ngân sách byte** (3MB) thay vì số trang. Xác nhận trên dữ liệu thật: paper arXiv đi 2–3 trang/request, không phải 8 |
 | 14 | Eval đầy đủ trên production báo `citation_validity = 0.15`, ngưỡng cần là 0.95 — mà xem tay thì **không trích dẫn nào sai** | Không phải lỗi trích dẫn. 17/26 câu có thân response **rỗng**, và `citation_validity` trả 0.0 khi không tìm thấy marker `[n]` nào. Gốc rễ: response HTTP chốt status và header **ngay khi thân bắt đầu**, mà route gửi `200` + `X-Citations` trước khi gọi model — nên lỗi 429 lúc sinh chỉ có thể cắt cụt thân, không đổi được status. Client nào cũng phải tự suy ra từ một stream rỗng rằng *đã hỏng* và *hỏng vì gì*. Hai client suy ra hai kiểu: `ChatPanel` đoán hết quota ngày, harness đoán là câu trả lời thiếu trích dẫn | Kéo chunk đầu tiên ra khỏi stream **trước khi** cam kết header (`openTextStream`), rồi trả 503 kèm `reason` phân biệt `daily_quota` với `rate_limited`. Phía harness: thân rỗng là **request hỏng**, loại khỏi mẫu tính chỉ số, đếm riêng trong summary |
 | 14b | *(bẫy nằm bên trong cách sửa bẫy 14)* Bản vá đầu tiên bắt lỗi bằng `try/catch` quanh `textStream` — compile sạch, test tự viết xanh, **và không bao giờ kích hoạt** | Type doc của `ai@4.3.19` ghi nguyên văn *"When an error occurs, the stream will throw the error."* Đo thật bằng `MockLanguageModelV1` ném lỗi: `next()` đầu tiên trả `{done: true}`, không ném gì cả; `await result.text` thì **treo vĩnh viễn**. Lỗi đi ra bằng callback `onError`, và nó fire **trước** khi `next()` đầu tiên resolve | Bắt lỗi qua `onError`, stash lại, rồi coi "stream rỗng **và** có lỗi đã báo" là dấu hiệu hỏng. Bài học: **doc của thư viện cũng là một giả định cần đo.** Cái cứu ở đây là viết test chạy `streamText` thật thay vì chỉ chạy generator tự bịa — generator tự bịa thì ném lỗi đúng như mình tưởng, nên test xanh mà bản vá vô dụng |
+| 15 | Cùng một trang, cùng prompt, chạy hai lần ra **hai kết quả khác hẳn** | Trang `p0015` chạy 3 lần với prompt y hệt: lần 1 ra **1 hình / 527 kí tự**, lần 2 và 3 ra **9 hình / 745 kí tự** — và hai lần sau trùng khít từng byte. Không phải nhiễu rải quanh một giá trị trung bình mà là **hai chế độ hành vi**: model hoặc coi tám tấm ảnh là figure riêng, hoặc gộp hết thành gạch đầu dòng | Chưa có cách sửa. Nhưng nó đổi cách kết luận: **mọi phép so trên đường ingest phải chạy lặp lại**, và phải đo baseline trước khi đo tác dụng. Xem §2 Bước 3 |
+| 16 | Hệ quả sản phẩm của bẫy 15, ít ai nghĩ tới | Cùng một PDF nạp hai lần có thể cho ra **số chunk và nội dung chunk khác nhau**. Nếu trúng lần chạy "1 hình" thì tám mô tả ảnh **không bao giờ vào chỉ mục** — mà mô tả ảnh chính là thứ làm biểu đồ truy hồi được, tức lí do tồn tại của cả dự án | Con số eval `hit@8 = 1.000` đo trên **một lần nạp cụ thể** của corpus, không phải trên mọi lần nạp có thể. Ghi rõ điều đó khi báo cáo, đừng ngầm hiểu là bất biến |
 
 **Bài học của bẫy 14, đắt hơn bản thân cái bug:** một chỉ số sai **theo hướng bi quan** cũng nguy hiểm ngang chỉ số sai theo hướng lạc quan. Nếu tin `0.15` mà đi sửa prompt trích dẫn thì sẽ mất nhiều ngày chỉnh một thứ vốn đã đạt 1.000. Quy tắc rút ra: **trước khi tin một chỉ số tụt, mở dữ liệu thô của vài ca hỏng ra xem đã.** Ở đây chỉ cần nhìn cột latency — 950ms cho một câu trả lời có sinh văn bản là bất khả thi — là lộ ngay.
 
