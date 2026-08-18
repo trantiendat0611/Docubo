@@ -94,15 +94,24 @@ def dual_on_real_chunks() -> None:
 
     for item in subjects:
         expected = set(item["expected_pages"])
+
+        # Pick the chunk that covers the most of the expected pages, tying on
+        # id. Taking whichever row came back first made the comparison depend
+        # on the database's ordering: widening the filter from two candidates
+        # to thirty-nine silently swapped the chunk under test and moved every
+        # score by more than the effect being measured.
+        def overlap(row: dict, wanted: set[int] = expected) -> tuple[int, int]:
+            pages = set(range(row["page_start"], row["page_end"] + 1))
+            return (len(pages & wanted), -row["id"])
+
         match = [
             r for r in rows if set(range(r["page_start"], r["page_end"] + 1)) & expected
         ]
         if not match:
-            pages = sorted(expected)
-            print(f"{item['id']}: không có chunk phủ trang {pages}")
+            print(f"{item['id']}: không có chunk phủ trang {sorted(expected)}")
             continue
 
-        chunk = match[0]
+        chunk = max(match, key=overlap)
         q = embed.embed_query(item["question"])
         c_embed = cosine(q, embed.embed_query(chunk["embed_text"]))
         c_display = cosine(q, embed.embed_query(chunk["display_text"]))
