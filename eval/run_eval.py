@@ -451,6 +451,12 @@ def main() -> None:
         "per-minute allowance. 0 restores back-to-back requests.",
     )
     parser.add_argument(
+        "--note",
+        help="Ghi vào report vì sao lần chạy này tồn tại. Bắt buộc dùng khi "
+        "chạy với cấu hình đã bị sửa cố ý, để report không bị đọc nhầm thành "
+        "một lần đo sản phẩm.",
+    )
+    parser.add_argument(
         "--retry-wait",
         type=float,
         default=30.0,
@@ -489,6 +495,10 @@ def main() -> None:
         # Which deployment produced these numbers. A full-mode report that does
         # not say whether it hit localhost or production cannot be cited.
         "api": None if retrieval_only else args.api,
+        # Why this run exists. A run made with a deliberately altered prompt
+        # produces a report shaped exactly like a real measurement, and the
+        # chapter that quotes these files cannot tell them apart without this.
+        "note": args.note,
         "min_cosine": config.MIN_COSINE,
         "summary": summary,
         "results": results,
