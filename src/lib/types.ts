@@ -77,6 +77,10 @@ export interface DocumentSummary {
 
 export interface Citation {
   n: number;
+  /** The chunks.id row this marker resolves to, so a caller can reload the
+   *  exact context text later without re-running retrieval — the eval
+   *  harness's faithfulness judge is the reason this exists. */
+  chunkId: number;
   filename: string;
   title: string | null;
   pageStart: number;

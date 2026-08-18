@@ -229,7 +229,9 @@ Bảng đầy đủ 16 mục ở `SKILL_MY_PROJECT.md` §3.
 | T7 · 14–20/09 | Eval lần cuối, chương 5, GIF demo, đo latency thật |
 | T8 · 21–27/09 | Xuất báo cáo, tag `v1.0.0-mvp`, slide và tập thuyết trình |
 
-Chi tiết từng đầu việc ở `KE_HOACH_THUC_TAP.md`.
+Đây chỉ là bảng tóm tắt. Kế hoạch cấp-việc — file cụ thể, cách xác minh, ngày
+dự kiến trong tuần cho từng mục — nằm ở `KE_HOACH_THUC_TAP.md` mục "Lộ trình",
+không lặp lại ở đây để tránh hai nguồn lệch nhau.
 
 ---
 

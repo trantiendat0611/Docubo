@@ -29,7 +29,7 @@ jobs:
       - name: Format check
         run: ruff format --check ingest eval
       - name: Tests
-        run: pytest ingest/tests -q
+        run: pytest ingest/tests eval/tests -q
 
   web:
     name: Web (next.js)

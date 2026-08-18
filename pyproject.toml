@@ -7,5 +7,5 @@ exclude = ["data", ".venv", "node_modules"]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
-testpaths = ["ingest/tests"]
+testpaths = ["ingest/tests", "eval/tests"]
 pythonpath = ["."]

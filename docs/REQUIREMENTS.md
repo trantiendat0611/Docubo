@@ -161,7 +161,7 @@ trong bất kì câu trả lời nào.
 | Tiêu chí | Mục tiêu | Ghi chú |
 |---|---|---|
 | Chi phí | 0 đồng | Ràng buộc cứng của đề bài |
-| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm. Đo trên production: request không đụng LLM mất ~0.34s sau khi đặt region Singapore, ~0.76s trước đó |
+| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm. Đo trên production: request không đụng LLM mất ~0.34s sau khi đặt region Singapore, ~0.76s trước đó. **18/08:** `eval/run_eval.py` (chế độ full) giờ đo được TTFT thật — đọc stream theo từng đoạn thay vì đợi đọc hết, kết quả nằm ở `median_ttft_ms`/`n_ttft_measured` trong report. Khác với `median_latency_ms` (đo tổng thời gian đọc hết câu trả lời). **Chưa có số đo thật trên production** — cần chạy `python -m eval.run_eval --limit N` với token thật |
 | **Quota vision** | **~20 request/ngày mỗi model** | Ràng buộc thật của cả hệ thống. Chain 4 model, gộp 8 trang/request ≈ **640 trang/ngày cho toàn bộ người dùng** |
 | Giới hạn tài liệu | 25 trang | Không phải giới hạn dung lượng — là hệ quả của quota trên. 25 trang ≈ 4 request |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn ~4.5MB. Ảnh trang 200dpi trung bình 480KB, đỉnh 2MB |
@@ -190,7 +190,8 @@ Chỉ số phụ trong cùng lần chạy:
 | `retrieval_mrr` | 0.882 | Thứ hạng của đoạn đúng |
 | `overview_asked_for_document` | 1.000 | Câu tóm tắt không nêu tài liệu thì hỏi lại (1/1) |
 | `overview_answered_when_named` | 1.000 | Câu có nêu tài liệu thì trả lời thẳng (2/2) |
-| `median_latency_ms` | 6874 | Thời gian đọc xong **toàn bộ** câu trả lời, đã bỏ 4 câu bị cộng thời gian chờ thử lại. Đây **không phải** thời gian tới token đầu tiên — ngưỡng NFR đó vẫn chưa được đo |
+| `median_latency_ms` | 6874 | Thời gian đọc xong **toàn bộ** câu trả lời, đã bỏ 4 câu bị cộng thời gian chờ thử lại. Đây **không phải** thời gian tới token đầu tiên |
+| `median_ttft_ms` | — | Thời gian tới token đầu tiên thật — đo được từ 18/08 (`eval/run_eval.py` đọc stream theo đoạn). Chưa có lần chạy nào trên production để điền số |
 
 ## 8. Câu hỏi còn mở
 
@@ -205,3 +206,11 @@ Chỉ số phụ trong cùng lần chạy:
       bằng `countTokens`
 - [ ] Dọn `document_pages` và file Storage khi người dùng xoá tài liệu
 - [ ] Có nên giới hạn kích thước file, ngoài giới hạn số trang
+- [ ] **`citation_validity` có nên tính cả câu từ chối bằng văn xuôi không?**
+      Đo 18/08 (`eval-full-20260818-081602.json`, `g-002`): model nhận đúng
+      context (`hit=true`, `mrr=1.0`) nhưng viết văn xuôi từ chối thay vì trả
+      lời — đúng luật 3 của grounding prompt, không sai. `citation_validity()`
+      trả 0.0 vì không có marker `[n]` nào, coi giống hệt trích dẫn bịa.
+      `faithfulness_score` của cùng câu là 1.0 — vì `FAITHFULNESS_PROMPT` đã
+      xử lý "refusal = faithful", còn `citation_validity` thì chưa. Xem
+      `SKILL_MY_PROJECT.md` bẫy #17

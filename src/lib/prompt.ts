@@ -81,6 +81,7 @@ ${c.display_text}
 export function buildCitations(chunks: RetrievedChunk[]): Citation[] {
   return chunks.map((c, i) => ({
     n: i + 1,
+    chunkId: c.id,
     filename: c.filename,
     title: c.title,
     pageStart: c.page_start,

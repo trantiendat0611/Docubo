@@ -124,6 +124,33 @@ def dense_search(
     return res.data or []
 
 
+def chunks_by_id(ids: list[int]) -> dict[int, dict]:
+    """Chunks by primary key, keyed by id, filename joined in from documents.
+
+    Citations returned by /api/chat now carry chunkId (src/lib/types.ts)
+    precisely so a caller can reload this exact text later — the eval
+    faithfulness judge needs the same context blocks the generator actually
+    saw, and re-running retrieval is not guaranteed to return the same rows
+    (ranking depends on the query embedding, which is not reproducible byte
+    for byte).
+    """
+    if not ids:
+        return {}
+    res = (
+        _get()
+        .table("chunks")
+        .select("id, page_start, page_end, display_text, documents(filename)")
+        .in_("id", ids)
+        .execute()
+    )
+    out: dict[int, dict] = {}
+    for row in res.data or []:
+        doc = row.pop("documents", None) or {}
+        row["filename"] = doc.get("filename", "")
+        out[row["id"]] = row
+    return out
+
+
 def find_document(content_hash: str) -> dict | None:
     res = (
         _get()

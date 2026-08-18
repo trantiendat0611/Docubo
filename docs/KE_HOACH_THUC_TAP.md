@@ -113,28 +113,122 @@ hạn dung lượng.
 Trọng tâm đổi hẳn so với bản tuần 1: sản phẩm P0 đã xong, nên ba tuần này dùng
 để **đo cho đúng** và **viết cho đủ**, không xây thêm tính năng.
 
+> **Cập nhật 18/08:** lộ trình Tuần 3–8 dưới đây viết chi tiết đến từng đầu
+> việc — file cụ thể, cách xác minh cụ thể, ngày dự kiến — thay cho gạch đầu
+> dòng cấp-tuần trước đó. `BAO_CAO_TIEN_DO.md` §9 chỉ tóm tắt và trỏ về đây,
+> không lặp lại, để tránh hai nguồn lệch nhau. Bốn câu hỏi mở gửi mentor
+> (`BAO_CAO_TIEN_DO.md` §10) **chưa có trả lời** tính đến 18/08 — kế hoạch này
+> đi theo giả định mặc định (vẫn làm TXT/DOCX, vẫn giữ `faithfulness`) và ghi
+> rõ chỗ co giãn nếu mentor trả lời khác.
+
 **Tuần 3 · 17/08 – 23/08** — đóng nốt phần đo
-- [ ] Nối `faithfulness` vào harness (cờ `--judge`). Hiện `FAITHFULNESS_PROMPT`
-      đã viết trong `eval/metrics.py` nhưng chưa chỗ nào gọi, trong khi
-      `REQUIREMENTS.md` đặt ngưỡng ≥ 0.90 cho nó
-- [ ] Thêm `id` chunk vào citation để harness dựng lại đúng context đã sinh ra
-      câu trả lời
-- [ ] `SKILL` §1.2 — đo cosine: LaTeX thô so với bản diễn giải, cùng câu hỏi
-- [ ] `SKILL` §1.3 — thí nghiệm truy hồi xuyên ngôn ngữ có và không có `query_en`
-- [ ] Phân tích khoảng cách giữa full mode và retrieval-only, ghi vào `SKILL` §4
+
+Đã xong: `SKILL` §1.1–1.3 (đo pypdf/pymupdf vs vision, đo cosine LaTeX thô vs
+diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`).
+
+- [x] **18/08** Thêm `id` chunk vào citation: `Citation.chunkId` ở
+      `src/lib/types.ts`, gán ở `buildCitations` (`src/lib/prompt.ts`) —
+      `RetrievedChunk.id` đã có sẵn nên route chat không cần sửa. Xác minh bằng
+      `src/lib/prompt.test.ts` thay vì gọi `/api/chat` thật, để không tốn quota
+      Gemini cho một thay đổi kiểu dữ liệu; `npx tsc --noEmit` và toàn bộ 37
+      test đều xanh
+- [x] **19/08** Nối `faithfulness` vào harness: `eval/judge.py` (mới) gọi
+      `FAITHFULNESS_PROMPT` qua cùng chain 4 model chat (`config.VISION_MODELS`),
+      xoay model khi cạn quota ngày y hệt `vision.py`; `store.chunks_by_id`
+      (mới) dựng lại đúng context từ `chunkId` trong citation; cờ `--judge` ở
+      `eval/run_eval.py`, gộp vào `summarise()` là `faithfulness` +
+      `n_faithfulness_unscored`. Vá luôn một bẫy suy ra được từ
+      `SKILL_MY_PROJECT.md`: câu trả lời có thể chứa LaTeX thô, nên trích dẫn
+      "unsupported" của giám khảo có thể chứa backslash chưa escape — tái dùng
+      `_repair_escapes` của `vision.py`. Xác minh bằng 9 test offline
+      (`eval/tests/test_judge.py`, `test_run_eval.py`, mock model + Supabase,
+      không tốn quota) thay vì chạy 3–5 câu thật — cần `EVAL_ACCESS_TOKEN` từ
+      đăng nhập thật nên để dành cho lần chạy `--judge` thật ở mục 21/08 dưới.
+      `ruff check/format`, `pytest` (27 test), CI (`ci.yml`) đều cập nhật để
+      chạy `eval/tests`. **Xác minh thật 18/08:** `--judge --limit 3` trên
+      local chạy sạch, `faithfulness=1.0`, `n_faithfulness_unscored=0` —
+      `eval/reports/eval-full-20260818-073349.json`. t-003 gặp rate limit,
+      tự retry sau 30s rồi qua — đúng hành vi thiết kế
+- [x] **20/08** Đo thời gian tới token đầu (TTFT): `call_api` trong
+      `eval/run_eval.py` đọc response `/api/chat` theo từng đoạn (`read(4096)`)
+      thay vì đợi đọc hết một lần, mốc thời gian ghi ở lần đọc đầu tiên có dữ
+      liệu — chỉ áp dụng nhánh trả lời stream, không áp dụng JSON (từ chối/lỗi,
+      không có "token đầu" để đo). Kết quả `ttft_ms` theo từng câu, gộp thành
+      `median_ttft_ms`/`n_ttft_measured` trong `summarise()`, tách hẳn khỏi
+      `median_latency_ms` cũ (đo tổng thời gian đọc hết). Không sửa
+      `src/lib/stream.ts`/route chat — đo ở phía client eval an toàn hơn cho
+      code production, và đúng hơn về mặt UX (tính cả thời gian mạng) so với
+      một mốc server tự ghi. Cập nhật cột "Đo được" ở `REQUIREMENTS.md` §6 và
+      thêm dòng `median_ttft_ms` vào bảng chỉ số phụ §7 — cả hai đang ghi
+      "chưa có số thật", cần chạy full mode với token thật để điền. Xác minh
+      bằng 5 test offline mới (`eval/tests/test_call_api.py` mock
+      `urllib.request.urlopen` + `time.time`, 2 test `summarise()` mới) —
+      32 test Python đều xanh, không tốn quota
+- [ ] **21/08 (làm sớm 18/08, trên local — chưa tính là số chính thức)**
+      Chạy full 26 câu kèm `--judge`: `eval-full-20260818-081602.json`.
+      26/26 câu chạy, không câu nào hỏng. `hit@8` 1.000 · `hit_cross_lingual`
+      1.000 · `refusal_rate` 1.000 · `faithfulness` 1.000
+      (`n_faithfulness_unscored=0`) · `citation_validity` **0.947** (1 câu,
+      xem bẫy #17 ở trên) · `median_ttft_ms` 4933 (`n=19`, **vượt ngưỡng
+      < 3s**) · `median_latency_ms` 3927. **`api` trong report là
+      `http://localhost:3000/api/chat`, không phải production** — lệnh chạy
+      thiếu `--api https://docubo.vercel.app/api/chat` nên đây là số cục bộ,
+      chưa đủ điều kiện ghi vào `REQUIREMENTS.md`/`BAO_CAO_TIEN_DO.md` làm số
+      chính thức. **Chạy lại đúng trên production cùng ngày** (`--api
+      https://docubo.vercel.app/api/chat`) thì generation vẫn thành công đủ
+      26/26 câu, nhưng **cả 19 câu `faithfulness` đều "UNAVAILABLE"** —
+      `judge.judge()` lúc đó chỉ trả `None`, không phân biệt được cạn quota
+      hay bị `RECITATION` (model từ chối vì nhận diện đang nhại nguyên văn —
+      đúng bẫy đã gặp ở `vision.py`, có khả năng cao vì `CONTEXT` lẫn
+      `ANSWER` đều gần nguyên văn tài liệu, theo đúng luật "reproduce math
+      exactly"). Đã vá: `judge()` giờ trả kèm lý do
+      (`daily_quota`/`recitation`/`empty`/`unparseable`), `run_eval.py` in ra
+      lý do từng câu và gộp `faithfulness_unavailable_reasons` trong
+      `summarise()`. Thêm 6 test offline mới (37 test Python đều xanh). Việc
+      còn lại: chạy đúng 1 lần nữa trên production sau khi quota mới (đã tiêu
+      rất nhiều quota chat-model hôm nay qua nhiều lần chạy) để xem báo cáo
+      chỉ ra đúng nguyên nhân, rồi mới coi là số chính thức
+- [ ] **22/08** `SKILL` §4 — phân tích khoảng cách giữa full mode và
+      retrieval-only, dùng số đo ở trên
+- [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
+      mentor nếu chưa gửi
+- [ ] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu; TTFT có số đo lần
+      đầu; `SKILL` §1 không còn placeholder
 
 **Tuần 4 · 24/08 – 30/08** — trả nợ kĩ thuật, mở rộng định dạng
-- [ ] Dọn `document_pages` và file Storage khi xoá tài liệu (rò rỉ đã biết)
-- [ ] Nạp **TXT và DOCX** — đóng nốt Task 2.1 của mentor. Cả hai không cần
-      vision; cần chốt trước cách đánh số trang cho định dạng không phân trang
-- [ ] Hiệu chỉnh `CHARS_PER_TOKEN` tiếng Việt bằng `countTokens`
-- [ ] `/api/health` + GitHub Action hàng tuần, chống Supabase ngủ sau 7 ngày
-- [ ] `SKILL` §2 — 8 bước quy trình xây dựng
+
+> Nếu mentor trả lời "dừng mở rộng phạm vi" trước tuần này: bỏ mục TXT/DOCX,
+> dồn thời gian dư sang bắt đầu chương 1 báo cáo sớm. Các mục còn lại không
+> phụ thuộc câu trả lời đó.
+
+- [ ] **24–25/08** Dọn `document_pages` + file Storage khi xoá tài liệu: sửa
+      route xoá tài liệu để cascade xoá `document_pages` và gọi
+      `.remove()` trên Storage. Xác minh: xoá 1 tài liệu test, `document_pages`
+      rỗng theo `document_id`, file biến mất khỏi Storage dashboard
+- [ ] **26–28/08** Nạp TXT và DOCX (nếu không bị mentor chặn): chốt cách đánh
+      số trang tổng hợp **trước khi viết code** (trang ảo theo ký tự/heading,
+      hay bỏ khái niệm trang và trích theo block — ghi lý do vào
+      `REQUIREMENTS.md` khi chốt), viết parser mới không cần vision, tái dùng
+      `chunk.ts` nếu schema cho phép. Xác minh: upload 1 file mỗi loại, hỏi và
+      nhận trích dẫn hợp lý theo quy ước mới
+- [ ] **28/08** Hiệu chỉnh `CHARS_PER_TOKEN` tiếng Việt: script gọi
+      `countTokens` thật trên mẫu corpus tiếng Việt, so với ước lượng 2.6 hiện
+      tại ở `src/lib/ingest/config.ts`. Lệch > 10% thì cập nhật hằng số,
+      không thì ghi "đã kiểm chứng, giữ nguyên" — cả hai là kết quả hợp lệ
+- [ ] **29/08** `/api/health` (route mới, ping Supabase nhẹ, trả 200) +
+      GitHub Action chạy theo `schedule` hàng tuần gọi endpoint đó, không dùng
+      secret Gemini. Xác minh bằng `workflow_dispatch` thủ công
+- [ ] **30/08** `SKILL` §2 — rà lại 8 bước đã có, bổ sung chỗ còn thiếu
+- [ ] **Mốc kiểm:** health check tự chạy hàng tuần; xoá tài liệu không để lại
+      rác trong `document_pages`/Storage; cập nhật `BAO_CAO_TIEN_DO.md`
 
 **Tuần 5 · 31/08 – 06/09** — báo cáo chương 1–2
-- [ ] `docs/BAO_CAO.md` chương 1 — Tổng quan
-- [ ] Chương 2 — Phân tích & Thiết kế
-- [ ] Kiểm tra 2 sơ đồ kiến trúc render đúng và còn khớp code
+- [ ] `docs/BAO_CAO.md` Chương 1 — Tổng quan, dựng từ `README.md` +
+      `REQUIREMENTS.md` §1–2
+- [ ] Chương 2 — Phân tích & Thiết kế, dựng từ `REQUIREMENTS.md` §3–6 + 2 sơ đồ
+- [ ] Kiểm tra 2 sơ đồ kiến trúc còn khớp route/bảng thật trong code, sửa nếu
+      lệch
+- [ ] Cuối tuần: cập nhật `BAO_CAO_TIEN_DO.md`
 - [ ] **Mốc kiểm: sản phẩm ổn định trên Vercel, đủ 4 chỉ số eval, xong 2/5 chương**
 
 ### Giai đoạn 3 — Hoàn thiện (Tuần 6–7)
@@ -142,24 +236,40 @@ Trọng tâm đổi hẳn so với bản tuần 1: sản phẩm P0 đã xong, n�
 **Tuần 6 · 07/09 – 13/09** — báo cáo chương 3–4, người dùng thật
 - [ ] Chương 3 — Triển khai kỹ thuật (nguyên liệu: `SKILL` §2 và §3)
 - [ ] Chương 4 — Kết quả đánh giá. Một bảng duy nhất, ghi rõ chế độ chạy và cỡ
-      mẫu cho từng con số
-- [ ] Kiểm thử với ít nhất 2 người ngoài, ghi lại chỗ họ vấp
-- [ ] Rà UI theo phản hồi: thông báo lỗi, trạng thái rỗng, giao diện điện thoại
+      mẫu cho từng con số — theo nguyên tắc đã dùng ở `BAO_CAO_TIEN_DO.md` §3
+- [ ] Kiểm thử với ít nhất 2 người ngoài: chuẩn bị kịch bản trước, ngồi cạnh
+      quan sát, ghi lại chỗ họ vấp trước khi sửa
+- [ ] Rà UI theo phản hồi thu được: thông báo lỗi, trạng thái rỗng, giao diện
+      điện thoại
+- [ ] **Mốc kiểm:** có ghi chép phản hồi thật từ ≥ 2 người ngoài; UI đã sửa
+      theo đó; 4/5 chương có bản nháp
 
 **Tuần 7 · 14/09 – 20/09** — chốt số, chốt sản phẩm
-- [ ] Chạy eval lần cuối trên production, đủ 26 câu và đủ 4 chỉ số
-- [ ] Chương 5 — Kết luận; `SKILL` §0, §5, §6
+- [ ] Chạy eval lần cuối trên production, đủ 26 câu và đủ 4 chỉ số (kể cả
+      `faithfulness`) — đây là bộ số chốt dùng cho báo cáo và demo
+- [ ] Chương 5 — Kết luận
+- [ ] `SKILL` §0 (tóm tắt), §5 (nếu làm lại), §6 (checklist tái sử dụng) —
+      3 mục cuối cùng chưa viết
 - [ ] GIF demo vào `README.md`, bổ sung danh sách nguồn tài liệu
-- [ ] Kiểm tra ứng dụng chạy 24/7, đo latency thật
-- [ ] Chuẩn bị dữ liệu demo, tập kịch bản
+- [ ] Kiểm tra ứng dụng chạy 24/7 (đối chiếu log Action hàng tuần), đo latency
+      thật trên nhiều mẫu bằng phép đo TTFT dựng ở tuần 3
+- [ ] Chuẩn bị dữ liệu demo cố định (không ingest live khi demo) + kịch bản
+      trình bày
+- [ ] **Mốc kiểm:** số liệu eval là số cuối cùng, không đổi thêm; 5/5 chương
+      có bản nháp; README có GIF
 
 ### Giai đoạn 4 — Đóng gói & Demo (Tuần 8)
 
 **Tuần 8 · 21/09 – 27/09**
 - [ ] Xuất `BAO_CAO.md` sang `.docx` để nộp, canh lại mục lục và hình bảng
 - [ ] Rà `SKILL_MY_PROJECT.md` lần cuối, xoá các dòng hướng dẫn trong ngoặc
+      (dấu hiệu: dòng bắt đầu bằng `*(`)
 - [ ] Release tag `v1.0.0-mvp`
-- [ ] Slide + tập thuyết trình 15 phút, có phần dự phòng câu phản biện
+- [ ] Slide + tập thuyết trình 15 phút — dùng 4 câu hỏi mentor ở
+      `BAO_CAO_TIEN_DO.md` §10 và bảng bẫy ở `SKILL` §3 làm nguồn câu hỏi
+      phản biện dự phòng
+- [ ] **Mốc kiểm (= mốc nộp):** báo cáo `.docx` hoàn chỉnh, tag đã release,
+      slide sẵn sàng
 
 ---
 

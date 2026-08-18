@@ -30,13 +30,14 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
 from ingest import config
 from ingest.pipeline import embed, store
 
-from . import metrics
+from . import judge, metrics
 
 ROOT = Path(__file__).resolve().parent.parent
 DATASET = ROOT / "eval" / "eval_dataset.json"
@@ -187,11 +188,34 @@ def call_api(api: str, token: str, question: str) -> dict:
         },
         method="POST",
     )
+    sent = time.time()
     try:
         with urllib.request.urlopen(request, timeout=90) as response:
-            body = response.read().decode()
             kind = response.headers.get("content-type", "")
             citations = response.headers.get("X-Citations")
+            ttft_ms: int | None = None
+            if "application/json" in kind:
+                # An error/refusal/blocked/needs_document body is a single JSON
+                # object, not a stream — there is no "first token" to time.
+                body = response.read().decode()
+            else:
+                # Read the stream incrementally rather than response.read() in
+                # one call, so the wall-clock time of the first non-empty chunk
+                # is a real time-to-first-token measurement instead of the time
+                # to read the whole body. REQUIREMENTS.md §6 has carried a
+                # "< 3s to first token" target since week 1 with nothing
+                # measuring it — median_latency_ms below answers a different
+                # question, how long the full answer takes to arrive, and says
+                # so explicitly in its own report.
+                parts: list[bytes] = []
+                while True:
+                    chunk = response.read(4096)
+                    if not chunk:
+                        break
+                    if ttft_ms is None:
+                        ttft_ms = int((time.time() - sent) * 1000)
+                    parts.append(chunk)
+                body = b"".join(parts).decode()
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode()[:300]
         # 503 from the chat route carries type/message/reason, and `reason`
@@ -211,6 +235,7 @@ def call_api(api: str, token: str, question: str) -> dict:
         "citations": json.loads(urllib.parse.unquote(citations)) if citations else [],
         "model": response.headers.get("X-Model"),
         "degraded": response.headers.get("X-Degraded") == "1",
+        "ttft_ms": ttft_ms,
     }
 
     # A stream that carried no tokens is a failed generation, not an answer.
@@ -223,8 +248,51 @@ def call_api(api: str, token: str, question: str) -> dict:
     return parsed
 
 
+def _score_faithfulness(
+    citations: list[dict], question: str, answer: str
+) -> tuple[float | None, list[str] | None, str | None]:
+    """Reload the exact context the generator saw and grade the answer against it.
+
+    Uses chunkId off each citation (src/lib/types.ts) rather than re-running
+    retrieval: retrieval ranking depends on the query embedding, which is not
+    guaranteed to reproduce byte for byte, so a second search could hand the
+    judge a context the generator never actually saw.
+
+    Returns (score, unsupported_claims, unavailable_reason). The first two are
+    both None when nothing could be scored — no citations carried a chunkId,
+    none of the cited chunks still exist (a document deleted between
+    answering and judging), or judge.judge() gave up on every model. None is
+    not 0: it means the question was never graded, and summarise() must keep
+    it out of the mean rather than average it in as a faithfulness failure.
+    `unavailable_reason` is judge.judge()'s reason ("daily_quota",
+    "recitation", "empty", "unparseable") when that's why, else a reason of
+    our own ("no_citations", "chunks_not_found") for the two ways this
+    function gives up before ever calling the judge.
+    """
+    ids = [c["chunkId"] for c in citations if c.get("chunkId") is not None]
+    if not ids:
+        return None, None, "no_citations"
+
+    rows = store.chunks_by_id(ids)
+    # Preserve citation order (n=1 first) — the [n] markers in the answer
+    # point at that order, and the judge must see the same block numbers.
+    ordered = [rows[i] for i in ids if i in rows]
+    if not ordered:
+        return None, None, "chunks_not_found"
+
+    verdict, reason = judge.judge(judge.build_context(ordered), question, answer)
+    if verdict is None:
+        return None, None, reason
+    return round(verdict.score, 3), verdict.unsupported, None
+
+
 def run_full(
-    items: list[dict], api: str, token: str, delay: float, retry_wait: float
+    items: list[dict],
+    api: str,
+    token: str,
+    delay: float,
+    retry_wait: float,
+    judge_enabled: bool = False,
 ) -> list[dict]:
     results: list[dict] = []
 
@@ -305,6 +373,13 @@ def run_full(
             "reason": response.get("reason"),
             "retried": retried,
             "latency_ms": latency,
+            # Time to the first streamed chunk, measured by call_api reading
+            # the response incrementally. None for a non-streamed kind
+            # (refusal/blocked/needs_document/error) and for a stream that
+            # carried nothing — there is no first token to time either way.
+            # Distinct from latency_ms above, which is the time to read the
+            # whole answer and answers a different question.
+            "ttft_ms": response.get("ttft_ms"),
             "answer": answer[:800],
         }
 
@@ -321,8 +396,23 @@ def run_full(
             record["hit"] = hit
             record["mrr"] = round(mrr_score, 3)
 
+        if judge_enabled and kind == "answer":
+            score, unsupported, reason = _score_faithfulness(
+                citations, item["question"], answer
+            )
+            record["faithfulness_score"] = score
+            record["faithfulness_unsupported"] = unsupported
+            record["faithfulness_unavailable_reason"] = reason
+
         results.append(record)
         flag = ""
+        if (
+            judge_enabled
+            and kind == "answer"
+            and record.get("faithfulness_score") is None
+        ):
+            why = record.get("faithfulness_unavailable_reason") or "unknown"
+            flag = f"  FAITHFULNESS JUDGE UNAVAILABLE ({why})"
         if kind in ("empty", "error"):
             flag = f"  GENERATION FAILED {record['reason'] or 'no reason given'}"
         print(
@@ -386,6 +476,17 @@ def summarise(results: list[dict]) -> dict:
         else 0,
     }
 
+    if any("ttft_ms" in r for r in results):
+        # Only "answer" records ever carry a value — a refusal or an error
+        # never streamed anything to time, and mean()/sorted() below only see
+        # the ones that did, the same None-is-not-a-failure handling as
+        # faithfulness above.
+        ttft_values = sorted(r["ttft_ms"] for r in scored if r.get("ttft_ms") is not None)
+        summary["median_ttft_ms"] = (
+            ttft_values[len(ttft_values) // 2] if ttft_values else None
+        )
+        summary["n_ttft_measured"] = len(ttft_values)
+
     if any("citation_validity" in r for r in results):
         summary["citation_validity"] = mean([r.get("citation_validity") for r in scored])
         # Split by what each item is supposed to do. Dividing by every overview
@@ -415,6 +516,29 @@ def summarise(results: list[dict]) -> dict:
             1 for r in results if r.get("type") in ("empty", "error")
         )
         summary["n_degraded"] = sum(1 for r in results if r.get("degraded"))
+
+    if any("faithfulness_score" in r for r in results):
+        answered = [r for r in scored if r.get("type") == "answer"]
+        # mean() already drops None, so an unscored question is excluded from
+        # the average rather than counted as unfaithful — see
+        # _score_faithfulness's docstring for why those are different failures.
+        summary["faithfulness"] = mean([r.get("faithfulness_score") for r in answered])
+        summary["n_faithfulness_unscored"] = sum(
+            1 for r in answered if r.get("faithfulness_score") is None
+        )
+        # A run that comes back with faithfulness=None must say why, not just
+        # that it did — "daily_quota" needs a different reaction (wait for
+        # reset) than "recitation" (nothing to be done, model-specific and
+        # non-deterministic). See judge.judge()'s docstring for what each
+        # value means.
+        reasons = Counter(
+            r["faithfulness_unavailable_reason"]
+            for r in answered
+            if r.get("faithfulness_score") is None
+            and r.get("faithfulness_unavailable_reason")
+        )
+        if reasons:
+            summary["faithfulness_unavailable_reasons"] = dict(reasons)
 
     return summary
 
@@ -463,7 +587,20 @@ def main() -> None:
         help="Seconds to wait before retrying a question the server rejected "
         "as rate limited. 0 disables the retry.",
     )
+    parser.add_argument(
+        "--judge",
+        action="store_true",
+        help="Grade every generated answer for faithfulness with an LLM judge. "
+        "Full mode only — spends one extra generation call per answered "
+        "question, from the same daily-per-model budget as generation itself.",
+    )
     args = parser.parse_args()
+
+    if args.judge and (args.retrieval_only or args.dense_only):
+        raise SystemExit(
+            "--judge needs full mode: it grades real answers from /api/chat, "
+            "and retrieval-only never generates one."
+        )
 
     config.assert_ready()
 
@@ -473,7 +610,10 @@ def main() -> None:
 
     retrieval_only = args.retrieval_only or args.dense_only
     mode = "dense-only" if args.dense_only else "retrieval" if retrieval_only else "full"
-    print(f"mode={mode}  items={len(items)}  MIN_COSINE={config.MIN_COSINE}\n")
+    judge_note = " judge=on" if args.judge else ""
+    print(
+        f"mode={mode}  items={len(items)}  MIN_COSINE={config.MIN_COSINE}{judge_note}\n"
+    )
 
     started = time.time()
 
@@ -486,7 +626,9 @@ def main() -> None:
                 "Retrieval-only needs neither:\n"
                 "  python -m eval.run_eval --retrieval-only"
             )
-        results = run_full(items, args.api, args.token, args.delay, args.retry_wait)
+        results = run_full(
+            items, args.api, args.token, args.delay, args.retry_wait, args.judge
+        )
 
     summary = summarise(results)
     report = {

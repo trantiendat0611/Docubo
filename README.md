@@ -181,7 +181,7 @@ npm test
 ```
 
 ```bash
-.venv/Scripts/python -m pytest ingest/tests -q
+.venv/Scripts/python -m pytest ingest/tests eval/tests -q
 ```
 
 Test chạy thật với Gemini và Supabase bị bỏ qua trừ khi bật cờ:
@@ -208,6 +208,14 @@ Bốn chỉ số, mỗi cái trả lời một câu hỏi khác nhau:
 | `citation_validity` | Marker `[n]` có trỏ đúng block được cấp không |
 | `faithfulness` | Mọi khẳng định có nằm trong context không |
 | `refusal_rate` | Có từ chối đúng lúc khi tài liệu không chứa câu trả lời không |
+
+`faithfulness` cần chế độ full (gọi `/api/chat` thật) và cờ `--judge`, vì nó
+chấm bằng Gemini làm giám khảo trên chính context đã sinh ra câu trả lời —
+tốn thêm một lượt gọi model cho mỗi câu đã trả lời:
+
+```bash
+.venv/Scripts/python -m eval.run_eval --judge --token $env:EVAL_ACCESS_TOKEN
+```
 
 ## Triển khai
 
