@@ -64,6 +64,55 @@ def dual_representation() -> None:
         print(f"    {label:12} {verdict}")
 
 
+def dual_on_real_chunks() -> None:
+    """Score real questions against a whole chunk, both ways round.
+
+    The bare-formula version of this test embedded a lone LaTeX string against a
+    question phrased around the formula's structure, and found almost no gap.
+    That test was weak in two ways: the system never embeds a formula alone, and
+    a user does not ask about notation. This one uses what is actually stored —
+    embed_text, with formulas replaced by their spoken reading — against
+    display_text, which is exactly what would be embedded had the substitution
+    never been made, scored with the real questions from the eval set.
+    """
+    from supabase import create_client
+
+    client = create_client(config.SUPABASE_URL, config.SUPABASE_SERVICE_KEY)
+    rows = (
+        client.table("chunks")
+        .select("id, page_start, page_end, embed_text, display_text")
+        .eq("has_formula", True)
+        .execute()
+        .data
+    )
+
+    dataset = Path(config.ROOT) / "eval" / "eval_dataset.json"
+    items = json.loads(dataset.read_text("utf-8"))["items"]
+    formula_qs = [i for i in items if i["category"] == "formula"]
+
+    print(f"{len(rows)} chunk có công thức · {len(formula_qs)} câu hỏi nhóm formula\n")
+
+    for item in formula_qs:
+        expected = set(item["expected_pages"])
+        match = [
+            r for r in rows if set(range(r["page_start"], r["page_end"] + 1)) & expected
+        ]
+        if not match:
+            pages = sorted(expected)
+            print(f"{item['id']}: không có chunk phủ trang {pages}")
+            continue
+
+        chunk = match[0]
+        q = embed.embed_query(item["question"])
+        c_embed = cosine(q, embed.embed_query(chunk["embed_text"]))
+        c_display = cosine(q, embed.embed_query(chunk["display_text"]))
+
+        print(f"{item['id']}  ({item['q_lang']})  {item['question'][:58]}")
+        print(f"    embed_text   (diễn giải) {c_embed:.3f}")
+        print(f"    display_text (LaTeX)     {c_display:.3f}")
+        print(f"    chênh lệch               {c_embed - c_display:+.3f}\n")
+
+
 def bilingual(item_id: str) -> None:
     """Retrieve a Vietnamese question with and without its English variant."""
     dataset = Path(config.ROOT) / "eval" / "eval_dataset.json"
@@ -103,12 +152,14 @@ def bilingual(item_id: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("what", choices=["dual", "bilingual"])
+    ap.add_argument("what", choices=["dual", "dual-real", "bilingual"])
     ap.add_argument("--item", default="t-005", help="Mã câu hỏi cho 'bilingual'.")
     args = ap.parse_args()
 
     if args.what == "dual":
         dual_representation()
+    elif args.what == "dual-real":
+        dual_on_real_chunks()
     else:
         bilingual(args.item)
 
