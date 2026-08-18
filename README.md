@@ -30,7 +30,9 @@ lấy Markdown + LaTeX + mô tả biểu đồ, thay vì parse lớp text.
 **Mỗi chunk mang hai biểu diễn.** `embed_text` là văn xuôi thuần — công thức đã
 diễn giải thành lời, biểu đồ đã mô tả thành lời — dùng để tìm kiếm.
 `display_text` giữ nguyên LaTeX, dùng để hiển thị và làm context cho LLM. Chuỗi
-LaTeX thô embed ra vector gần như vô nghĩa nên không thể tìm trực tiếp.
+LaTeX thô lập chỉ mục toàn văn ra token rác — `\langle` thành `langl` — nên
+nhánh tìm kiếm theo từ khoá không khớp được câu hỏi nào. Đo ở
+`SKILL_MY_PROJECT.md` §1.2.
 
 **Truy hồi hybrid ba nhánh.** Vector đa ngữ bắt được ngữ nghĩa xuyên ngôn ngữ,
 nhưng full-text thì không: Postgres có từ điển tiếng Anh mà không có tiếng Việt.

@@ -42,7 +42,9 @@ create table if not exists chunks (
   --   embed_text   -> plain prose. Formulas replaced by their spoken reading,
   --                   figures replaced by their description. This is what gets
   --                   embedded and full-text indexed, because raw LaTeX embeds
-  --                   into near-meaningless vectors.
+  --                   into full-text tokens no question matches:
+  --                   \langle stems to 'langl'. Measured: the effect on the
+  --                   vector itself is under 0.03 cosine either way.
   display_text  text not null,
   embed_text    text not null,
 

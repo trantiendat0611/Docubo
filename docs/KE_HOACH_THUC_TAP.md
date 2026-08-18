@@ -35,7 +35,9 @@ Năm quyết định làm nên đề tài này, cần bảo vệ được khi ph
 
 2. **Mỗi chunk mang hai biểu diễn.** `embed_text` là văn xuôi thuần dùng để
    tìm kiếm, `display_text` giữ nguyên LaTeX để hiển thị. Lí do: chuỗi LaTeX
-   embed ra vector gần như vô nghĩa, không câu hỏi nào truy hồi được.
+   lập chỉ mục toàn văn ra token rác, nên nhánh lexical không khớp được câu
+   hỏi nào. (Đo lại ở §1.2: khác biệt trên vector chỉ ±0.03 — khẳng định
+   ban đầu về vector là sai, cơ chế thật nằm ở chỉ mục toàn văn.)
 
 3. **Truy hồi hybrid ba nhánh cho song ngữ.** Vector đơn ngữ không đủ vì
    Postgres không có từ điển tiếng Việt; hệ thống giữ hai cột full-text riêng

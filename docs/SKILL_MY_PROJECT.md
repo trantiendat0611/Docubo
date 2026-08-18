@@ -132,6 +132,68 @@ phép đo này. Cài rời bằng `pip install pypdf` rồi đọc trang 44 và 
 *(Giải thích bằng ví dụ thật: một công thức, vector của LaTeX thô, vector của
 bản diễn giải, và điểm cosine với cùng một câu hỏi.)*
 
+Khẳng định ban đầu của tôi, viết trong `KE_HOACH_THUC_TAP.md` từ tuần 1:
+
+> *"chuỗi LaTeX embed ra vector gần như vô nghĩa, không câu hỏi nào truy hồi
+> được"*
+
+Đó là **suy luận, không phải số đo**. Khi đo thì nó **sai** — và cách nó sai
+đáng giá hơn cả việc nó đúng.
+
+**Phép đo.** So `embed_text` (công thức và hình đã thay bằng lời) với
+`display_text` (giữ nguyên LaTeX và placeholder) trên **cùng một chunk thật**,
+chấm bằng **câu hỏi thật** trong bộ eval. `display_text` chính xác là thứ sẽ
+được embed nếu không làm phép thay đó. Công cụ: `eval/why.py dual-real`.
+
+| Câu | Nhóm | `embed_text` | `display_text` | Chênh |
+|---|---|---|---|---|
+| f-001 | formula | 0.722 | 0.717 | +0.004 |
+| f-002 | formula | 0.680 | 0.672 | +0.008 |
+| f-003 | formula | 0.677 | 0.660 | +0.018 |
+| g-001 | figure | 0.472 | 0.475 | **−0.003** |
+| g-002 | figure | 0.570 | 0.539 | +0.031 |
+
+Chênh lệch lớn nhất là **0.031**. Không ca nào một bên vượt ngưỡng còn bên kia
+rớt. Với **truy hồi vector**, phép thay gần như không đổi gì.
+
+**Nhưng `embed_text` không chỉ đi vào vector.** Nó còn sinh ra hai cột full-text
+`fts_en` và `fts_vi`. Chạy `to_tsvector` trên cùng một công thức, hai dạng:
+
+```
+LaTeX  →  'f' 'langl' 'phi' 'rangl' 'w' 'x' 'y'
+Lời    →  'defin' 'f' 'featur' 'function' 'inner' 'input' 'label' …
+```
+
+`\langle` và `
+`\langle` và `\rangle` bị cắt gốc thành **`langl`** và **`rangl`** — hai token
+không xuất hiện trong bất kì câu hỏi nào của con người. Phần còn lại là chữ cái
+đơn: `f`, `w`, `x`, `y`.
+
+Người dùng hỏi *"inner product được định nghĩa thế nào"* thì bản LaTeX khớp
+được **0 token**. Bản diễn giải khớp `inner`, `defin`, `function`.
+
+**Kết luận đã sửa: quyết định thiết kế đúng, nhưng lí do ghi trong tài liệu thì
+sai.** Thứ bị LaTeX phá không phải không gian vector — mô hình embedding đa ngữ
+xử lí ký hiệu toán tốt hơn tôi tưởng. Thứ bị phá là **chỉ mục toàn văn**, nơi
+LaTeX biến thành token rác. Vì hệ thống này truy hồi bằng **ba nhánh**, hỏng một
+nhánh là mất một phần ba bằng chứng — và đúng ở nhóm câu hỏi mà nhánh lexical
+gánh nhiều nhất, tức câu hỏi xuyên ngôn ngữ.
+
+**Bài học phương pháp, đắt hơn con số.** Phép thử đầu tiên của tôi embed **một
+chuỗi công thức trần** và chấm bằng câu hỏi tôi tự viết quanh cấu trúc công
+thức. Nó cho chênh lệch 0.023 và tôi suýt kết luận từ đó. Nhưng hệ thống **không
+bao giờ embed công thức đơn lẻ** — nó embed cả đoạn. Phép thử phải tái hiện thứ
+hệ thống thật sự làm, không phải thứ tiện đo.
+
+Và một lỗi nữa trong chính phép thử: lần chạy thứ hai cho ra số khác hẳn lần đầu
+(0.722 → 0.553) dù embedding là tất định. Nguyên nhân: tôi chọn chunk bằng "hàng
+đầu tiên phủ trang mong đợi", nên khi mở bộ lọc từ 2 lên 39 ứng viên thì thứ tự
+đổi và **chunk đem so bị tráo**. Đã sửa thành chọn chunk phủ nhiều trang nhất,
+phá hoà bằng id, và in kèm chunk id để đối chiếu được giữa các lần chạy.
+
+*(Cỡ mẫu: 5 câu hỏi, 2 tài liệu. Đủ để bác bỏ khẳng định "vô nghĩa", chưa đủ để
+nói phép thay đáng giá chính xác bao nhiêu.)*
+
 ### 1.3 Vì sao truy hồi song ngữ cần ba nhánh
 
 *(Postgres không có từ điển tiếng Việt. Ghi lại thí nghiệm: cùng một câu hỏi

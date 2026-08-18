@@ -1,6 +1,7 @@
 # BÁO CÁO TIẾN ĐỘ — Docubo
 
-> Cập nhật trước mỗi buổi review với mentor. Bản này: **13/08/2026, tuần 2/8**.
+> Cập nhật trước mỗi buổi review với mentor. Bản này: **18/08/2026, tuần 3/8**.
+> Số liệu eval từ lần chạy sạch 13/08; mục 2 đã sửa lại theo phép đo 18/08.
 >
 > Mọi con số lấy từ dữ liệu thật trong repo — báo cáo trong `eval/reports/`, lịch
 > sử Git, kết quả CI. Các chỉ số truy hồi được tính lại bằng
@@ -9,7 +10,7 @@
 
 | | |
 |---|---|
-| Thời gian | 03/08/2026 – 27/09/2026 · đang ở **tuần 2/8** |
+| Thời gian | 03/08/2026 – 27/09/2026 · đang ở **tuần 3/8** |
 | Ứng dụng | https://docubo.vercel.app · region Singapore |
 | Commit | 35, đã push hết |
 | CI | 23 lần xanh liên tiếp (run #2 → #24) |
@@ -54,8 +55,11 @@ trả ra thứ *đọc như đúng* ở đúng chỗ tài liệu có giá trị 
 1. **Ingest bằng vision** — render từng trang thành ảnh rồi để Gemini đọc ra
    Markdown + LaTeX + mô tả hình, thay vì đọc lớp text.
 2. **Mỗi đoạn mang hai biểu diễn** — `embed_text` là văn xuôi thuần dùng để tìm
-   kiếm, `display_text` giữ LaTeX để hiển thị. Chuỗi LaTeX thô embed ra vector gần
-   như vô nghĩa.
+   kiếm, `display_text` giữ LaTeX để hiển thị. Chuỗi LaTeX thô lập chỉ mục toàn
+   văn ra token rác (`\langle` → `langl`), nên nhánh tìm theo từ khoá không khớp
+   được câu hỏi nào. **Đã đo lại 18/08 và sửa lí do:** khác biệt trên vector chỉ
+   ±0.03 — khẳng định ban đầu về vector là sai, cơ chế thật nằm ở chỉ mục toàn
+   văn. Quyết định vẫn đúng.
 3. **Truy hồi hybrid ba nhánh** — vector đa ngữ, cộng full-text tiếng Anh và tiếng
    Việt tách riêng, hợp nhất bằng RRF. Postgres có từ điển tiếng Anh, không có
    tiếng Việt.

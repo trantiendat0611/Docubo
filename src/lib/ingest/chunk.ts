@@ -21,6 +21,11 @@ import type { Chunk, Figure, Lang, Page } from "./types";
  * Why: `\frac{\partial L}{\partial \theta}` embeds to a near-meaningless
  * vector, and no question in either language will ever retrieve it. The spoken
  * reading of the same equation embeds like the sentence it is.
+ *
+ * Measured later and only half right: the vector barely moves, under 0.03
+ * cosine either way. What the control sequences actually ruin is the full-text
+ * index, where they stem to tokens like 'langl' and 'rangl' that appear in no
+ * question anyone asks. Right decision, wrong reason. SKILL_MY_PROJECT.md 1.2.
  */
 
 const DISPLAY_MATH = /\$\$([\s\S]+?)\$\$/g;

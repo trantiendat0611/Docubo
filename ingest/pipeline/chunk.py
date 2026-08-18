@@ -14,6 +14,11 @@ Why bother: "\\frac{\\partial L}{\\partial \\theta}" embeds to a near-meaningles
 vector, and no Vietnamese or English question will ever retrieve it. The spoken
 reading of the same equation embeds like the sentence it is.
 
+Measured later and only half right: the vector barely moves, under 0.03 cosine
+either way. What the control sequences actually ruin is the full-text index,
+where they stem to tokens like 'langl' and 'rangl' that appear in no question
+anyone asks. Right decision, wrong reason. See SKILL_MY_PROJECT.md 1.2.
+
 Two splitting rules that matter more than the token budget:
   - never cut between a display equation and the paragraph introducing it
   - never cut a figure away from its caption
