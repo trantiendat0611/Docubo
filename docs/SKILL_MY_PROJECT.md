@@ -304,6 +304,57 @@ Cả hai cột đều đánh chỉ mục GIN, và đều được sinh bằng tr
 *(Ghi lại các phiên bản. Câu nào làm model ngừng bịa. Câu nào làm nó từ chối
 quá đà.)*
 
+Cũng không có bản ghi, nên cũng đo lại — nhưng lần này **chạy baseline trước**,
+theo đúng bài học của Bước 3.
+
+Baseline không tốn gì: lần chạy sạch ngày 13/08 đã cho `citation_validity`
+**1.000** trên sáu câu `t-001`–`t-006`, mỗi câu 1–3 marker. Đó là một mốc ổn
+định, đo trên 20 câu trả lời, không phải một lần bốc thăm.
+
+Thí nghiệm: bỏ quy tắc bắt buộc trích dẫn khỏi grounding prompt, chạy lại **đúng
+sáu câu ấy** trên dev server tại máy.
+
+Phải bỏ **hai chỗ**, không phải một:
+
+- Quy tắc 2 — *"Every factual sentence carries a citation marker…"*
+- Dòng cuối mục Language — *"…keep the citation markers."*
+
+Chỉ bỏ chỗ đầu thì marker còn sót lại có thể là do chỗ sau, và ta lại có thêm
+một bảng không diễn giải được.
+
+| | `citation_validity` |
+|---|---|
+| Có quy tắc (13/08, production) | **1.000** |
+| Bỏ quy tắc (18/08, localhost) | **0.333** |
+
+Bốn trong sáu câu **mất hẳn trích dẫn** (`t-002`, `t-003`, `t-004`, `t-006`).
+Hai câu vẫn trích dẫn (`t-001`, `t-005`).
+
+**Vì sao hai câu kia vẫn trích dẫn** là phần đáng chú ý hơn con số. Mỗi khối
+ngữ cảnh được gói trong `<block n="1" source="…" pages="…">`, nên **cấu trúc của
+context tự nó đã gợi ý mạnh** rằng các khối có số và có thể tham chiếu tới. Model
+đôi khi tự trích dẫn dù không ai bảo.
+
+Nghĩa là quy tắc trong prompt và cấu trúc trong dữ liệu **cùng đẩy về một hướng**,
+và bỏ một cái thì cái kia còn giữ được khoảng một phần ba số ca. Không cái nào
+đủ một mình.
+
+**Ba điều rút ra:**
+
+1. **Hiệu ứng đủ lớn để vượt nhiễu**, khác hẳn bốn thí nghiệm ở Bước 3. Lí do:
+   chỉ số đo đúng thứ quy tắc yêu cầu, và baseline có cỡ mẫu lớn hơn nhiều.
+2. **Quy tắc trích dẫn là quy tắc đắt giá nhất trong prompt.** Bỏ nó thì hai
+   phần ba câu trả lời mất hẳn khả năng kiểm chứng — mà trích dẫn nguồn chính là
+   lời hứa trung tâm của sản phẩm.
+3. **Cấu trúc dữ liệu cũng là một dạng prompt.** Đánh số khối trong `<block n>`
+   dạy model cách tham chiếu chúng, độc lập với phần chữ trong prompt. Khi thiết
+   kế định dạng context, phải nghĩ nó đang ngầm dạy model điều gì.
+
+*(Cảnh báo khi tái lập: trường `answer` trong report **bị cắt còn 800 kí tự**,
+nên đếm marker trực tiếp trên đó sẽ ra thiếu. Dùng `citation_validity` — nó tính
+trên câu trả lời đầy đủ. Latency ở lần chạy này cũng cao bất thường vì chạy trên
+dev server chưa tối ưu, đừng so với số của production.)*
+
 ### Bước 7 — Hiệu chỉnh ngưỡng từ chối
 *(Ghi lại quá trình dò `MIN_COSINE`: giá trị nào cho refusal_rate bao nhiêu,
 đánh đổi với hit rate ra sao. Kèm bảng.)*
