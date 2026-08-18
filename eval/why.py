@@ -81,18 +81,18 @@ def dual_on_real_chunks() -> None:
     rows = (
         client.table("chunks")
         .select("id, page_start, page_end, embed_text, display_text")
-        .eq("has_formula", True)
+        .or_("has_formula.eq.true,has_figure.eq.true")
         .execute()
         .data
     )
 
     dataset = Path(config.ROOT) / "eval" / "eval_dataset.json"
     items = json.loads(dataset.read_text("utf-8"))["items"]
-    formula_qs = [i for i in items if i["category"] == "formula"]
+    subjects = [i for i in items if i["category"] in ("formula", "figure")]
 
-    print(f"{len(rows)} chunk có công thức · {len(formula_qs)} câu hỏi nhóm formula\n")
+    print(f"{len(rows)} chunk · {len(subjects)} câu hỏi nhóm formula và figure")
 
-    for item in formula_qs:
+    for item in subjects:
         expected = set(item["expected_pages"])
         match = [
             r for r in rows if set(range(r["page_start"], r["page_end"] + 1)) & expected
@@ -107,7 +107,10 @@ def dual_on_real_chunks() -> None:
         c_embed = cosine(q, embed.embed_query(chunk["embed_text"]))
         c_display = cosine(q, embed.embed_query(chunk["display_text"]))
 
-        print(f"{item['id']}  ({item['q_lang']})  {item['question'][:58]}")
+        print(
+            f"{item['id']}  [{item['category']}]  ({item['q_lang']})  "
+            f"{item['question'][:48]}"
+        )
         print(f"    embed_text   (diễn giải) {c_embed:.3f}")
         print(f"    display_text (LaTeX)     {c_display:.3f}")
         print(f"    chênh lệch               {c_embed - c_display:+.3f}\n")
