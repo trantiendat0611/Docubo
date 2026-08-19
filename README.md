@@ -249,6 +249,9 @@ demo nếu ứng dụng im lặng cả tuần.
 - Một số trang bị Gemini từ chối đọc vì `RECITATION`; chain model xử lí được
   phần lớn nhưng không phải tất cả.
 - `document_pages` và PDF trong Storage chưa được dọn khi xoá tài liệu.
+- Khi các model mạnh đã cạn hạn mức ngày, chain rơi xuống
+  `gemini-3.5-flash-lite` và câu trả lời có thể **thiếu marker trích dẫn**
+  dù nội dung vẫn đúng. Đo được 1/19 câu ở lần chạy 18/08.
 
 ## Nguồn tài liệu
 

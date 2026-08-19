@@ -72,8 +72,9 @@ trong bất kì câu trả lời nào.
 - [x] Giới hạn 5 lượt tải lên mỗi người mỗi ngày
 
 **Đánh giá**
-- [x] Bộ eval **26 câu**, chạy đủ trên production, báo cáo 3/4 chỉ số
-      (`faithfulness` còn thiếu — xem bảng ngưỡng bên dưới)
+- [x] Bộ eval **26 câu**, chạy đủ trên production, cả 4 chỉ số đều đã nối vào
+      harness (`faithfulness` từ 18/08, cờ `--judge`). `faithfulness` còn thiếu
+      **số đo trên production** — xem bảng ngưỡng bên dưới
 
 ### P1 — làm nếu còn thời gian
 
@@ -161,7 +162,7 @@ trong bất kì câu trả lời nào.
 | Tiêu chí | Mục tiêu | Ghi chú |
 |---|---|---|
 | Chi phí | 0 đồng | Ràng buộc cứng của đề bài |
-| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm. Đo trên production: request không đụng LLM mất ~0.34s sau khi đặt region Singapore, ~0.76s trước đó. **18/08:** `eval/run_eval.py` (chế độ full) giờ đo được TTFT thật — đọc stream theo từng đoạn thay vì đợi đọc hết, kết quả nằm ở `median_ttft_ms`/`n_ttft_measured` trong report. Khác với `median_latency_ms` (đo tổng thời gian đọc hết câu trả lời). **Chưa có số đo thật trên production** — cần chạy `python -m eval.run_eval --limit N` với token thật |
+| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm. Đo trên production: request không đụng LLM mất ~0.34s sau khi đặt region Singapore, ~0.76s trước đó. **18/08:** `eval/run_eval.py` (chế độ full) giờ đo được TTFT thật — đọc stream theo từng đoạn thay vì đợi đọc hết, kết quả nằm ở `median_ttft_ms`/`n_ttft_measured` trong report. Khác với `median_latency_ms` (đo tổng thời gian đọc hết câu trả lời). **Đo được trên production 18/08: `median_ttft_ms` = 2889 (n = 19), đạt ngưỡng.** Chi tiết ở §7 |
 | **Quota vision** | **~20 request/ngày mỗi model** | Ràng buộc thật của cả hệ thống. Chain 4 model, gộp 8 trang/request ≈ **640 trang/ngày cho toàn bộ người dùng** |
 | Giới hạn tài liệu | 25 trang | Không phải giới hạn dung lượng — là hệ quả của quota trên. 25 trang ≈ 4 request |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn ~4.5MB. Ảnh trang 200dpi trung bình 480KB, đỉnh 2MB |
@@ -171,27 +172,34 @@ trong bất kì câu trả lời nào.
 
 Hệ thống coi là đạt khi trên `eval/eval_dataset.json`:
 
-Đo lần đầu đầy đủ ngày **13/08/2026** trên production, 26/26 câu, không câu nào
-hỏng: `eval/reports/eval-full-20260813-100813.json`.
+Lần đo mới nhất, đầy đủ nhất: **18/08/2026** trên production, 26/26 câu, không
+câu nào hỏng — `eval/reports/eval-full-20260818-085447.json`. Đây là lần đầu
+report có `faithfulness` và `median_ttft_ms` (nối vào harness cùng ngày). Lần
+đo đầy đủ đầu tiên là 13/08 (`eval-full-20260813-100813.json`), giữ lại để đối
+chiếu ở bảng tiến triển `SKILL_MY_PROJECT.md` §4.
 
 | Chỉ số | Ngưỡng | Đo được | Ghi chú |
 |---|---|---|---|
 | `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
-| `citation_validity` | ≥ 0.95 | **1.000** | Đạt. Trích dẫn sai là lỗi nghiêm trọng nhất |
+| `citation_validity` | ≥ 0.95 | **0.947** | **Chưa đạt.** 1/19 câu trả lời không có marker `[n]` nào — `t-009`, do `gemini-3.5-flash-lite` bỏ trích dẫn dù trả lời đúng nội dung. Xem bẫy #18. Ngày 13/08 chỉ số này là 1.000, nên đây là dao động theo model được chọn, không phải hồi quy của prompt |
 | `refusal_rate` | ≥ 0.90 | **1.000** | Đạt. Trên nhóm `should_refuse`, `false_refusal_rate` = 0 |
-| `faithfulness` | ≥ 0.90 | — | **Chưa nối vào harness.** `FAITHFULNESS_PROMPT` đã viết trong `eval/metrics.py` nhưng chưa chỗ nào gọi |
+| `faithfulness` | ≥ 0.90 | — | Đã nối vào harness (cờ `--judge`). Trên production 19/19 câu trả về `UNAVAILABLE`, chưa phân biệt được cạn quota hay `RECITATION` ở thời điểm chạy. Cùng bộ prompt chạy trên local cùng ngày cho **1.000** (`eval-full-20260818-081602.json`) — chưa tính là số chính thức. Cần một lần chạy production nữa với quota còn |
 | `latex_exact_match` | Chưa chốt | — | Cần nguồn có `.tex` gốc để so |
 
 Chỉ số phụ trong cùng lần chạy:
 
 | Chỉ số | Đo được | Nghĩa |
 |---|---|---|
-| `hit_cross_lingual` | 1.000 | Hỏi tiếng Việt trên tài liệu tiếng Anh |
-| `retrieval_mrr` | 0.882 | Thứ hạng của đoạn đúng |
+| `hit_cross_lingual` | 1.000 | Hỏi tiếng Việt trên tài liệu tiếng Anh. 6 câu tính điểm — xem `SKILL_MY_PROJECT.md` §1.3 |
+| `retrieval_mrr` | 0.788 | Thứ hạng của đoạn đúng (13/08: 0.882) |
 | `overview_asked_for_document` | 1.000 | Câu tóm tắt không nêu tài liệu thì hỏi lại (1/1) |
 | `overview_answered_when_named` | 1.000 | Câu có nêu tài liệu thì trả lời thẳng (2/2) |
-| `median_latency_ms` | 6874 | Thời gian đọc xong **toàn bộ** câu trả lời, đã bỏ 4 câu bị cộng thời gian chờ thử lại. Đây **không phải** thời gian tới token đầu tiên |
-| `median_ttft_ms` | — | Thời gian tới token đầu tiên thật — đo được từ 18/08 (`eval/run_eval.py` đọc stream theo đoạn). Chưa có lần chạy nào trên production để điền số |
+| `median_ttft_ms` | **2889** | Thời gian tới token đầu tiên thật, `n = 19`. **Đạt ngưỡng < 3s.** Cùng bộ eval chạy trên local cho 4933 — máy local vừa chạy dev server vừa gọi model, còn production nằm cùng region `sin1` với Supabase |
+| `median_latency_ms` | 2710 | Thời gian đọc xong **toàn bộ** câu trả lời (13/08: 6874) |
+
+`median_ttft_ms` lớn hơn `median_latency_ms` không phải lỗi: TTFT chỉ tính trên
+19 câu có stream văn bản, còn latency tính trên cả 26 — 7 câu còn lại đi đường
+JSON (từ chối / hỏi lại tài liệu), trả rất nhanh và kéo trung vị xuống.
 
 ## 8. Câu hỏi còn mở
 

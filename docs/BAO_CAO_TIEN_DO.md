@@ -75,18 +75,33 @@ trả ra thứ *đọc như đúng* ở đúng chỗ tài liệu có giá trị 
 
 Bộ đánh giá **26 câu**, 6 nhóm, 8 câu xuyên ngôn ngữ.
 
-Chạy đầy đủ trên production ngày **13/08**, 26/26 câu, **không câu nào hỏng**.
+Chạy đầy đủ trên production ngày **18/08**, 26/26 câu, **không câu nào hỏng**
+(`eval-full-20260818-085447.json`). Cột 13/08 giữ lại để thấy cái gì đổi.
 
-| Chỉ số | Giá trị | Ngưỡng | Ghi chú |
-|---|---|---|---|
-| `retrieval_hit_at_8` | **1.000** | ≥ 0.85 | Đạt |
-| `citation_validity` | **1.000** | ≥ 0.95 | Đạt |
-| `refusal_rate` | **1.000** | ≥ 0.90 | Đạt, `false_refusal_rate` = 0 |
-| `hit_cross_lingual` | **1.000** | — | Hỏi tiếng Việt trên tài liệu tiếng Anh |
-| `retrieval_mrr` | 0.882 | — | Thứ hạng của đoạn đúng |
-| `faithfulness` | — | ≥ 0.90 | **Chưa nối vào harness** |
+| Chỉ số | 13/08 | 18/08 | Ngưỡng | Ghi chú |
+|---|---|---|---|---|
+| `retrieval_hit_at_8` | 1.000 | **1.000** | ≥ 0.85 | Đạt |
+| `citation_validity` | 1.000 | **0.947** | ≥ 0.95 | **Chưa đạt.** 1 câu trả lời đúng nội dung nhưng không dẫn nguồn, do model yếu nhất trong chain phục vụ câu đó |
+| `refusal_rate` | 1.000 | **1.000** | ≥ 0.90 | Đạt, `false_refusal_rate` = 0 |
+| `faithfulness` | — | — | ≥ 0.90 | Đã nối vào harness 18/08. Local cho 1.000; production trả `UNAVAILABLE` cả 19 câu vì cạn hạn mức lúc chạy |
+| `hit_cross_lingual` | 1.000 | **1.000** | — | Hỏi tiếng Việt trên tài liệu tiếng Anh |
+| `retrieval_mrr` | 0.882 | 0.788 | — | Thứ hạng của đoạn đúng |
+| `median_ttft_ms` | — | **2889** | < 3s | Đạt. Thời gian tới token đầu tiên thật, `n = 19` |
 
-Lần chạy này cũng là lần đầu quan sát được **cơ chế xoay model** hoạt động: 9 câu
+Hai điều đáng nói hơn các con số:
+
+**Chỉ số tụt không có nghĩa là sản phẩm xấu đi.** `citation_validity` giảm vì
+lần chạy 18/08 rơi vào `gemini-3.5-flash-lite` ở một câu — chain model tự xoay
+khi các model trên cạn hạn mức, nên **chất lượng câu trả lời phụ thuộc vào thời
+điểm trong ngày**. Đây là cái giá trực tiếp của ràng buộc 0 đồng, và nó phải
+được nói ra trong báo cáo chứ không giấu bằng cách chỉ trưng lần chạy đẹp nhất.
+
+**Cùng một con số, hai nguyên nhân khác nhau.** Lần chạy local cùng ngày cũng ra
+đúng `0.947`, nhưng hỏng ở câu khác vì lí do khác (một câu từ chối bằng văn xuôi,
+không có gì để trích dẫn). Nếu chỉ đọc con số thì đã kết luận nhầm là cùng một
+lỗi. Xem `SKILL_MY_PROJECT.md` bẫy #17 và #18.
+
+Lần chạy 13/08 là lần đầu quan sát được **cơ chế xoay model** hoạt động: 9 câu
 đầu chạy trên `gemini-3.5-flash`, sau đó tự chuyển sang `gemini-2.5-flash` khi
 model đầu cạn hạn mức ngày. Bốn lần gặp giới hạn theo phút, cả bốn đều tự thử lại
 thành công.
@@ -109,8 +124,16 @@ phần truy hồi:
 > Mọi con số đều ghi kèm chế độ chạy, vì trộn hai chế độ vào một bảng là cách dễ
 > nhất để tạo ra một kết quả không ai kiểm chứng lại được.
 
-Nhánh lexical đáng giá **16.7 điểm phần trăm** recall xuyên ngôn ngữ. Trước khi
-đo, đó là một lời khẳng định; giờ nó là một con số.
+**Đọc con số 16.7 điểm phần trăm cho đúng.** Bộ eval có 8 câu xuyên ngôn ngữ,
+2 câu thuộc nhóm overview không tính điểm truy hồi, còn 6 câu. `0.833` chính là
+`5/6` — toàn bộ khoảng cách giữa hai chế độ là **một câu duy nhất**, nên độ phân
+giải của phép đo này là ±1 câu ≈ 16.7 điểm. Nó **không** đo được "nhánh lexical
+đáng bao nhiêu"; nó chứng minh **có tồn tại ca mà nhánh dense một mình không
+đủ**. Đã truy ra đúng câu đó (`t-005`) và đúng lí do bằng một phép thử riêng —
+`SKILL_MY_PROJECT.md` §1.3.
+
+Trước khi đo, đó là một lời khẳng định. Sau khi đo, nó là một con số — nhưng một
+con số mà nếu báo cáo là "hiệu ứng đo được" thì đã nói quá cỡ mẫu.
 
 ### Hai chỗ chưa đủ điều kiện chốt
 
@@ -194,7 +217,8 @@ Supabase thật, nên toàn bộ nhánh này chưa từng được chạy trư�
 
 ## 7. Bốn cái bẫy đáng kể nhất
 
-Bảng đầy đủ 16 mục ở `SKILL_MY_PROJECT.md` §3.
+Bảng đầy đủ **20 dòng** ở `SKILL_MY_PROJECT.md` §3 — 18 bẫy đánh số, cộng 2 dòng đính chính
+lại kết luận cũ (`3b`, `14b`).
 
 | Triệu chứng | Nguyên nhân thật |
 |---|---|
@@ -209,11 +233,11 @@ Bảng đầy đủ 16 mục ở `SKILL_MY_PROJECT.md` §3.
 
 | Khoảng trống | Ảnh hưởng | Kế hoạch |
 |---|---|---|
-| `faithfulness` hứa ở 4 chỗ, chưa có code gọi | Ngưỡng ≥ 0.90 hiện không đo được | Tuần 3 |
-| Ngưỡng "token đầu tiên < 3s" chưa đo | Harness đo tổng thời gian, không phải TTFT | Tuần 3 |
+| `faithfulness` chưa có số đo trên production | Đã nối vào harness 18/08 (cờ `--judge`); local cho 1.000, production trả `UNAVAILABLE` cả 19 câu vì cạn hạn mức lúc chạy | Chạy lại sau khi quota reset |
+| `citation_validity` = 0.947, dưới ngưỡng 0.95 | 1 câu (`t-009`) trả lời đúng nội dung nhưng không có marker `[n]` nào — do `gemini-3.5-flash-lite`, model yếu nhất trong chain. Xem bẫy #18 | Tuần 4 |
 | `document_pages` và file Storage không được dọn khi xoá tài liệu | Rò rỉ thật với hạn 500MB của Supabase | Tuần 4 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
-| Đường hội thoại chưa kiểm chứng khi chạy thật | Mới qua trình biên dịch và test | Hôm nay |
+| Đường hội thoại chưa kiểm chứng khi chạy thật | Mới qua trình biên dịch và test | Đã chạy thật, xong |
 
 ---
 

@@ -96,7 +96,10 @@ hạn dung lượng.
 - [x] Hoàn thiện `run_eval.py` — 3 chế độ: retrieval-only, dense-only, full
 - [x] Chạy eval baseline + so sánh `hybrid_search` với `dense_search`:
       nhánh lexical đáng giá **16.7 điểm phần trăm** recall xuyên ngôn ngữ
-      (0.833 → 1.000)
+      (0.833 → 1.000). *(Đính chính 19/08: `0.833` = `5/6` — toàn bộ chênh lệch
+      là một câu duy nhất, `t-005`. Độ phân giải của phép đo là ±1 câu, đúng
+      bằng 16.7 điểm, nên con số này chứng minh **có** ca dense không tự lo
+      được, chứ không đo được nhánh lexical đáng bao nhiêu. Xem `SKILL` §1.3)*
 - [x] **Deploy Vercel** — sớm hơn lộ trình 5 tuần. https://docubo.vercel.app,
       region Singapore để cùng khu vực với Supabase (0.76s → 0.34s mỗi request)
 - [x] **Bật CI trên GitHub** — sớm hơn lộ trình 2 tuần. Hai job (Python và web):
@@ -188,6 +191,32 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       còn lại: chạy đúng 1 lần nữa trên production sau khi quota mới (đã tiêu
       rất nhiều quota chat-model hôm nay qua nhiều lần chạy) để xem báo cáo
       chỉ ra đúng nguyên nhân, rồi mới coi là số chính thức
+- [x] **19/08** `SKILL` §1.3 — viết xong. Chạy lại `eval.why bilingual` trên 3
+      câu (`t-005`, `t-009`, `f-002`; chỉ tốn 3 request **embedding**, ngân sách
+      riêng, không đụng generation đang cạn) thay vì chép lại số cũ. Kết quả:
+      chỉ `t-005` đổi thứ hạng (ngoài top-8 → hạng 1 khi có `query_en`), hai câu
+      còn lại hạng 1 ở cả hai chiều. Đối chiếu với chênh lệch tổng hợp
+      dense-only vs hybrid: `hit_cross_lingual` 0.833 → 1.000, mà `0.833` chính
+      là `5/6` — **toàn bộ chênh lệch là đúng câu `t-005` đó**. Hai phép đo độc
+      lập chỉ vào cùng một chỗ. Hệ quả: **"nhánh lexical đáng 16.7 điểm phần
+      trăm" là cách nói quá cỡ mẫu** — độ phân giải của phép đo là ±1 câu ≈ 16.7
+      điểm. Đã sửa lại cách diễn đạt đó trong `BAO_CAO_TIEN_DO.md` §3
+- [x] **19/08** Rà lại toàn bộ tài liệu, phát hiện **tài liệu đang tự khai là
+      chưa làm những việc code đã làm**: `REQUIREMENTS.md` §6/§7 và
+      `BAO_CAO_TIEN_DO.md` §3/§8 vẫn ghi "`faithfulness` chưa nối vào harness"
+      và "chưa có số TTFT" — cả hai đã xong từ 18/08. Đã re-base cả hai tài liệu
+      theo lần chạy production mới nhất (`eval-full-20260818-085447.json`), giữ
+      cột 13/08 để đối chiếu. **TTFT production = 2889ms, đạt ngưỡng < 3s** (số
+      4933 ghi ở mục 18/08 là số local — máy vừa chạy dev server vừa gọi model)
+- [x] **19/08** Bẫy #18: `citation_validity` = 0.947 ở **cả hai** lần chạy
+      18/08, nhưng câu hỏng là hai câu khác nhau với nguyên nhân khác hẳn. Local
+      hỏng ở `g-002` (từ chối bằng văn xuôi — bẫy #17, là câu hỏi thiết kế).
+      Production hỏng ở `t-009`: trả lời **đúng nội dung, đủ ba ý, không có
+      marker `[n]` nào**, do rơi vào `gemini-3.5-flash-lite` khi các model trên
+      đã cạn hạn mức. Cái này là **lỗi thật**, không phải câu hỏi thiết kế. Bài
+      học: cùng một con số có thể đến từ hai nguyên nhân không liên quan — chỉ
+      số nói *có hỏng*, không nói *hỏng ở đâu*. Đã ghi vào `README.md` mục giới
+      hạn đã biết và bảng nợ kĩ thuật
 - [ ] **22/08** `SKILL` §4 — phân tích khoảng cách giữa full mode và
       retrieval-only, dùng số đo ở trên
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho

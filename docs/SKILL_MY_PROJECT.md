@@ -199,6 +199,70 @@ nói phép thay đáng giá chính xác bao nhiêu.)*
 *(Postgres không có từ điển tiếng Việt. Ghi lại thí nghiệm: cùng một câu hỏi
 tiếng Việt trên tài liệu tiếng Anh, kết quả khi có và không có `query_en`.)*
 
+Người dùng hỏi tiếng Việt, tài liệu viết tiếng Anh. Ba nhánh truy hồi xử lí ca
+này rất khác nhau, và khác vì hai lí do tách biệt:
+
+**Nhánh dense vượt được ngôn ngữ.** `gemini-embedding-001` là model đa ngữ:
+"học tăng cường" và "reinforcement learning" nằm gần nhau trong không gian
+vector mà không cần dịch.
+
+**Hai nhánh full-text thì không, và không phải vì thiếu từ điển.** Full-text
+khớp **token theo mặt chữ**. Câu hỏi tiếng Việt không có token nào trùng với
+đoạn văn tiếng Anh, nên `fts_en` trả về rỗng bất kể từ điển tốt đến đâu. Việc
+Postgres không có từ điển tiếng Việt là một hạn chế **khác**, độc lập: `fts_vi`
+phải dùng config `simple`, không stem được, nên ngay cả khi hỏi tiếng Việt trên
+tài liệu tiếng Việt thì nhánh này cũng yếu hơn `fts_en` tương ứng.
+
+Vì thế lần gọi guardrail sinh sẵn cả `query_en` lẫn `query_vi` trong **cùng một
+request** đã phải gọi để kiểm tra an toàn và nhận diện ngôn ngữ — nhánh thứ ba
+không tốn thêm lượt gọi model nào.
+
+**Đo tổng hợp.** So `dense-only` với `hybrid` trên cùng 26 câu, cùng corpus:
+
+| Chế độ | `hit_cross_lingual` | Câu trượt |
+|---|---|---|
+| `dense-only` | 0.833 | `t-005` |
+| `hybrid` (3 nhánh) | **1.000** | — |
+
+Report: `eval-dense-only-20260811-100153.json` và
+`eval-retrieval-20260812-015933.json`.
+
+Chênh 16.7 điểm phần trăm nghe như một hiệu ứng đo được. Nó không phải. Bộ eval
+có 8 câu xuyên ngôn ngữ, 2 câu thuộc nhóm overview không tính điểm truy hồi, còn
+**6 câu**. `0.833` chính là `5/6`. Toàn bộ khoảng cách giữa hai chế độ là **một
+câu duy nhất**, và độ phân giải của phép đo này là ±1 câu ≈ 16.7 điểm. Con số
+không đo được "nhánh lexical đáng bao nhiêu", nó chỉ nói **có tồn tại ca mà
+nhánh dense một mình không đủ**.
+
+**Ca đó là câu nào.** Chạy `eval.why bilingual` — cùng một vector câu hỏi tiếng
+Việt cho cả hai lần, chỉ đổi chuỗi đưa vào hai nhánh full-text, nên mọi thay đổi
+thứ hạng đều thuộc về chúng:
+
+| Câu | Câu hỏi | Có `query_en` | Chỉ tiếng Việt |
+|---|---|---|---|
+| `t-005` | "Học tăng cường quan tâm đến điều gì?" | **hạng 1** | **không có trong top-8** |
+| `t-009` | "Ba mục tiêu chính của AI được nêu là gì?" | hạng 1 | hạng 1 |
+| `f-002` | (công thức, phân tách xác suất đồng thời) | hạng 1 | hạng 1 |
+
+Câu quyết định chỉ số tổng hợp và câu duy nhất đổi thứ hạng trong phép thử là
+**cùng một câu**. Hai phép đo độc lập chỉ vào đúng một chỗ.
+
+**Vì sao lại là `t-005`.** Đọc câu hỏi thì thấy: *"quan tâm đến điều gì"* gần
+như không mang nội dung — bỏ nó đi thì còn mỗi "học tăng cường". Vector của một
+câu hỏi mơ hồ nằm lưng chừng giữa nhiều đoạn, không đủ gần đoạn nào. Biến thể
+`what is reinforcement learning objective` đưa cho `fts_en` đúng thuật ngữ gốc
+"reinforcement learning" — một cụm khớp mặt chữ, không cần hiểu gì. Hai câu còn
+lại giàu danh từ riêng ("AI", ba mục tiêu liệt kê được; công thức có định danh),
+nhánh dense tự lo xong.
+
+Quy tắc rút ra: **nhánh lexical không phải thứ làm cho truy hồi xuyên ngôn ngữ
+chạy được — nhánh dense làm việc đó.** Nó là lưới an toàn cho đúng nhóm câu mà
+dense yếu nhất: câu hỏi mơ hồ mà đáp án nằm dưới một thuật ngữ kĩ thuật có tên
+riêng.
+
+*(Cỡ mẫu: 6 câu xuyên ngôn ngữ tính điểm, 2 tài liệu. Đủ để chứng minh nhánh
+lexical có ca không thay thế được; không đủ để nói tỉ lệ 1/6 là con số ổn định.)*
+
 ---
 
 ## 2. Quy trình xây dựng — làm lại theo thứ tự này
@@ -518,6 +582,7 @@ Ghi ngay lúc vừa gỡ xong, đừng để đến tuần 8 mới nhớ lại.)
 | 15 | Cùng một trang, cùng prompt, chạy hai lần ra **hai kết quả khác hẳn** | Trang `p0015` chạy 3 lần với prompt y hệt: lần 1 ra **1 hình / 527 kí tự**, lần 2 và 3 ra **9 hình / 745 kí tự** — và hai lần sau trùng khít từng byte. Không phải nhiễu rải quanh một giá trị trung bình mà là **hai chế độ hành vi**: model hoặc coi tám tấm ảnh là figure riêng, hoặc gộp hết thành gạch đầu dòng | Chưa có cách sửa. Nhưng nó đổi cách kết luận: **mọi phép so trên đường ingest phải chạy lặp lại**, và phải đo baseline trước khi đo tác dụng. Xem §2 Bước 3 |
 | 16 | Hệ quả sản phẩm của bẫy 15, ít ai nghĩ tới | Cùng một PDF nạp hai lần có thể cho ra **số chunk và nội dung chunk khác nhau**. Nếu trúng lần chạy "1 hình" thì tám mô tả ảnh **không bao giờ vào chỉ mục** — mà mô tả ảnh chính là thứ làm biểu đồ truy hồi được, tức lí do tồn tại của cả dự án | Con số eval `hit@8 = 1.000` đo trên **một lần nạp cụ thể** của corpus, không phải trên mọi lần nạp có thể. Ghi rõ điều đó khi báo cáo, đừng ngầm hiểu là bất biến |
 | 17 | Full run 26 câu 18/08: `citation_validity = 0.947`, một câu (`g-002`) đạt **0.0** — mà `hit=true`, `mrr=1.0` (trang đúng **được truy hồi**), và `faithfulness_score=1.0` | Không phải trích dẫn sai — câu trả lời **không có trích dẫn nào cả**. Model nhận đúng context (trang 21, ca khó nhất bộ: hỏi tiếng Việt về nội dung chỉ nằm trong ảnh) nhưng viết văn xuôi từ chối ("tài liệu không chứa thông tin...") thay vì trả lời, đúng luật 3 của grounding prompt ("nếu context không có câu trả lời, nói vậy và dừng"). `citation_validity()` trả `0.0` khi không thấy marker `[n]` nào (`eval/metrics.py`), coi "không trích dẫn gì" giống hệt "bịa trích dẫn" — trong khi một câu từ chối trung thực **không có khẳng định nào cần trích dẫn**. `FAITHFULNESS_PROMPT` đã xử lý đúng ca này ("Refusals count as fully faithful"), `citation_validity` thì chưa | Chưa sửa — đây là câu hỏi thiết kế thật, không phải bug rõ ràng: từ chối bằng văn xuôi giữa luồng "answer" (thay vì qua nhánh `isUngrounded()` có cấu trúc) có nên bị tính vào `citation_validity` không? Ghi lại làm câu hỏi mở ở `REQUIREMENTS.md` §8 |
+| 18 | Cùng chỉ số `citation_validity = 0.947` ở hai lần chạy 18/08, nhưng **câu hỏng là hai câu khác nhau** và nguyên nhân khác hẳn | Local hỏng ở `g-002` (từ chối bằng văn xuôi — bẫy #17). Production hỏng ở `t-009`: câu trả lời **đúng nội dung, đủ ba ý** ("Automatic Reasoning / Language understanding / Learning") nhưng **không có một marker `[n]` nào**. Model phục vụ câu đó là `gemini-3.5-flash-lite` — mắt xích yếu nhất trong chain 4 model, được chọn khi các model trên đã cạn hạn mức ngày. Đây **không phải** ca thiết kế mơ hồ như #17: một câu trả lời khẳng định nội dung mà không dẫn nguồn là đúng thứ `citation_validity` sinh ra để bắt | Chưa sửa. Hướng: hoặc siết luật trích dẫn trong grounding prompt cho model yếu, hoặc coi `flash-lite` là model chỉ dùng cho đường từ chối. Bài học đắt hơn: **cùng một con số có thể đến từ hai nguyên nhân không liên quan gì nhau.** Nếu chỉ nhìn `0.947` ở cả hai report rồi kết luận "vẫn cái lỗi hôm qua" thì bỏ sót hẳn một lỗi thật. Chỉ số chỉ nói *có hỏng*, không nói *hỏng ở đâu* — phải mở danh sách câu ra xem |
 
 **Bài học của bẫy 14, đắt hơn bản thân cái bug:** một chỉ số sai **theo hướng bi quan** cũng nguy hiểm ngang chỉ số sai theo hướng lạc quan. Nếu tin `0.15` mà đi sửa prompt trích dẫn thì sẽ mất nhiều ngày chỉnh một thứ vốn đã đạt 1.000. Quy tắc rút ra: **trước khi tin một chỉ số tụt, mở dữ liệu thô của vài ca hỏng ra xem đã.** Ở đây chỉ cần nhìn cột latency — 950ms cho một câu trả lời có sinh văn bản là bất khả thi — là lộ ngay.
 
