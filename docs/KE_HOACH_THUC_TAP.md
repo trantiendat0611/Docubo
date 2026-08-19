@@ -230,8 +230,17 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       0.882. Cách đọc còn lại: chế độ full sinh biến thể trực tiếp mỗi lần gọi
       nên MRR dao động giữa các lần chạy; muốn so truy hồi giữa hai thời điểm
       phải dùng `--retrieval-only` (biến thể lưu sẵn, lặp lại được)
-- [ ] **22/08** `SKILL` §4 — phân tích khoảng cách giữa full mode và
-      retrieval-only, dùng số đo ở trên
+- [x] **22/08 (làm sớm 19/08)** `SKILL` §4 — bảng tiến triển 9 lần chạy, mỗi
+      dòng ghi kèm chế độ, cỡ mẫu và nơi chạy. Khoảng cách full vs
+      retrieval-only đã phân tích xong: `retrieval_mrr` 0.926 (retrieval-only,
+      biến thể lưu sẵn) vs 0.788 (full, biến thể sinh trực tiếp) — **không so
+      được giữa hai chế độ**, muốn so truy hồi giữa hai thời điểm thì phải
+      dùng `--retrieval-only`. Dựng bảng còn lộ thêm một điều chưa ai viết ra:
+      dòng 1 (hybrid chạy trên câu hỏi thô) **trùng khít** dòng 3 (dense-only)
+      — 0.941 / 0.833, cùng trượt đúng `t-005`. Nghĩa là thiếu biến thể tiếng
+      Anh thì hai nhánh full-text **đóng góp bằng không** và hệ ba nhánh thoái
+      hoá thành một nhánh **mà không báo lỗi gì**. Ô `faithfulness` của dòng 9
+      còn trống, chờ lần chạy `--judge` trên production
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [ ] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu; TTFT có số đo lần

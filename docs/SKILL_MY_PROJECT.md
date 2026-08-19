@@ -606,10 +606,87 @@ Một số bẫy đã biết trước khi bắt đầu, xác nhận lại khi g�
 
 *(Bảng tiến triển qua các lần chạy eval. Đây là chương 4 của báo cáo.)*
 
-| Lần chạy | Ngày | Thay đổi | hit@8 | citation | faithful | refusal |
-|---|---|---|---|---|---|---|
-| 1 | | baseline | | | | |
-| 2 | | | | | | |
+**Một quy tắc, áp cho mọi con số dưới đây:** ghi kèm **chế độ chạy**, **cỡ mẫu**
+và **nơi chạy**. Bộ số đẹp nhất của dự án từng là một bộ ghép ba chỉ số từ lần
+chạy 26 câu chế độ truy-hồi với một chỉ số từ lần chạy 8 câu chế độ full — nhìn
+thì như một kết quả, thực ra không lần chạy nào cho ra cả bốn số đó.
+
+Giờ ghi ở dưới là **giờ Việt Nam** (`run_at` trong report lưu UTC, +7).
+
+| # | Thời điểm | Chế độ | Nơi | n | hit@8 | cross | MRR | citation | refusal | faithful | TTFT | Cái gì đổi so với dòng trên |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 11/08 16:56 | retrieval | — | 26 | 0.941 | 0.833 | 0.824 | — | — | — | — | Lần chạy đầu tiên của harness |
+| 2 | 11/08 17:00 | retrieval | — | 26 | **1.000** | **1.000** | 0.887 | — | — | — | — | Lưu sẵn biến thể `query_en`/`query_vi` vào dataset |
+| 3 | 11/08 17:01 | dense-only | — | 26 | 0.941 | 0.833 | 0.868 | — | — | — | — | Thay `hybrid_search` bằng `dense_search` |
+| 4 | 12/08 08:59 | retrieval | — | 26 | 1.000 | 1.000 | **0.926** | — | — | — | — | Chấm câu đúng ở **mọi** trang có đáp án, không chỉ trang đầu |
+| 5 | 12/08 14:20 | full | prod | 26 | 1.000 | 1.000 | 0.882 | **0.15** | 1.000 | — | — | Lần đầu gọi `/api/chat` thật — **số này sai**, xem dưới |
+| 6 | 12/08 15:20 | full | prod | 26 | 1.000 | 1.000 | 0.821 | 1.000 | **0.0** | — | — | Đã sửa bẫy #14 (trả 503 thay vì thân rỗng) nhưng chạy **trước** commit thêm `served()` — **số này cũng sai**, xem dưới |
+| 7 | 13/08 17:08 | full | prod | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | — | Lần chạy sạch đầu tiên: 26/26 câu, không câu nào hỏng |
+| 8 | 18/08 15:16 | full | local | 26 | 1.000 | 1.000 | 0.882 | 0.947 | 1.000 | **1.000** | 4933 | Nối `--judge`, đo TTFT thật |
+| 9 | 18/08 15:54 | full | **prod** | 26 | 1.000 | 1.000 | 0.788 | 0.947 | 1.000 | — | **2889** | Chạy lại đúng trên production |
+
+Dòng 9 là bảng nghiệm thu hiện hành (`REQUIREMENTS.md` §7). Các lần chạy 3, 5, 6
+và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải phép đo.
+
+### Ba con số trông như kết quả mà không phải
+
+Đây là phần đáng đọc nhất của mục này. **Năm lần** trong dự án, một con số hiện
+ra trông như kết quả trong khi nó đang đo thứ khác. Ba lần lộ ra ngay trên bảng
+này:
+
+**Dòng 5, `citation_validity = 0.15`.** Ngưỡng cần 0.95, nên nhìn qua là "trích
+dẫn hỏng nặng". Xem tay thì **không trích dẫn nào sai**. Thật ra 17/26 câu có
+thân response **rỗng** vì hết hạn mức lúc sinh, và hàm chấm trả 0.0 khi không
+thấy marker. Dấu hiệu lộ ra ngay ở cột bên cạnh: `median_latency_ms = 964` —
+gần một giây cho một câu trả lời có sinh văn bản là **bất khả thi**. Bẫy #14.
+
+**Dòng 6, `refusal_rate = 0.0`.** Đọc như "hệ thống không bao giờ từ chối" — tức
+là hỏng đúng cái tính năng trung tâm. Thật ra 19/26 request trả **401** vì token
+hết hạn, và một request hỏng bị tính là "câu hỏi mà hệ thống đã không từ chối".
+Cách sửa là hàm `served()`: request hỏng **đo đường truyền, không đo hệ thống**,
+nên bị loại khỏi mẫu và đếm riêng ở `n_generation_failed`.
+
+**Hai dòng 5 và 6 sai theo hướng bi quan** — và đó là hướng nguy hiểm hơn, vì nó
+dụ mình đi sửa thứ vốn đã đạt 1.000. Nếu tin `0.15` mà đi chỉnh prompt trích dẫn
+thì mất nhiều ngày cho một thứ không hỏng.
+
+**Dòng 1 → 2, `hit_cross_lingual` 0.833 → 1.000 trong 4 phút.** Không có commit
+nào giữa hai lần chạy, và không phải hệ thống tốt lên: **lần 1 đo một hệ thống
+không ai chạy.** Harness lúc đó đưa câu hỏi thô vào truy hồi, trong khi
+production luôn sinh `query_en`/`query_vi` trước. Lần 2 lưu sẵn biến thể vào
+dataset — từ đó harness mới đo đúng thứ người dùng gặp.
+
+### Quy tắc rút ra từ bảng này
+
+**Đọc dòng 1 và dòng 3 cạnh nhau.** Hybrid-không-biến-thể (0.941 / 0.833 /
+`t-005` trượt) **giống hệt** dense-only (0.941 / 0.833 / `t-005` trượt). Nghĩa
+là khi thiếu biến thể tiếng Anh, hai nhánh full-text **đóng góp bằng không** —
+hệ thống ba nhánh thoái hoá thành một nhánh mà không hề báo lỗi. Đây là dạng
+hỏng tệ nhất: hỏng im lặng, chỉ số vẫn ra số đẹp 0.941.
+
+**Cùng một câu, `t-005`, quyết định cả ba phép so.** Thô vs có biến thể; dense
+vs hybrid; và phép thử `eval.why bilingual` viết ở §1.3. Ba đường đo độc lập chỉ
+vào đúng một câu hỏi. Điều đó vừa là bằng chứng mạnh (không phải trùng hợp), vừa
+là giới hạn phải nói ra (bộ eval chỉ có **6 câu xuyên ngôn ngữ tính điểm**, nên
+một câu = 16.7 điểm phần trăm — xem §1.3).
+
+**MRR không so được giữa hai chế độ.** Dòng 4 cho 0.926, dòng 9 cho 0.788, cùng
+corpus cùng câu hỏi. Không mâu thuẫn: chế độ truy-hồi dùng biến thể **lưu sẵn**
+nên lặp lại được, chế độ full **sinh trực tiếp mỗi lần gọi** nên dao động. Muốn
+so truy hồi giữa hai thời điểm thì phải so ở `--retrieval-only`. Bẫy #18b.
+
+**Chỉ số tụt không đồng nghĩa sản phẩm xấu đi.** Dòng 9 có 17/19 câu rơi vào
+`gemini-3.5-flash-lite` (dòng 7: 0/19) vì các model trên đã cạn hạn mức trong
+ngày. `citation_validity` 1.000 → 0.947 là hệ quả của **thời điểm chạy**, không
+phải của một thay đổi code. Bẫy #18.
+
+### Còn thiếu gì
+
+`faithfulness` chưa có số trên production: dòng 8 đo được 1.000 nhưng chạy ở
+local; dòng 9 chạy đúng chỗ thì 19/19 câu trả `UNAVAILABLE` vì hết hạn mức chấm.
+Cần **một lần chạy `--judge` trên production ngay sau khi quota reset**, và hôm
+đó không tiêu request nào khác — một lần chạy full 26 câu kèm chấm tốn khoảng
+78 trong tổng ~80 request/ngày của cả chain.
 
 ---
 
