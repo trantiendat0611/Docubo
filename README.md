@@ -239,8 +239,9 @@ mỗi tài liệu giới hạn 25 trang và mỗi người 5 lượt tải/ngày
 là hết ngày, và app ngừng trả lời cho tất cả. Ai cũng đăng ký được vì free tier
 không có SMTP để xác nhận email, nên link công khai là link ai có cũng vào được.
 
-**Supabase free tạm dừng sau 7 ngày không hoạt động.** Cần đánh thức trước khi
-demo nếu ứng dụng im lặng cả tuần.
+**Supabase free tạm dừng sau 7 ngày không hoạt động.** `/api/health` truy vấn
+Postgres một lần và trả `{ ok, database, ms }` — không gọi model. GitHub Action
+`Keep-alive` gọi nó thứ Hai và thứ Năm, nên khoảng lặng dài nhất là 4 ngày.
 
 - Chỉ hỗ trợ PDF. DOCX/TXT nằm ở P1.
 - Không OCR tài liệu scan.

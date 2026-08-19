@@ -254,6 +254,7 @@ Bảng đầy đủ **22 dòng** ở `SKILL_MY_PROJECT.md` §3 — 19 bẫy đá
 | `citation_validity` = 0.947, dưới ngưỡng 0.95 | 1 câu (`t-009`) trả lời đúng nội dung nhưng không có marker `[n]` nào — do `gemini-3.5-flash-lite`, model yếu nhất trong chain. Xem bẫy #18 | Tuần 4 |
 | ~~`document_pages` và file Storage không được dọn khi xoá tài liệu~~ | Kiểm 19/08: `document_pages` **vẫn luôn được dọn** qua cascade hai tầng `documents → ingest_jobs → document_pages`. Chỉ Storage là rò rỉ thật, đã sửa | Xong 19/08 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
+| ~~App có thể ngủ giữa hai buổi demo~~ | `/api/health` + Action `Keep-alive` chạy thứ Hai và thứ Năm, không tốn quota model | Xong 19/08 |
 | Đường hội thoại chưa kiểm chứng khi chạy thật | Mới qua trình biên dịch và test | Đã chạy thật, xong |
 
 ---

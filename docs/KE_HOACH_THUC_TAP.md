@@ -276,9 +276,16 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       `countTokens` thật trên mẫu corpus tiếng Việt, so với ước lượng 2.6 hiện
       tại ở `src/lib/ingest/config.ts`. Lệch > 10% thì cập nhật hằng số,
       không thì ghi "đã kiểm chứng, giữ nguyên" — cả hai là kết quả hợp lệ
-- [ ] **29/08** `/api/health` (route mới, ping Supabase nhẹ, trả 200) +
-      GitHub Action chạy theo `schedule` hàng tuần gọi endpoint đó, không dùng
-      secret Gemini. Xác minh bằng `workflow_dispatch` thủ công
+- [x] **29/08 (làm sớm 19/08)** `/api/health` + Action `Keep-alive`. Chạy thứ
+      Hai và thứ Năm chứ không phải hàng tuần: Supabase ngủ sau 7 ngày, lịch
+      hàng tuần đúng sát mép, hai lần/tuần cho khoảng lặng tối đa 4 ngày.
+      Không dùng secret nào — URL công khai, và route **không gọi Gemini**
+      (một health check hỏi một câu sẽ đốt hạn mức ngày cho không ai cả).
+      Hai chi tiết dễ sai: `dynamic = "force-dynamic"`, vì route handler được
+      cache sẽ trả 200 vui vẻ mà không hề chạm Postgres — đúng cái nó sinh ra
+      để phát hiện, đội lốt thành công; và tách `checkDatabase()` ra
+      `src/lib/health.ts` để **test được nhánh 503**, theo đúng bài học bẫy
+      #14b. Đo thật trên dev server: 204–288ms ấm, 1423ms lần đầu
 - [ ] **30/08** `SKILL` §2 — rà lại 8 bước đã có, bổ sung chỗ còn thiếu
 - [ ] **Mốc kiểm:** health check tự chạy hàng tuần; xoá tài liệu không để lại
       rác trong `document_pages`/Storage; cập nhật `BAO_CAO_TIEN_DO.md`
