@@ -213,10 +213,23 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       hỏng ở `g-002` (từ chối bằng văn xuôi — bẫy #17, là câu hỏi thiết kế).
       Production hỏng ở `t-009`: trả lời **đúng nội dung, đủ ba ý, không có
       marker `[n]` nào**, do rơi vào `gemini-3.5-flash-lite` khi các model trên
-      đã cạn hạn mức. Cái này là **lỗi thật**, không phải câu hỏi thiết kế. Bài
-      học: cùng một con số có thể đến từ hai nguyên nhân không liên quan — chỉ
-      số nói *có hỏng*, không nói *hỏng ở đâu*. Đã ghi vào `README.md` mục giới
+      đã cạn hạn mức. Cái này là **lỗi thật**, không phải câu hỏi thiết kế.
+      *(Đính chính trong ngày: kết luận đầu tiên của tôi — "hai nguyên nhân
+      không liên quan gì nhau" — **sai**. Lập bảng chéo model × trích dẫn qua
+      cả ba lần chạy đầy đủ thì lộ yếu tố chung: `flash` + `2.5-flash` đạt
+      **21/21** câu có trích dẫn, `flash-lite` **27/29**, và **cả hai** câu
+      hỏng đều do `flash-lite` phục vụ. Đọc hai ca hỏng riêng lẻ thì thấy hai
+      câu chuyện; đếm theo model thì thấy một.)* Bài học kép: chỉ số nói *có
+      hỏng*, không nói *hỏng ở đâu*; và đọc từng ca hỏng vẫn chưa đủ, phải
+      đếm theo chiều có thể là nguyên nhân. Đã ghi vào `README.md` mục giới
       hạn đã biết và bảng nợ kĩ thuật
+- [x] **19/08** Suy diễn hụt, ghi lại làm bẫy #18b: `retrieval_mrr` tụt
+      0.882 → 0.788 cùng lúc, tôi định gán cho "model yếu sinh biến thể truy
+      vấn kém hơn". **Bác bỏ được ngay bằng dữ liệu đã có**: lần chạy local
+      cùng ngày cũng gần hết trên `flash-lite` mà `retrieval_mrr` vẫn đúng
+      0.882. Cách đọc còn lại: chế độ full sinh biến thể trực tiếp mỗi lần gọi
+      nên MRR dao động giữa các lần chạy; muốn so truy hồi giữa hai thời điểm
+      phải dùng `--retrieval-only` (biến thể lưu sẵn, lặp lại được)
 - [ ] **22/08** `SKILL` §4 — phân tích khoảng cách giữa full mode và
       retrieval-only, dùng số đo ở trên
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho

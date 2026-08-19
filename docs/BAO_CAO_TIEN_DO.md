@@ -90,16 +90,33 @@ Chạy đầy đủ trên production ngày **18/08**, 26/26 câu, **không câu 
 
 Hai điều đáng nói hơn các con số:
 
-**Chỉ số tụt không có nghĩa là sản phẩm xấu đi.** `citation_validity` giảm vì
-lần chạy 18/08 rơi vào `gemini-3.5-flash-lite` ở một câu — chain model tự xoay
-khi các model trên cạn hạn mức, nên **chất lượng câu trả lời phụ thuộc vào thời
-điểm trong ngày**. Đây là cái giá trực tiếp của ràng buộc 0 đồng, và nó phải
-được nói ra trong báo cáo chứ không giấu bằng cách chỉ trưng lần chạy đẹp nhất.
+**Chỉ số tụt không có nghĩa là sản phẩm xấu đi.** Lần chạy 18/08 có **17/19 câu
+do `gemini-3.5-flash-lite` phục vụ** (13/08: 0/19) — chain model tự xoay khi các
+model trên cạn hạn mức, mà sáng hôm đó đã chạy thử nhiều lần. Đây là lần đo
+**gần trường hợp xấu nhất**, và nó vẫn được chọn làm bảng chính vì là lần duy
+nhất có đủ `faithfulness` và `median_ttft_ms`. Hệ quả thật của ràng buộc 0 đồng:
+**chất lượng câu trả lời phụ thuộc vào thời điểm trong ngày.** Phải nói ra, chứ
+không giấu bằng cách chỉ trưng lần chạy đẹp nhất.
 
-**Cùng một con số, hai nguyên nhân khác nhau.** Lần chạy local cùng ngày cũng ra
-đúng `0.947`, nhưng hỏng ở câu khác vì lí do khác (một câu từ chối bằng văn xuôi,
-không có gì để trích dẫn). Nếu chỉ đọc con số thì đã kết luận nhầm là cùng một
-lỗi. Xem `SKILL_MY_PROJECT.md` bẫy #17 và #18.
+`retrieval_mrr` tụt 0.882 → 0.788 thì **không** giải thích được bằng model yếu:
+lần chạy local cùng ngày cũng gần hết trên `flash-lite` mà vẫn đúng 0.882. Ở
+chế độ full, biến thể truy vấn được sinh trực tiếp mỗi lần gọi nên MRR dao động
+giữa các lần chạy. So truy hồi giữa hai thời điểm thì phải so ở chế độ
+`--retrieval-only`, nơi biến thể lấy từ dataset và lặp lại được.
+
+**Cùng một con số, hai câu hỏng khác nhau — nhưng một yếu tố chung.** Lần chạy
+local cùng ngày cũng ra đúng `0.947`, hỏng ở câu khác với triệu chứng khác (một
+câu từ chối bằng văn xuôi, không có gì để trích dẫn). Đọc riêng hai ca thì thấy
+hai câu chuyện. Lập bảng chéo model × trích dẫn qua cả ba lần chạy mới thấy cái
+chung:
+
+| Model | Câu có trích dẫn |
+|---|---|
+| `gemini-3.5-flash` + `gemini-2.5-flash` | **21/21** |
+| `gemini-3.5-flash-lite` | 27/29 |
+
+Cả hai câu hỏng đều do `flash-lite` phục vụ. Xem `SKILL_MY_PROJECT.md` bẫy #17,
+#18 và #18b.
 
 Lần chạy 13/08 là lần đầu quan sát được **cơ chế xoay model** hoạt động: 9 câu
 đầu chạy trên `gemini-3.5-flash`, sau đó tự chuyển sang `gemini-2.5-flash` khi
@@ -217,8 +234,8 @@ Supabase thật, nên toàn bộ nhánh này chưa từng được chạy trư�
 
 ## 7. Bốn cái bẫy đáng kể nhất
 
-Bảng đầy đủ **20 dòng** ở `SKILL_MY_PROJECT.md` §3 — 18 bẫy đánh số, cộng 2 dòng đính chính
-lại kết luận cũ (`3b`, `14b`).
+Bảng đầy đủ **21 dòng** ở `SKILL_MY_PROJECT.md` §3 — 18 bẫy đánh số, cộng 3 dòng
+đính chính lại kết luận cũ của chính tôi (`3b`, `14b`, `18b`).
 
 | Triệu chứng | Nguyên nhân thật |
 |---|---|

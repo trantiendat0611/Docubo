@@ -178,6 +178,13 @@ report có `faithfulness` và `median_ttft_ms` (nối vào harness cùng ngày).
 đo đầy đủ đầu tiên là 13/08 (`eval-full-20260813-100813.json`), giữ lại để đối
 chiếu ở bảng tiến triển `SKILL_MY_PROJECT.md` §4.
 
+**Đọc bảng này kèm một điều kiện.** Lần chạy 18/08 có **17/19 câu trả lời do
+`gemini-3.5-flash-lite` phục vụ** — mắt xích cuối chain, được chọn vì các model
+trên đã cạn hạn mức sau nhiều lần chạy thử trong buổi sáng. Ngày 13/08 con số
+này là 0/19. Đây vì thế là một lần đo **gần trường hợp xấu nhất**, không phải
+lần đo điển hình; nó vẫn được chọn làm bảng chính vì là lần duy nhất có đủ
+`faithfulness` và `median_ttft_ms`.
+
 | Chỉ số | Ngưỡng | Đo được | Ghi chú |
 |---|---|---|---|
 | `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
@@ -191,7 +198,7 @@ Chỉ số phụ trong cùng lần chạy:
 | Chỉ số | Đo được | Nghĩa |
 |---|---|---|
 | `hit_cross_lingual` | 1.000 | Hỏi tiếng Việt trên tài liệu tiếng Anh. 6 câu tính điểm — xem `SKILL_MY_PROJECT.md` §1.3 |
-| `retrieval_mrr` | 0.788 | Thứ hạng của đoạn đúng (13/08: 0.882) |
+| `retrieval_mrr` | 0.788 | Thứ hạng của đoạn đúng (13/08: 0.882). Chênh lệch **không** do model yếu — lần chạy local cùng ngày cũng gần hết trên `flash-lite` mà vẫn 0.882. Ở chế độ full, biến thể truy vấn sinh trực tiếp mỗi lần gọi nên MRR dao động giữa các lần chạy; muốn so truy hồi phải dùng `--retrieval-only` (0.926, biến thể lưu sẵn). Xem bẫy #18b |
 | `overview_asked_for_document` | 1.000 | Câu tóm tắt không nêu tài liệu thì hỏi lại (1/1) |
 | `overview_answered_when_named` | 1.000 | Câu có nêu tài liệu thì trả lời thẳng (2/2) |
 | `median_ttft_ms` | **2889** | Thời gian tới token đầu tiên thật, `n = 19`. **Đạt ngưỡng < 3s.** Cùng bộ eval chạy trên local cho 4933 — máy local vừa chạy dev server vừa gọi model, còn production nằm cùng region `sin1` với Supabase |

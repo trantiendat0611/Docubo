@@ -251,7 +251,9 @@ demo nếu ứng dụng im lặng cả tuần.
 - `document_pages` và PDF trong Storage chưa được dọn khi xoá tài liệu.
 - Khi các model mạnh đã cạn hạn mức ngày, chain rơi xuống
   `gemini-3.5-flash-lite` và câu trả lời có thể **thiếu marker trích dẫn**
-  dù nội dung vẫn đúng. Đo được 1/19 câu ở lần chạy 18/08.
+  dù nội dung vẫn đúng. Qua ba lần chạy đầy đủ: `gemini-3.5-flash` và
+  `gemini-2.5-flash` đạt 21/21 câu có trích dẫn, `flash-lite` 27/29. Nghĩa là
+  **chất lượng phụ thuộc thời điểm trong ngày**.
 
 ## Nguồn tài liệu
 
