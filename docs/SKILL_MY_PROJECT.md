@@ -585,6 +585,8 @@ Ghi ngay lúc vừa gỡ xong, đừng để đến tuần 8 mới nhớ lại.)
 | 18 | Cùng chỉ số `citation_validity = 0.947` ở hai lần chạy 18/08, nhưng **câu hỏng là hai câu khác nhau** với hai triệu chứng khác nhau | Local hỏng ở `g-002` (từ chối bằng văn xuôi — bẫy #17). Production hỏng ở `t-009`: câu trả lời **đúng nội dung, đủ ba ý** ("Automatic Reasoning / Language understanding / Learning"), dài 140 kí tự, **không chứa một dấu `[` nào**. Lập bảng chéo model × trích dẫn qua cả ba lần chạy đầy đủ mới thấy cái chung: `gemini-3.5-flash` và `gemini-2.5-flash` cộng lại **21/21 câu đều có trích dẫn**; `gemini-3.5-flash-lite` **27/29**. Cả hai câu hỏng đều do `flash-lite` phục vụ — mắt xích cuối chain, được chọn khi các model trên đã cạn hạn mức ngày. Lần chạy production 18/08 có **17/19 câu** rơi vào `flash-lite`, tức đây là một lần đo **gần trường hợp xấu nhất**, không phải lần đo điển hình | Chưa sửa. Hướng: siết luật trích dẫn trong grounding prompt cho model yếu, hoặc chỉ dùng `flash-lite` cho đường từ chối. Hai bài học tách biệt: **(a)** chỉ số nói *có hỏng*, không nói *hỏng ở đâu* — phải mở danh sách câu ra xem, vì cùng một con số ở hai lần chạy vẫn có thể là hai câu khác nhau; **(b)** lần đầu tôi đọc bảng này đã kết luận "hai nguyên nhân không liên quan", **và đó là kết luận sai** — chỉ khi lập bảng chéo theo model mới lộ ra yếu tố chung. Đọc hai ca hỏng riêng lẻ thì thấy hai câu chuyện; đếm theo model thì thấy một |
 | 18b | *(hệ quả, và một suy diễn hụt)* `retrieval_mrr` cùng lúc tụt 0.882 → 0.788 | Giả thuyết đầu tiên: model yếu sinh biến thể truy vấn kém hơn nên truy hồi tệ đi. **Sai.** Lần chạy local 18/08 cũng chạy gần hết trên `flash-lite` mà `retrieval_mrr` vẫn đúng 0.882. Model sinh câu trả lời không giải thích được khoảng cách này | Cách đọc còn lại: ở chế độ full, biến thể `query_en`/`query_vi` được **sinh trực tiếp mỗi lần gọi**, không lấy từ dataset — nên MRR dao động giữa các lần chạy dù corpus và câu hỏi y hệt. Chế độ `--retrieval-only` dùng biến thể lưu sẵn nên lặp lại được (0.926). **Muốn so truy hồi giữa hai thời điểm thì phải so ở chế độ retrieval-only**, còn MRR ở chế độ full là số của cả cụm sinh-biến-thể + truy hồi |
 | 19 | Một mục nợ kĩ thuật ghi trong 3 tài liệu suốt hai tuần, sắp bỏ nửa ngày ra sửa — **một nửa của nó chưa bao giờ đúng** | Mục ghi: "`document_pages` và file Storage không được dọn khi xoá tài liệu". Đọc schema kĩ thì `document_pages.job_id` cascade theo `ingest_jobs`, mà `ingest_jobs.document_id` cũng cascade theo `documents` — **cascade hai tầng**, xoá tài liệu là trang đi theo. Kiểm bằng cách chèn thật một bộ document + job + page vào database rồi xoá: cả ba hàng đều biến mất. Nguồn gốc sai: lúc viết mục đó tôi nhìn `document_pages` thấy nó **không** có khoá ngoại trỏ tới `documents` và dừng ở đó, không lần thêm một tầng nữa | Sửa đúng thứ thật sự rò: **Storage**, vì bucket không có khoá ngoại để cascade theo. Bài học: **nợ kĩ thuật cũng là một khẳng định chưa đo.** Nó nằm trong tài liệu, được chép qua ba chỗ, được lên lịch làm — không cái nào trong số đó biến nó thành đúng. Cùng một quy tắc đã áp cho chỉ số eval (bẫy #14, #18) thì phải áp cho cả danh sách việc: **kiểm trước khi sửa**, vì nửa ngày sửa một thứ không hỏng là nửa ngày mất trắng |
+| 20 | Ngưỡng NFR "token đầu tiên < 3s" được ghi **Đạt** buổi sáng, và **Chưa đạt** buổi chiều cùng ngày — không sửa dòng code nào ở giữa | Số buổi sáng là 2889ms, đo ở lần chạy 18/08. Số buổi chiều là 8155ms, đo ở lần chạy 19/08 ngay sau khi quota reset. Tách TTFT theo model thì lộ nguyên nhân: `flash-lite` 2860–4225ms, model mạnh (`flash`, `2.5-flash`) **8444ms**. Lần chạy 18/08 diễn ra khi hạn mức ngày đã cạn nên 17/19 câu rơi xuống `flash-lite` — mắt xích cuối chain. Nghĩa là **ngưỡng 3 giây chỉ đạt khi hệ thống đang chạy ở chế độ chất lượng thấp nhất**, và `flash-lite` cũng chính là model duy nhất từng bỏ marker trích dẫn (cộng dồn: model mạnh 34/34, `flash-lite` 31/33) | Chưa chốt: hoặc sửa ngưỡng cho khớp chế độ vận hành thật, hoặc giữ nguyên và ghi là mục chưa đạt. Bài học thì đã rõ và là bài học tệ nhất trong bảng này: **một ngưỡng chấp nhận được kiểm bằng một lần chạy là một ngưỡng chưa được kiểm.** Tệ hơn nữa, ở đây tốc độ và độ tin cậy **đánh đổi nhau dọc theo chain model**, nên lần chạy trông đẹp nhất về tốc độ lại là lần chạy tệ nhất về chất lượng. Bất kì chỉ số nào đo trên một hệ có fallback đều phải ghi kèm **nhánh fallback nào đã phục vụ** |
+| 21 | Hai câu trong 26 trả về sau **62.4s và 62.6s** với thân rỗng và không kèm lí do | Không phải quota — `f-001` cùng lần chạy mất 27s và thành công. 62s là `maxDuration = 60` của Vercel cộng thời gian mạng: hàm bị giết giữa chừng, và thứ client nhận được là một 504 không mang thông tin. Đường sinh câu trả lời **không có timeout riêng**, nên khi Gemini chậm bất thường thì giới hạn duy nhất là trần của nền tảng | Chưa sửa. Hướng: đặt timeout riêng cho lượt gọi generation (thấp hơn trần, ví dụ 45s) rồi trả lỗi **có cấu trúc** giống nhánh `daily_quota`/`rate_limited` đã có, để UI nói được chuyện gì đã xảy ra. Đây đúng là bẫy #14 lặp lại ở một nguyên nhân khác: **client không suy ra được vì sao im lặng** — lần trước là hết quota, lần này là hết giờ |
 
 **Bài học của bẫy 14, đắt hơn bản thân cái bug:** một chỉ số sai **theo hướng bi quan** cũng nguy hiểm ngang chỉ số sai theo hướng lạc quan. Nếu tin `0.15` mà đi sửa prompt trích dẫn thì sẽ mất nhiều ngày chỉnh một thứ vốn đã đạt 1.000. Quy tắc rút ra: **trước khi tin một chỉ số tụt, mở dữ liệu thô của vài ca hỏng ra xem đã.** Ở đây chỉ cần nhìn cột latency — 950ms cho một câu trả lời có sinh văn bản là bất khả thi — là lộ ngay.
 
@@ -625,9 +627,10 @@ Giờ ghi ở dưới là **giờ Việt Nam** (`run_at` trong report lưu UTC, 
 | 7 | 13/08 17:08 | full | prod | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | — | Lần chạy sạch đầu tiên: 26/26 câu, không câu nào hỏng |
 | 8 | 18/08 15:16 | full | local | 26 | 1.000 | 1.000 | 0.882 | 0.947 | 1.000 | **1.000** | 4933 | Nối `--judge`, đo TTFT thật |
 | 9 | 18/08 15:54 | full | **prod** | 26 | 1.000 | 1.000 | 0.788 | 0.947 | 1.000 | — | **2889** | Chạy lại đúng trên production |
+| 10 | 19/08 14:14 | full | **prod** | 26 | 1.000 | 1.000 | 0.883 | **1.000** | 1.000 | **1.000** | 8155 | Chạy ngay sau khi quota reset — lần đầu `faithfulness` có số thật trên production |
 
-Dòng 9 là bảng nghiệm thu hiện hành (`REQUIREMENTS.md` §7). Các lần chạy 3, 5, 6
-và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải phép đo.
+Dòng 10 là bảng nghiệm thu hiện hành (`REQUIREMENTS.md` §7). Các lần chạy 3, 5,
+6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải phép đo.
 
 ### Ba con số trông như kết quả mà không phải
 
@@ -676,10 +679,24 @@ corpus cùng câu hỏi. Không mâu thuẫn: chế độ truy-hồi dùng biế
 nên lặp lại được, chế độ full **sinh trực tiếp mỗi lần gọi** nên dao động. Muốn
 so truy hồi giữa hai thời điểm thì phải so ở `--retrieval-only`. Bẫy #18b.
 
-**Chỉ số tụt không đồng nghĩa sản phẩm xấu đi.** Dòng 9 có 17/19 câu rơi vào
-`gemini-3.5-flash-lite` (dòng 7: 0/19) vì các model trên đã cạn hạn mức trong
-ngày. `citation_validity` 1.000 → 0.947 là hệ quả của **thời điểm chạy**, không
-phải của một thay đổi code. Bẫy #18.
+**Chỉ số tụt không đồng nghĩa sản phẩm xấu đi — và chỉ số lên cũng vậy.** Dòng 9
+có 17/19 câu rơi vào `gemini-3.5-flash-lite` (dòng 7: 0/19) vì các model trên đã
+cạn hạn mức trong ngày. `citation_validity` 1.000 → 0.947 là hệ quả của **thời
+điểm chạy**, không phải của một thay đổi code. Dòng 10 chạy ngay sau khi quota
+reset, chain dùng model mạnh, và chỉ số về lại **1.000** — không sửa dòng code
+nào ở giữa. Đó là xác nhận cho bẫy #18, không phải một cải thiện.
+
+**Và cùng cơ chế đó đánh sập một ngưỡng nghiệm thu.** `median_ttft_ms` đi
+2889 → **8155** giữa dòng 9 và dòng 10, cũng không có thay đổi code nào. Vì
+`flash-lite` là mắt xích **nhanh nhất** chain (2860–4225ms) trong khi model mạnh
+mất 8444ms. Ngưỡng "token đầu tiên < 3s" vì thế **chỉ đạt khi hệ thống đang chạy
+ở chế độ chất lượng thấp nhất**. Tốc độ và độ tin cậy trích dẫn đánh đổi nhau
+dọc theo chain — điều không ai biết khi đặt ngưỡng, vì lúc đó chain chưa tồn
+tại. Bẫy #20.
+
+**Một lần chạy sạch không chứng minh hệ thống không hỏng.** Dòng 10 có 2/26 câu
+chết ở 62 giây — chạm trần `maxDuration = 60` của Vercel. Chín lần chạy trước
+chưa lần nào lộ ra lỗi này. Bẫy #21.
 
 ### Còn thiếu gì
 

@@ -249,11 +249,14 @@ Postgres một lần và trả `{ ok, database, ms }` — không gọi model. Gi
 - Chuyển tab khi đang xử lí sẽ tạm dừng việc đọc trang.
 - Một số trang bị Gemini từ chối đọc vì `RECITATION`; chain model xử lí được
   phần lớn nhưng không phải tất cả.
-- Khi các model mạnh đã cạn hạn mức ngày, chain rơi xuống
-  `gemini-3.5-flash-lite` và câu trả lời có thể **thiếu marker trích dẫn**
-  dù nội dung vẫn đúng. Qua ba lần chạy đầy đủ: `gemini-3.5-flash` và
-  `gemini-2.5-flash` đạt 21/21 câu có trích dẫn, `flash-lite` 27/29. Nghĩa là
-  **chất lượng phụ thuộc thời điểm trong ngày**.
+- **Chất lượng và tốc độ phụ thuộc thời điểm trong ngày.** Khi các model mạnh
+  cạn hạn mức, chain rơi xuống `gemini-3.5-flash-lite`. Model này **nhanh hơn**
+  (token đầu tiên 2.9–4.2s so với 8.4s) nhưng là model duy nhất từng **bỏ marker
+  trích dẫn**: cộng dồn ba lần chạy đầy đủ, model mạnh 34/34 câu có trích dẫn,
+  `flash-lite` 31/33. Hai thứ này đánh đổi nhau, nên một lần đo tốc độ đẹp
+  thường là một lần đo ở chế độ chất lượng thấp.
+- Một tỉ lệ nhỏ câu hỏi chạm **trần 60 giây của hàm Vercel** khi Gemini chậm
+  bất thường — 2/26 ở lần chạy 19/08 — và hiện client chỉ nhận được lỗi chung.
 
 ## Nguồn tài liệu
 

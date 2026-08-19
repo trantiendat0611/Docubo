@@ -160,17 +160,35 @@ giới hạn 5 lượt tải mỗi người mỗi ngày.
 | Tiêu chí | Mục tiêu | Trạng thái |
 |---|---|---|
 | Chi phí | 0 đồng | Đạt — toàn bộ hạ tầng chạy trên free tier |
-| Thời gian tới token đầu tiên | < 3s | Đạt — đo trên production 2889ms |
+| Tỉ lệ request hỏng | — | 2/26 ở lần chạy 19/08: hàm chat chạm trần 60s của Vercel |
+| Thời gian tới token đầu tiên | < 3s | **Chưa đạt** — 8155ms ở chế độ model mạnh. Xem phân tích ngay dưới bảng |
 | Quota vision | ~20 request/ngày/model | Ràng buộc, không phải mục tiêu |
 | Giới hạn tài liệu | 25 trang | Hệ quả của quota |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn khoảng 4.5MB |
 | Dung lượng | Supabase 500MB | Đang dùng dưới 1MB |
 
-Ngưỡng "token đầu tiên dưới 3s" đáng nói riêng, vì nó là ví dụ cho một sai lầm
-đo đạc được ghi lại ở chương 3: harness ban đầu đo **tổng thời gian đọc hết câu
-trả lời** rồi báo cáo nó như thời gian tới token đầu tiên. Hai đại lượng này
-cách nhau vài giây. Ngưỡng chỉ thật sự được kiểm chứng sau khi harness biết đọc
-stream theo từng đoạn.
+Ngưỡng "token đầu tiên dưới 3s" đáng một mục riêng, vì nó sai **hai lần** theo
+hai kiểu khác nhau.
+
+**Lần thứ nhất là lỗi đo.** Harness ban đầu đo **tổng thời gian đọc hết câu trả
+lời** rồi báo cáo nó như thời gian tới token đầu tiên. Hai đại lượng cách nhau
+vài giây. Sửa bằng cách đọc stream theo từng đoạn thay vì đợi đọc hết.
+
+**Lần thứ hai là lỗi diễn giải, và đắt hơn.** Sau khi sửa, phép đo đầu tiên trên
+production cho 2889ms và ngưỡng được ghi là "đạt". Lần chạy đó tình cờ diễn ra
+khi hạn mức ngày đã cạn, nên 17/19 câu do `gemini-3.5-flash-lite` — mắt xích
+cuối chain — phục vụ. Lần chạy hôm sau với quota đầy, chain dùng model mạnh và
+`median_ttft_ms` là **8155ms**:
+
+| Model phục vụ | TTFT trung vị |
+|---|---|
+| `gemini-3.5-flash-lite` | 2860–4225ms |
+| `gemini-3.5-flash` / `gemini-2.5-flash` | **8444ms** |
+
+Kết luận đúng là: **ngưỡng 3 giây chỉ đạt khi hệ thống đang chạy ở chế độ chất
+lượng thấp nhất.** `flash-lite` nhanh nhất chain và cũng là model duy nhất từng
+bỏ marker trích dẫn. Tốc độ và độ tin cậy đánh đổi nhau dọc theo chain, và ngưỡng
+NFR ban đầu được đặt trước khi biết chain sẽ tồn tại. Hướng xử lí ở chương 5.
 
 ## 2.4 Kiến trúc tổng thể
 

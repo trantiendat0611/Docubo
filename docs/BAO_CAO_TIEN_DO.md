@@ -75,18 +75,24 @@ trả ra thứ *đọc như đúng* ở đúng chỗ tài liệu có giá trị 
 
 Bộ đánh giá **26 câu**, 6 nhóm, 8 câu xuyên ngôn ngữ.
 
-Chạy đầy đủ trên production ngày **18/08**, 26/26 câu, **không câu nào hỏng**
-(`eval-full-20260818-085447.json`). Cột 13/08 giữ lại để thấy cái gì đổi.
+Chạy đầy đủ trên production ngày **19/08**, ngay sau khi quota reset
+(`eval-full-20260819-071406.json`). Cột 13/08 giữ lại để thấy cái gì đổi.
+
+**Hai lần chạy 18/08 và 19/08 đo hai chế độ vận hành khác nhau của cùng một hệ
+thống.** 18/08 chạy khi hạn mức đã cạn nên 17/19 câu do `gemini-3.5-flash-lite`
+phục vụ; 19/08 chạy khi quota còn đầy nên 13/17 câu do model mạnh. So từng số
+giữa hai lần mà không nói điều này sẽ dẫn tới kết luận sai.
 
 | Chỉ số | 13/08 | 18/08 | Ngưỡng | Ghi chú |
 |---|---|---|---|---|
 | `retrieval_hit_at_8` | 1.000 | **1.000** | ≥ 0.85 | Đạt |
-| `citation_validity` | 1.000 | **0.947** | ≥ 0.95 | **Chưa đạt.** 1 câu trả lời đúng nội dung nhưng không dẫn nguồn, do model yếu nhất trong chain phục vụ câu đó |
+| `citation_validity` | 1.000 | **1.000** | ≥ 0.95 | Đạt, 17/17. Ngày 18/08 là 0.947 do `flash-lite`; cộng dồn ba lần chạy: model mạnh **34/34**, `flash-lite` **31/33** |
 | `refusal_rate` | 1.000 | **1.000** | ≥ 0.90 | Đạt, `false_refusal_rate` = 0 |
-| `faithfulness` | — | — | ≥ 0.90 | Đã nối vào harness 18/08. Local cho 1.000; production trả `UNAVAILABLE` cả 19 câu vì cạn hạn mức lúc chạy |
+| `faithfulness` | — | **1.000** | ≥ 0.90 | **Đạt — số đo thật đầu tiên trên production.** 17/17 câu chấm được, không câu nào có khẳng định thiếu chỗ dựa |
 | `hit_cross_lingual` | 1.000 | **1.000** | — | Hỏi tiếng Việt trên tài liệu tiếng Anh |
-| `retrieval_mrr` | 0.882 | 0.788 | — | Thứ hạng của đoạn đúng |
-| `median_ttft_ms` | — | **2889** | < 3s | Đạt. Thời gian tới token đầu tiên thật, `n = 19` |
+| `retrieval_mrr` | 0.882 | 0.883 | — | Thứ hạng của đoạn đúng (18/08: 0.788) |
+| `median_ttft_ms` | — | **8155** | < 3s | **Chưa đạt.** 18/08 đo 2889ms nhưng lần đó `flash-lite` phục vụ 17/19 câu; với model mạnh là 8444ms |
+| `n_generation_failed` | 0 | **2** | 0 | Hai câu chết ở 62s — chạm trần 60s của hàm Vercel |
 
 Hai điều đáng nói hơn các con số:
 
@@ -234,7 +240,7 @@ Supabase thật, nên toàn bộ nhánh này chưa từng được chạy trư�
 
 ## 7. Bốn cái bẫy đáng kể nhất
 
-Bảng đầy đủ **22 dòng** ở `SKILL_MY_PROJECT.md` §3 — 19 bẫy đánh số, cộng 3 dòng
+Bảng đầy đủ **24 dòng** ở `SKILL_MY_PROJECT.md` §3 — 21 bẫy đánh số, cộng 3 dòng
 đính chính lại kết luận cũ của chính tôi (`3b`, `14b`, `18b`).
 
 | Triệu chứng | Nguyên nhân thật |
@@ -250,8 +256,10 @@ Bảng đầy đủ **22 dòng** ở `SKILL_MY_PROJECT.md` §3 — 19 bẫy đá
 
 | Khoảng trống | Ảnh hưởng | Kế hoạch |
 |---|---|---|
-| `faithfulness` chưa có số đo trên production | Đã nối vào harness 18/08 (cờ `--judge`); local cho 1.000, production trả `UNAVAILABLE` cả 19 câu vì cạn hạn mức lúc chạy | Chạy lại sau khi quota reset |
-| `citation_validity` = 0.947, dưới ngưỡng 0.95 | 1 câu (`t-009`) trả lời đúng nội dung nhưng không có marker `[n]` nào — do `gemini-3.5-flash-lite`, model yếu nhất trong chain. Xem bẫy #18 | Tuần 4 |
+| ~~`faithfulness` chưa có số đo trên production~~ | Chạy 19/08 ngay sau khi quota reset: **1.000**, 17/17 câu chấm được | Xong 19/08 |
+| ~~`citation_validity` = 0.947~~ | Về lại **1.000** ở lần chạy 19/08 khi chain dùng model mạnh. Vẫn là hạn chế đã biết: `flash-lite` là model duy nhất từng bỏ trích dẫn | Ghi vào hạn chế |
+| **Hàm chat chạm trần 60s của Vercel** | 2/26 câu ở lần chạy 19/08 chết ở 62s, client nhận 504 rỗng không hiểu được. Xem bẫy #21 | Tuần 4 |
+| **Ngưỡng TTFT < 3s chưa đạt** | 8155ms ở chế độ model mạnh. Ngưỡng chỉ đạt khi chạy `flash-lite`, tức chế độ chất lượng thấp nhất. Xem bẫy #20 | Chốt lại ngưỡng hoặc ghi là chưa đạt |
 | ~~`document_pages` và file Storage không được dọn khi xoá tài liệu~~ | Kiểm 19/08: `document_pages` **vẫn luôn được dọn** qua cascade hai tầng `documents → ingest_jobs → document_pages`. Chỉ Storage là rò rỉ thật, đã sửa | Xong 19/08 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
 | ~~App có thể ngủ giữa hai buổi demo~~ | `/api/health` + Action `Keep-alive` chạy thứ Hai và thứ Năm, không tốn quota model | Xong 19/08 |

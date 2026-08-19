@@ -161,7 +161,7 @@ trong bất kì câu trả lời nào.
 | Tiêu chí | Mục tiêu | Ghi chú |
 |---|---|---|
 | Chi phí | 0 đồng | Ràng buộc cứng của đề bài |
-| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm. Đo trên production: request không đụng LLM mất ~0.34s sau khi đặt region Singapore, ~0.76s trước đó. **18/08:** `eval/run_eval.py` (chế độ full) giờ đo được TTFT thật — đọc stream theo từng đoạn thay vì đợi đọc hết, kết quả nằm ở `median_ttft_ms`/`n_ttft_measured` trong report. Khác với `median_latency_ms` (đo tổng thời gian đọc hết câu trả lời). **Đo được trên production 18/08: `median_ttft_ms` = 2889 (n = 19), đạt ngưỡng.** Chi tiết ở §7 |
+| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm. Đo trên production: request không đụng LLM mất ~0.34s sau khi đặt region Singapore, ~0.76s trước đó. **18/08:** `eval/run_eval.py` (chế độ full) giờ đo được TTFT thật — đọc stream theo từng đoạn thay vì đợi đọc hết, kết quả nằm ở `median_ttft_ms`/`n_ttft_measured` trong report. Khác với `median_latency_ms` (đo tổng thời gian đọc hết câu trả lời). **Chưa đạt.** 18/08 đo 2889ms và tưởng là đạt, nhưng lần chạy đó do `flash-lite` phục vụ 17/19 câu. 19/08 với quota đầy, chain dùng model mạnh: `median_ttft_ms` = **8155**, riêng nhóm model mạnh 8444ms. Ngưỡng chỉ đạt ở chế độ chất lượng thấp nhất — xem §7 |
 | **Quota vision** | **~20 request/ngày mỗi model** | Ràng buộc thật của cả hệ thống. Chain 4 model, gộp 8 trang/request ≈ **640 trang/ngày cho toàn bộ người dùng** |
 | Giới hạn tài liệu | 25 trang | Không phải giới hạn dung lượng — là hệ quả của quota trên. 25 trang ≈ 4 request |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn ~4.5MB. Ảnh trang 200dpi trung bình 480KB, đỉnh 2MB |
@@ -171,25 +171,25 @@ trong bất kì câu trả lời nào.
 
 Hệ thống coi là đạt khi trên `eval/eval_dataset.json`:
 
-Lần đo mới nhất, đầy đủ nhất: **18/08/2026** trên production, 26/26 câu, không
-câu nào hỏng — `eval/reports/eval-full-20260818-085447.json`. Đây là lần đầu
-report có `faithfulness` và `median_ttft_ms` (nối vào harness cùng ngày). Lần
-đo đầy đủ đầu tiên là 13/08 (`eval-full-20260813-100813.json`), giữ lại để đối
-chiếu ở bảng tiến triển `SKILL_MY_PROJECT.md` §4.
+Lần đo mới nhất: **19/08/2026** trên production, ngay sau khi quota reset —
+`eval/reports/eval-full-20260819-071406.json`. Đây là lần đầu `faithfulness` có
+số đo thật trên production. Lần đo đầy đủ đầu tiên là 13/08
+(`eval-full-20260813-100813.json`); bảng tiến triển đủ 10 lần chạy ở
+`SKILL_MY_PROJECT.md` §4.
 
-**Đọc bảng này kèm một điều kiện.** Lần chạy 18/08 có **17/19 câu trả lời do
-`gemini-3.5-flash-lite` phục vụ** — mắt xích cuối chain, được chọn vì các model
-trên đã cạn hạn mức sau nhiều lần chạy thử trong buổi sáng. Ngày 13/08 con số
-này là 0/19. Đây vì thế là một lần đo **gần trường hợp xấu nhất**, không phải
-lần đo điển hình; nó vẫn được chọn làm bảng chính vì là lần duy nhất có đủ
-`faithfulness` và `median_ttft_ms`.
+**Điều kiện của lần đo này khác hẳn 18/08, và điều đó quan trọng.** Chạy lúc
+quota còn đầy nên chain phục vụ chủ yếu bằng model mạnh: 13/17 câu do
+`gemini-3.5-flash` hoặc `gemini-2.5-flash`, chỉ 4 câu do `flash-lite`. Ngày
+18/08 tỉ lệ ngược lại (17/19 câu `flash-lite`). Hai lần chạy vì thế đo **hai chế
+độ vận hành khác nhau của cùng một hệ thống**, và so trực tiếp từng số giữa
+chúng sẽ dẫn tới kết luận sai.
 
 | Chỉ số | Ngưỡng | Đo được | Ghi chú |
 |---|---|---|---|
 | `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
-| `citation_validity` | ≥ 0.95 | **0.947** | **Chưa đạt.** 1/19 câu trả lời không có marker `[n]` nào — `t-009`, do `gemini-3.5-flash-lite` bỏ trích dẫn dù trả lời đúng nội dung. Xem bẫy #18. Ngày 13/08 chỉ số này là 1.000, nên đây là dao động theo model được chọn, không phải hồi quy của prompt |
-| `refusal_rate` | ≥ 0.90 | **1.000** | Đạt. Trên nhóm `should_refuse`, `false_refusal_rate` = 0 |
-| `faithfulness` | ≥ 0.90 | — | Đã nối vào harness (cờ `--judge`). Trên production 19/19 câu trả về `UNAVAILABLE`, chưa phân biệt được cạn quota hay `RECITATION` ở thời điểm chạy. Cùng bộ prompt chạy trên local cùng ngày cho **1.000** (`eval-full-20260818-081602.json`) — chưa tính là số chính thức. Cần một lần chạy production nữa với quota còn |
+| `citation_validity` | ≥ 0.95 | **1.000** | Đạt, 17/17. Cả ba model đều đủ trích dẫn ở lần này (`flash` 6/6, `2.5-flash` 7/7, `flash-lite` 4/4). Con số 0.947 ngày 18/08 đến từ `flash-lite`, model duy nhất từng bỏ trích dẫn — cộng dồn ba lần chạy: model mạnh **34/34**, `flash-lite` **31/33**. Xem bẫy #18 |
+| `refusal_rate` | ≥ 0.90 | **1.000** | Đạt. Trên nhóm `should_refuse`, `false_refusal_rate` = 0. Gồm 4 câu từ chối theo ngưỡng và 2 câu chặn ở guardrail |
+| `faithfulness` | ≥ 0.90 | **1.000** | **Đạt — số đo thật đầu tiên trên production.** 17/17 câu chấm được, `n_faithfulness_unscored` = 0, không câu nào có khẳng định thiếu chỗ dựa |
 | `latex_exact_match` | Chưa chốt | — | Cần nguồn có `.tex` gốc để so |
 
 Chỉ số phụ trong cùng lần chạy:
@@ -197,15 +197,51 @@ Chỉ số phụ trong cùng lần chạy:
 | Chỉ số | Đo được | Nghĩa |
 |---|---|---|
 | `hit_cross_lingual` | 1.000 | Hỏi tiếng Việt trên tài liệu tiếng Anh. 6 câu tính điểm — xem `SKILL_MY_PROJECT.md` §1.3 |
-| `retrieval_mrr` | 0.788 | Thứ hạng của đoạn đúng (13/08: 0.882). Chênh lệch **không** do model yếu — lần chạy local cùng ngày cũng gần hết trên `flash-lite` mà vẫn 0.882. Ở chế độ full, biến thể truy vấn sinh trực tiếp mỗi lần gọi nên MRR dao động giữa các lần chạy; muốn so truy hồi phải dùng `--retrieval-only` (0.926, biến thể lưu sẵn). Xem bẫy #18b |
+| `retrieval_mrr` | 0.883 | Thứ hạng của đoạn đúng (13/08: 0.882 · 18/08: 0.788). Ở chế độ full, biến thể truy vấn sinh trực tiếp mỗi lần gọi nên MRR dao động giữa các lần chạy; muốn so truy hồi phải dùng `--retrieval-only` (0.926, biến thể lưu sẵn). Xem bẫy #18b |
 | `overview_asked_for_document` | 1.000 | Câu tóm tắt không nêu tài liệu thì hỏi lại (1/1) |
 | `overview_answered_when_named` | 1.000 | Câu có nêu tài liệu thì trả lời thẳng (2/2) |
-| `median_ttft_ms` | **2889** | Thời gian tới token đầu tiên thật, `n = 19`. **Đạt ngưỡng < 3s.** Cùng bộ eval chạy trên local cho 4933 — máy local vừa chạy dev server vừa gọi model, còn production nằm cùng region `sin1` với Supabase |
-| `median_latency_ms` | 2710 | Thời gian đọc xong **toàn bộ** câu trả lời (13/08: 6874) |
+| `median_ttft_ms` | **8155** | **Không đạt ngưỡng < 3s** — vượt 2.7 lần. Xem phân tích ngay dưới |
+| `median_latency_ms` | 7808 | Thời gian đọc xong **toàn bộ** câu trả lời |
+| `n_generation_failed` | **2** | `t-001` và `f-003` chết ở 62.4s và 62.6s — chạm giới hạn 60s của hàm Vercel. Xem "Hai lỗi mới" bên dưới |
 
-`median_ttft_ms` lớn hơn `median_latency_ms` không phải lỗi: TTFT chỉ tính trên
-19 câu có stream văn bản, còn latency tính trên cả 26 — 7 câu còn lại đi đường
-JSON (từ chối / hỏi lại tài liệu), trả rất nhanh và kéo trung vị xuống.
+### Ngưỡng TTFT: chưa đạt, và lí do đáng đọc
+
+Ngày 18/08 chỉ số này là 2889ms và đã được ghi là "đạt". Số đó **không sai,
+nhưng nó không phải số của hệ thống ở chế độ bình thường.** Tách TTFT theo model
+thì rõ ngay:
+
+| Model phục vụ | TTFT trung vị | Lần chạy |
+|---|---|---|
+| `gemini-3.5-flash-lite` | 2860ms (n=17) | 18/08 |
+| `gemini-3.5-flash-lite` | 4225ms (n=4) | 19/08 |
+| Model mạnh (`flash`, `2.5-flash`) | **8444ms** (n=13) | 19/08 |
+
+Nghĩa là **ngưỡng < 3s chỉ đạt được khi hệ thống đang chạy ở chế độ chất lượng
+thấp nhất.** `flash-lite` là mắt xích cuối chain, nhanh nhất và cũng là model
+duy nhất từng bỏ trích dẫn. Tốc độ và độ tin cậy của trích dẫn đánh đổi nhau
+dọc theo chain, và ngưỡng NFR ban đầu được đặt mà không biết điều đó.
+
+Hai cách xử lí, phải chọn chứ không được lờ đi:
+
+1. **Sửa ngưỡng** thành một con số phản ánh chế độ vận hành thật (ví dụ < 10s ở
+   chế độ model mạnh), ghi rõ lí do đổi.
+2. **Giữ ngưỡng** và coi đây là mục chưa đạt, ghi vào phần hạn chế của báo cáo.
+
+Chưa chốt — cần thêm ít nhất một lần chạy nữa ở điều kiện quota đầy để biết
+8444ms là mức ổn định hay là dao động của một buổi.
+
+### Hai lỗi mới lộ ra ở lần chạy này
+
+**Hàm chat chạm trần 60 giây.** `t-001` và `f-003` trả về sau 62.4s và 62.6s với
+thân rỗng và không có `reason` — đúng dấu hiệu Vercel giết hàm ở `maxDuration =
+60`. Đây **không phải** lỗi quota: `f-001` cùng lần chạy mất 27s và thành công.
+Đường sinh câu trả lời hiện không có timeout riêng, nên khi Gemini chậm bất
+thường thì giới hạn duy nhất là trần của Vercel — và thứ client nhận được là một
+504 không mang thông tin gì. Tỉ lệ quan sát được: **2/26 câu**.
+
+**Câu đầu tiên của phiên chậm bất thường.** `t-001` là request đầu tiên và là
+một trong hai câu chết. Chưa đủ dữ liệu để tách cold start của hàm khỏi độ chậm
+của model.
 
 ## 8. Câu hỏi còn mở
 

@@ -206,7 +206,9 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       `BAO_CAO_TIEN_DO.md` §3/§8 vẫn ghi "`faithfulness` chưa nối vào harness"
       và "chưa có số TTFT" — cả hai đã xong từ 18/08. Đã re-base cả hai tài liệu
       theo lần chạy production mới nhất (`eval-full-20260818-085447.json`), giữ
-      cột 13/08 để đối chiếu. **TTFT production = 2889ms, đạt ngưỡng < 3s** (số
+      cột 13/08 để đối chiếu. ~~**TTFT production = 2889ms, đạt ngưỡng < 3s**~~
+      *(sai — đính chính ở mục 19/08 14:14 bên dưới: 2889ms là số của
+      `flash-lite`; với model mạnh là 8444ms và ngưỡng **không đạt**)* (số
       4933 ghi ở mục 18/08 là số local — máy vừa chạy dev server vừa gọi model)
 - [x] **19/08** Bẫy #18: `citation_validity` = 0.947 ở **cả hai** lần chạy
       18/08, nhưng câu hỏng là hai câu khác nhau với nguyên nhân khác hẳn. Local
@@ -230,7 +232,7 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       0.882. Cách đọc còn lại: chế độ full sinh biến thể trực tiếp mỗi lần gọi
       nên MRR dao động giữa các lần chạy; muốn so truy hồi giữa hai thời điểm
       phải dùng `--retrieval-only` (biến thể lưu sẵn, lặp lại được)
-- [x] **22/08 (làm sớm 19/08)** `SKILL` §4 — bảng tiến triển 9 lần chạy, mỗi
+- [x] **22/08 (làm sớm 19/08)** `SKILL` §4 — bảng tiến triển 10 lần chạy, mỗi
       dòng ghi kèm chế độ, cỡ mẫu và nơi chạy. Khoảng cách full vs
       retrieval-only đã phân tích xong: `retrieval_mrr` 0.926 (retrieval-only,
       biến thể lưu sẵn) vs 0.788 (full, biến thể sinh trực tiếp) — **không so
@@ -241,10 +243,27 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       Anh thì hai nhánh full-text **đóng góp bằng không** và hệ ba nhánh thoái
       hoá thành một nhánh **mà không báo lỗi gì**. Ô `faithfulness` của dòng 9
       còn trống, chờ lần chạy `--judge` trên production
+- [x] **19/08 14:14** Chạy `--judge` trên production ngay sau khi quota reset.
+      **`faithfulness` = 1.000, 17/17 câu chấm được — số đo thật đầu tiên**,
+      mục tiêu chính của tuần 3 hoàn thành. `citation_validity` về lại 1.000,
+      xác nhận đúng kết luận bẫy #18 (0.947 hôm trước là do `flash-lite`, không
+      phải hồi quy của prompt). Nhưng lần chạy này **đánh sập một ngưỡng và lộ
+      một lỗi mới**, cả hai chưa từng thấy ở 9 lần chạy trước:
+      **(a)** `median_ttft_ms` = 8155ms, vượt ngưỡng < 3s **2.7 lần**. Số 2889ms
+      hôm 18/08 mà chính tôi ghi "đạt" sáng nay là số đo khi `flash-lite` phục
+      vụ 17/19 câu — mắt xích cuối chain, và cũng là mắt xích **nhanh nhất**
+      (2860–4225ms so với 8444ms của model mạnh). Nghĩa là ngưỡng chỉ đạt khi
+      hệ thống chạy ở **chế độ chất lượng thấp nhất**. Ghi thành bẫy #20. Phải
+      chốt: sửa ngưỡng cho khớp thực tế, hay giữ nguyên và ghi là chưa đạt.
+      **(b)** `t-001` và `f-003` chết ở 62.4s/62.6s — chạm trần
+      `maxDuration = 60` của Vercel. Không phải quota: `f-001` cùng lần chạy
+      mất 27s và thành công. Đường sinh không có timeout riêng nên client nhận
+      một 504 rỗng. Bẫy #21, cùng họ với bẫy #14
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
-- [ ] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu; TTFT có số đo lần
-      đầu; `SKILL` §1 không còn placeholder
+- [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production
+      19/08); TTFT có số đo lần đầu ✓ (8155ms — và số đó **không đạt ngưỡng**,
+      xem trên); `SKILL` §1 không còn placeholder ✓
 
 **Tuần 4 · 24/08 – 30/08** — trả nợ kĩ thuật, mở rộng định dạng
 
