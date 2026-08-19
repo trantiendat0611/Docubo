@@ -17,14 +17,16 @@ import { browserClient } from "@/lib/supabase/client";
  */
 
 interface Props {
-  /** Attach the finished document here. Null uploads into the library only. */
+  /** The open chat, or null while it is still unsaved. */
   conversationId: string | null;
+  /** Creates the chat if it is unsaved, so the document has somewhere to go. */
+  ensureConversation: () => Promise<string | null>;
   onDone: () => void;
 }
 
 type Phase = "idle" | "reading" | "uploading" | "extracting" | "indexing" | "error";
 
-export function UploadPanel({ conversationId, onDone }: Props) {
+export function UploadPanel({ conversationId, ensureConversation, onDone }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [done, setDone] = useState(0);
@@ -161,16 +163,21 @@ export function UploadPanel({ conversationId, onDone }: Props) {
     };
 
     // Attach to the open conversation so the question that follows is answered
-    // from it. upsert rather than insert: re-uploading a document already in
-    // this conversation is a no-op, not a primary-key violation.
-    if (conversationId && documentId) {
+    // from it, creating that conversation now if the chat was still unsaved —
+    // a document that attaches to nothing is invisible to every chat, including
+    // the one the user just uploaded it into.
+    //
+    // upsert rather than insert: re-uploading a document already in this
+    // conversation is a no-op, not a primary-key violation.
+    const target = conversationId ?? (await ensureConversation());
+    if (target && documentId) {
       const { data: me } = await browserClient().auth.getUser();
       if (me.user) {
         await browserClient()
           .from("conversation_documents")
           .upsert(
             {
-              conversation_id: conversationId,
+              conversation_id: target,
               document_id: documentId,
               owner_id: me.user.id,
             },

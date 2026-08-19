@@ -50,10 +50,12 @@ function resetHint(resetAt?: string): string {
 export function ChatPanel({
   conversationId,
   reloadKey,
+  ensureConversation,
   onTitled,
 }: {
   conversationId: string | null;
   reloadKey: number;
+  ensureConversation: () => Promise<string | null>;
   onTitled: () => void;
 }) {
   const [input, setInput] = useState("");
@@ -61,6 +63,12 @@ export function ChatPanel({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const abort = useRef<AbortController | null>(null);
+
+  // A conversation this panel brought into being while the user was mid-send.
+  // Its id arrives as a prop change, which is indistinguishable from the user
+  // opening a different chat — and reloading history for it would fetch an
+  // empty transcript and wipe the question already on screen.
+  const selfCreated = useRef<string | null>(null);
 
   /**
    * Rebuild the transcript when the conversation changes.
@@ -74,6 +82,11 @@ export function ChatPanel({
   const loadHistory = useCallback(async () => {
     if (!conversationId) {
       setTurns([]);
+      return;
+    }
+
+    if (selfCreated.current === conversationId) {
+      selfCreated.current = null;
       return;
     }
 
@@ -106,23 +119,22 @@ export function ChatPanel({
   }
 
   /** Name an untitled conversation after its opening question. No model call. */
-  async function titleFrom(question: string) {
-    if (!conversationId) return;
+  async function titleFrom(question: string, cid: string) {
     const client = browserClient();
     const { data } = await client
       .from("conversations")
       .select("title")
-      .eq("id", conversationId)
+      .eq("id", cid)
       .maybeSingle();
 
     if (data && !data.title) {
       const title = question.length > 60 ? `${question.slice(0, 57)}…` : question;
-      await client.from("conversations").update({ title }).eq("id", conversationId);
+      await client.from("conversations").update({ title }).eq("id", cid);
       onTitled();
     }
   }
 
-  async function ask(question: string) {
+  async function ask(question: string, cid: string) {
     setBusy(true);
     const controller = new AbortController();
     abort.current = controller;
@@ -137,7 +149,7 @@ export function ChatPanel({
         body: JSON.stringify({
           question,
           documentId: scope || undefined,
-          conversationId: conversationId ?? undefined,
+          conversationId: cid,
         }),
       });
 
@@ -216,6 +228,19 @@ export function ChatPanel({
     }
   }
 
+  /**
+   * The chat to send to, creating it if this one is still unsaved.
+   *
+   * Marking it as self-created first, because setting the id upstream re-runs
+   * loadHistory and a brand-new conversation has nothing stored to reload.
+   */
+  async function openChat(): Promise<string | null> {
+    if (conversationId) return conversationId;
+    const id = await ensureConversation();
+    if (id) selfCreated.current = id;
+    return id;
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const question = input.trim();
@@ -223,8 +248,15 @@ export function ChatPanel({
 
     setInput("");
     setTurns((t) => [...t, { question, answer: "", citations: [], kind: "answer" }]);
-    void titleFrom(question);
-    await ask(question);
+
+    const cid = await openChat();
+    if (!cid) {
+      patchLast({ answer: "Không mở được khung chat để lưu câu hỏi.", kind: "error" });
+      return;
+    }
+
+    void titleFrom(question, cid);
+    await ask(question, cid);
   }
 
   /**
@@ -241,7 +273,16 @@ export function ChatPanel({
       ...t,
       { question: last.question, answer: "", citations: [], kind: "answer" },
     ]);
-    await ask(last.question);
+
+    // There is always a conversation by now — regenerating needs an earlier
+    // turn, and producing one created it — but resolving it the same way keeps
+    // the single path rather than an assumption.
+    const cid = await openChat();
+    if (!cid) {
+      patchLast({ answer: "Không mở được khung chat để lưu câu hỏi.", kind: "error" });
+      return;
+    }
+    await ask(last.question, cid);
   }
 
   const canRegenerate = !busy && turns.length > 0 && Boolean(turns[turns.length - 1].answer);

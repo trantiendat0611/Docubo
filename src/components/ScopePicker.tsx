@@ -35,28 +35,28 @@ export function ScopePicker({
       const client = browserClient();
 
       // Narrowing within a conversation can only offer what that conversation
-      // holds; a document from another chat is not in scope to begin with.
-      let ids: string[] | null = null;
-      if (conversationId) {
-        const { data } = await client
-          .from("conversation_documents")
-          .select("document_id")
-          .eq("conversation_id", conversationId);
-        ids = (data ?? []).map((r) => r.document_id as string);
-        if (ids.length === 0) {
-          setOptions([]);
-          return;
-        }
+      // holds; a document from another chat is not in scope to begin with, and
+      // an unsaved chat holds nothing at all.
+      if (!conversationId) {
+        setOptions([]);
+        return;
       }
 
-      let query = client
+      const { data: attached } = await client
+        .from("conversation_documents")
+        .select("document_id")
+        .eq("conversation_id", conversationId);
+      const ids = (attached ?? []).map((r) => r.document_id as string);
+      if (ids.length === 0) {
+        setOptions([]);
+        return;
+      }
+
+      const { data } = await client
         .from("documents")
         .select("id, filename, title")
+        .in("id", ids)
         .order("created_at", { ascending: false });
-
-      if (ids) query = query.in("id", ids);
-
-      const { data } = await query;
       setOptions(
         (data ?? []).map((d) => ({
           id: d.id as string,

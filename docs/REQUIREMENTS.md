@@ -52,6 +52,8 @@ trong bất kì câu trả lời nào.
 - [x] Tài liệu tải lên gắn vào khung đang mở; câu hỏi chỉ được trả lời từ tài
       liệu của khung đó
 - [x] Một tài liệu dùng lại được ở nhiều khung, không phải nạp lại
+- [x] Khung chat mới chỉ được ghi vào database khi người dùng hỏi câu đầu
+      hoặc tải tài liệu đầu tiên — mở app không sinh hàng rỗng
 - [x] Đặt tên khung theo câu hỏi đầu tiên, đổi tên và xoá khung
 - [x] Hội thoại nhiều lượt — 3 lượt gần nhất đi kèm làm ngữ cảnh
 - [x] Dừng khi đang sinh, và sinh lại câu trả lời
@@ -154,6 +156,7 @@ trong bất kì câu trả lời nào.
 | **E23** | **Hỏi trong khung chat chưa có tài liệu nào** | Trả `needs_document` ngay, không gọi model | `api/chat` |
 | **E24** | **Gửi `conversationId` của người khác** | RLS trả rỗng → route trả 404, không lộ sự tồn tại | `conversation.ts` |
 | **E25** | **Xoá khung chat** | Lịch sử mất theo, tài liệu vẫn còn ở các khung khác | `007_conversations.sql` |
+| **E27** | **Xoá đúng khung chat đang mở** | Rơi về khung mới trống, không phải chế độ toàn corpus | `ConversationList.tsx` |
 | **E26** | **Người thứ hai tải lên đúng file người thứ nhất đã có** | `content_hash` unique theo từng chủ sở hữu, không toàn cục | `007_conversations.sql` |
 
 ## 6. Ràng buộc phi chức năng

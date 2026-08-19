@@ -241,7 +241,7 @@ Supabase thật, nên toàn bộ nhánh này chưa từng được chạy trư�
 
 ## 7. Bốn cái bẫy đáng kể nhất
 
-Bảng đầy đủ **24 dòng** ở `SKILL_MY_PROJECT.md` §3 — 21 bẫy đánh số, cộng 3 dòng
+Bảng đầy đủ **25 dòng** ở `SKILL_MY_PROJECT.md` §3 — 22 bẫy đánh số, cộng 3 dòng
 đính chính lại kết luận cũ của chính tôi (`3b`, `14b`, `18b`).
 
 | Triệu chứng | Nguyên nhân thật |

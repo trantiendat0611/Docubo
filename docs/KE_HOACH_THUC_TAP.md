@@ -301,6 +301,19 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       12 test mới, trong đó có một ca **cố ý pin lại** việc `abortSignal` một
       mình không đủ. Chưa kiểm được đường có đăng nhập vì cần session người
       dùng — cách kiểm 0 quota đã ghi lại để chạy khi tiện
+- [x] **19/08** Người dùng test tay và tìm ra bẫy #22, thứ không test nào và
+      không lần eval nào chạm tới: xoá khung chat đang mở thì rơi vào trạng
+      thái `null`, mà `null` mang **hai nghĩa** — sidebar hiểu là "chưa chọn
+      khung", truy hồi hiểu là "tìm trong mọi tài liệu". Hai lối đi tới hai
+      trạng thái nhìn giống hệt nhau. Đã cho `null` một nghĩa duy nhất: **khung
+      chat mới chưa lưu**. Hàng database chỉ sinh khi hỏi câu đầu hoặc tải tài
+      liệu đầu, nên mở app và bấm "+ Chat mới" không tạo rác.
+      Hai hệ quả phải xử lí kèm: **(a)** `loadHistory` sẽ chạy khi id vừa được
+      tạo và xoá mất câu hỏi đang hiện trên màn hình — chặn bằng ref
+      `selfCreated`; **(b)** nút "Xoá hẳn" tài liệu trước đây chỉ nằm ở trạng
+      thái `null`, nên sau khi đổi nghĩa thì **không còn đường tới** — đã tách
+      thành hai nút "Bỏ ra" và "Xoá hẳn" ngay trong khung chat, nếu không thì
+      chính bản vá dọn Storage sáng nay thành code chết
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

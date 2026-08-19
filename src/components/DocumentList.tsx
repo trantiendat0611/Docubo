@@ -38,31 +38,33 @@ export function DocumentList({
   const load = useCallback(async () => {
     const client = browserClient();
 
-    // Inside a conversation the list is what that conversation can answer from,
-    // which is the join table rather than everything the user owns.
-    let ids: string[] | null = null;
-    if (conversationId) {
-      const { data } = await client
-        .from("conversation_documents")
-        .select("document_id")
-        .eq("conversation_id", conversationId);
-      ids = (data ?? []).map((r) => r.document_id as string);
-    }
-
-    if (ids?.length === 0) {
+    // The list is what the open chat can answer from, which is the join table
+    // rather than everything the user owns. An unsaved chat holds nothing yet —
+    // listing the whole account here is what made a deleted chat look like a
+    // fresh one while quietly searching every document in it.
+    if (!conversationId) {
       setDocs([]);
       setLoading(false);
       return;
     }
 
-    let query = client
+    const { data: attached } = await client
+      .from("conversation_documents")
+      .select("document_id")
+      .eq("conversation_id", conversationId);
+    const ids = (attached ?? []).map((r) => r.document_id as string);
+
+    if (ids.length === 0) {
+      setDocs([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data } = await client
       .from("documents")
       .select("id, filename, title, lang, n_pages, created_at")
+      .in("id", ids)
       .order("created_at", { ascending: false });
-
-    if (ids) query = query.in("id", ids);
-
-    const { data } = await query;
     setDocs((data as Doc[]) ?? []);
     setLoading(false);
   }, [conversationId]);
@@ -72,39 +74,56 @@ export function DocumentList({
   }, [load, reloadKey]);
 
   /**
-   * Inside a conversation, removing detaches; outside it, it deletes.
+   * Take the document out of this chat, keeping the document.
    *
    * A document can belong to several conversations, so destroying the file
    * because it was removed from one of them would take it out of the others
    * too — and re-ingesting costs vision quota that the join table exists to
    * avoid spending twice.
    */
-  async function remove(doc: Doc) {
+  async function detach(doc: Doc) {
     const label = doc.title ?? doc.filename;
-    const client = browserClient();
+    if (!conversationId) return;
+    if (!confirm(`Bỏ "${label}" khỏi khung chat này? Tài liệu vẫn được giữ lại.`)) return;
 
-    if (conversationId) {
-      if (!confirm(`Bỏ "${label}" khỏi khung chat này? Tài liệu vẫn được giữ lại.`)) return;
-      await client
-        .from("conversation_documents")
-        .delete()
-        .eq("conversation_id", conversationId)
-        .eq("document_id", doc.id);
-    } else {
-      if (!confirm(`Xoá hẳn "${label}"? Các đoạn đã lập chỉ mục và file gốc cũng bị xoá theo.`))
-        return;
-      // Chunks, the job and its page cache all cascade. The uploaded PDF does
-      // not — Storage has no foreign key — so deleteDocument removes it too.
-      await deleteDocument(client, doc.id);
+    await browserClient()
+      .from("conversation_documents")
+      .delete()
+      .eq("conversation_id", conversationId)
+      .eq("document_id", doc.id);
+
+    onChange();
+  }
+
+  /**
+   * Destroy the document everywhere.
+   *
+   * This used to live in the no-conversation view, which no longer lists
+   * anything — so without it here there would be no way to delete a document at
+   * all, and the storage cleanup in deleteDocument could never run. Kept
+   * separate from the button next to it because the two are easy to confuse and
+   * only one of them is reversible by re-attaching.
+   */
+  async function destroy(doc: Doc) {
+    const label = doc.title ?? doc.filename;
+    if (
+      !confirm(
+        `Xoá hẳn "${label}"? Mất khỏi mọi khung chat, kèm các đoạn đã lập chỉ mục và file gốc.`,
+      )
+    ) {
+      return;
     }
 
+    // Chunks, the job and its page cache all cascade. The uploaded PDF does
+    // not — Storage has no foreign key — so deleteDocument removes it too.
+    await deleteDocument(browserClient(), doc.id);
     onChange();
   }
 
   if (loading) return <p className="muted">Đang tải danh sách…</p>;
 
   if (docs.length === 0) {
-    return <p className="muted">Chưa có tài liệu nào.</p>;
+    return <p className="muted">Chưa có tài liệu nào trong khung chat này.</p>;
   }
 
   return (
@@ -118,14 +137,24 @@ export function DocumentList({
               {doc.lang}
             </span>
           </div>
-          <button
-            type="button"
-            className="link link-danger remove"
-            aria-label={`${conversationId ? "Bỏ khỏi khung chat" : "Xoá"} ${doc.title ?? doc.filename}`}
-            onClick={() => void remove(doc)}
-          >
-            {conversationId ? "Bỏ ra" : "Xoá"}
-          </button>
+          <span className="doc-actions">
+            <button
+              type="button"
+              className="link remove"
+              aria-label={`Bỏ ${doc.title ?? doc.filename} khỏi khung chat này`}
+              onClick={() => void detach(doc)}
+            >
+              Bỏ ra
+            </button>
+            <button
+              type="button"
+              className="link link-danger remove"
+              aria-label={`Xoá hẳn ${doc.title ?? doc.filename}`}
+              onClick={() => void destroy(doc)}
+            >
+              Xoá hẳn
+            </button>
+          </span>
         </li>
       ))}
     </ul>

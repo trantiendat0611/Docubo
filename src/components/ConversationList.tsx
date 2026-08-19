@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { Conversation } from "@/lib/conversations";
 import { browserClient } from "@/lib/supabase/client";
 
 /**
@@ -11,12 +12,6 @@ import { browserClient } from "@/lib/supabase/client";
  * to do, and the RLS policies in 007_conversations.sql are what make that safe —
  * the same split the rest of the app uses, applied the other way round.
  */
-
-export interface Conversation {
-  id: string;
-  title: string | null;
-  updated_at: string;
-}
 
 export function ConversationList({
   currentId,
@@ -47,35 +42,6 @@ export function ConversationList({
     void load();
   }, [load, reloadKey]);
 
-  async function create() {
-    setError(null);
-    const client = browserClient();
-
-    // owner_id is NOT NULL with no default, and the insert policy checks it
-    // against auth.uid(). Sending an empty row failed both, and because only
-    // `data` was read the failure went nowhere: the button did nothing and said
-    // nothing.
-    const { data: me } = await client.auth.getUser();
-    if (!me.user) {
-      setError("Phiên đăng nhập đã hết hạn. Tải lại trang rồi đăng nhập lại.");
-      return;
-    }
-
-    const { data, error } = await client
-      .from("conversations")
-      .insert({ owner_id: me.user.id })
-      .select("id, title, updated_at")
-      .single();
-
-    if (error || !data) {
-      setError(`Không tạo được hội thoại: ${error?.message ?? "không rõ lí do"}`);
-      return;
-    }
-
-    setItems((prev) => [data as Conversation, ...prev]);
-    onSelect((data as Conversation).id);
-  }
-
   async function remove(c: Conversation) {
     const label = c.title ?? "Chat mới";
     if (
@@ -97,6 +63,11 @@ export function ConversationList({
     }
 
     setItems((prev) => prev.filter((x) => x.id !== c.id));
+
+    // Land on a blank new chat, the same place "+ Chat mới" leads. That is now
+    // a real empty chat rather than the whole account: deleting the open chat
+    // used to widen the next question's scope to every document the user owns,
+    // with only a changed heading to show for it.
     if (currentId === c.id) onSelect(null);
   }
 
@@ -120,7 +91,15 @@ export function ConversationList({
 
   return (
     <nav className="convo" aria-label="Danh sách hội thoại">
-      <button type="button" className="btn btn-secondary convo-new" onClick={() => void create()}>
+      {/* Selects the unsaved chat rather than writing a row. The conversation is
+          created on the first question or upload, so opening the app or pressing
+          this repeatedly does not fill the sidebar with empty chats. */}
+      <button
+        type="button"
+        className="btn btn-secondary convo-new"
+        onClick={() => onSelect(null)}
+        aria-current={currentId === null ? "true" : undefined}
+      >
         + Chat mới
       </button>
 
