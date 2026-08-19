@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import time
 import urllib.error
@@ -47,6 +48,13 @@ REPORTS = ROOT / "eval" / "reports"
 #: not — they are served by document_overview, which selects rather than
 #: searches — and refusals are scored on whether nothing was retrieved.
 RETRIEVABLE = {"text", "formula", "figure", "cross_page"}
+
+#: A failed request that took at least this long was almost certainly killed by
+#: the platform rather than refused by the route: /api/chat declares
+#: maxDuration = 60, and every error the route raises itself comes back in
+#: milliseconds. Set under the ceiling because the client's clock includes the
+#: network on both sides — the two observed hits measured 62.4s and 62.6s.
+TIMEOUT_FLOOR_MS = 55_000
 
 
 def load_items() -> list[dict]:
@@ -224,7 +232,12 @@ def call_api(api: str, token: str, question: str) -> dict:
         try:
             parsed = json.loads(raw)
         except ValueError:
-            return {"error": f"HTTP {exc.code}", "body": raw}
+            # A body that is not ours — a platform error page. Vercel returns
+            # one of these when it kills a function at maxDuration, and dropping
+            # the code here is what made two 62-second failures indistinguishable
+            # from a stream that carried nothing: both landed in the report as
+            # type "error" with no reason at all.
+            return {"error": f"HTTP {exc.code}", "body": raw, "status": exc.code}
         return {**parsed, "status": exc.code}
 
     if "application/json" in kind:
@@ -380,6 +393,11 @@ def run_full(
             # Distinct from latency_ms above, which is the time to read the
             # whole answer and answers a different question.
             "ttft_ms": response.get("ttft_ms"),
+            # Only set when the response was not ours to parse. 504 is the one
+            # that matters: it is the platform reporting that the function ran
+            # out of time, which is a different failure from anything the route
+            # can report about itself.
+            "http_status": response.get("status"),
             "answer": answer[:800],
         }
 
@@ -485,6 +503,16 @@ def summarise(results: list[dict]) -> dict:
         summary["median_ttft_ms"] = (
             ttft_values[len(ttft_values) // 2] if ttft_values else None
         )
+        # The median alone hid the problem it was supposed to surface. One run
+        # sat at 44s — 74% of the function ceiling — while its median looked
+        # ordinary, and nothing in the summary said so until two questions
+        # finally crossed the line. A tail number is now reported alongside.
+        # Nearest-rank p90: the smallest value at least 90% of the sample is
+        # under. For n < 10 it is simply the maximum, which is the honest
+        # answer at that sample size rather than an interpolated one.
+        summary["p90_ttft_ms"] = (
+            ttft_values[math.ceil(0.9 * len(ttft_values)) - 1] if ttft_values else None
+        )
         summary["n_ttft_measured"] = len(ttft_values)
 
     if any("citation_validity" in r for r in results):
@@ -514,6 +542,24 @@ def summarise(results: list[dict]) -> dict:
         # not get answered.
         summary["n_generation_failed"] = sum(
             1 for r in results if r.get("type") in ("empty", "error")
+        )
+        # Questions the platform killed for running past maxDuration. Counted
+        # separately from n_generation_failed because the acceptance threshold
+        # on this one is zero: a question that hits the ceiling has no answer at
+        # all, which is a different kind of bad from a slow one.
+        #
+        # Two signals, deliberately. http_status is the reliable one going
+        # forward. The latency floor also catches it, and has to stay: reports
+        # written before http_status existed would otherwise count zero here and
+        # make an unmet threshold read as met.
+        summary["n_timeout"] = sum(
+            1
+            for r in results
+            if r.get("http_status") in (502, 504)
+            or (
+                r.get("type") in ("empty", "error")
+                and (r.get("latency_ms") or 0) >= TIMEOUT_FLOOR_MS
+            )
         )
         summary["n_degraded"] = sum(1 for r in results if r.get("degraded"))
 

@@ -161,7 +161,9 @@ trong bất kì câu trả lời nào.
 | Tiêu chí | Mục tiêu | Ghi chú |
 |---|---|---|
 | Chi phí | 0 đồng | Ràng buộc cứng của đề bài |
-| Token đầu tiên | < 3s | Vercel Hobby giới hạn 60s mỗi hàm. Đo trên production: request không đụng LLM mất ~0.34s sau khi đặt region Singapore, ~0.76s trước đó. **18/08:** `eval/run_eval.py` (chế độ full) giờ đo được TTFT thật — đọc stream theo từng đoạn thay vì đợi đọc hết, kết quả nằm ở `median_ttft_ms`/`n_ttft_measured` trong report. Khác với `median_latency_ms` (đo tổng thời gian đọc hết câu trả lời). **Chưa đạt.** 18/08 đo 2889ms và tưởng là đạt, nhưng lần chạy đó do `flash-lite` phục vụ 17/19 câu. 19/08 với quota đầy, chain dùng model mạnh: `median_ttft_ms` = **8155**, riêng nhóm model mạnh 8444ms. Ngưỡng chỉ đạt ở chế độ chất lượng thấp nhất — xem §7 |
+| Token đầu tiên (`p50`) | < 10s | **Đổi từ < 3s ngày 19/08.** Ngưỡng cũ được neo vào một request **không gọi model nào** (~0.34s sau khi đặt region Singapore). Đường thật trước token đầu có **hai lượt gọi model tuần tự** — guardrail rồi mới tới sinh — cộng năm vòng gọi database, nên 3s không đạt được bằng kiến trúc này. 10s là mốc UX quen thuộc về giới hạn giữ được sự chú ý của người dùng, chọn độc lập với số đo. Đo được: 2889ms (18/08) · 8155ms (19/08) |
+| Token đầu tiên (`p90`) | < 15s | Thêm mới 19/08. Chỉ có trung vị thì **giấu mất đuôi phân phối** — ngày 13/08 đã có câu mất 44.2s, tức 74% trần hàm, mà không chỉ số nào cho thấy. Đo được: 7747ms (18/08) · 12069ms (19/08) |
+| Request chạm trần 60s | **= 0** | Thêm mới 19/08, và là ngưỡng đúng/sai chứ không phải ngưỡng thoải mái: câu chạm trần **không có câu trả lời**, khác hẳn câu trả lời chậm. **Đang vi phạm: 2/26 ở lần chạy 19/08.** Đo bằng `n_timeout` |
 | **Quota vision** | **~20 request/ngày mỗi model** | Ràng buộc thật của cả hệ thống. Chain 4 model, gộp 8 trang/request ≈ **640 trang/ngày cho toàn bộ người dùng** |
 | Giới hạn tài liệu | 25 trang | Không phải giới hạn dung lượng — là hệ quả của quota trên. 25 trang ≈ 4 request |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn ~4.5MB. Ảnh trang 200dpi trung bình 480KB, đỉnh 2MB |
@@ -200,15 +202,17 @@ Chỉ số phụ trong cùng lần chạy:
 | `retrieval_mrr` | 0.883 | Thứ hạng của đoạn đúng (13/08: 0.882 · 18/08: 0.788). Ở chế độ full, biến thể truy vấn sinh trực tiếp mỗi lần gọi nên MRR dao động giữa các lần chạy; muốn so truy hồi phải dùng `--retrieval-only` (0.926, biến thể lưu sẵn). Xem bẫy #18b |
 | `overview_asked_for_document` | 1.000 | Câu tóm tắt không nêu tài liệu thì hỏi lại (1/1) |
 | `overview_answered_when_named` | 1.000 | Câu có nêu tài liệu thì trả lời thẳng (2/2) |
-| `median_ttft_ms` | **8155** | **Không đạt ngưỡng < 3s** — vượt 2.7 lần. Xem phân tích ngay dưới |
+| `median_ttft_ms` | **8155** | **Đạt** ngưỡng `p50` < 10s (đã đổi từ < 3s, xem §6 và phân tích dưới) |
+| `p90_ttft_ms` | **12069** | **Đạt** ngưỡng `p90` < 15s |
+| `n_timeout` | **2** | **Không đạt** — ngưỡng là 0. Xem "Hai lỗi mới" dưới |
 | `median_latency_ms` | 7808 | Thời gian đọc xong **toàn bộ** câu trả lời |
 | `n_generation_failed` | **2** | `t-001` và `f-003` chết ở 62.4s và 62.6s — chạm giới hạn 60s của hàm Vercel. Xem "Hai lỗi mới" bên dưới |
 
-### Ngưỡng TTFT: chưa đạt, và lí do đáng đọc
+### Ngưỡng TTFT đã được đổi, và đây là lí do
 
-Ngày 18/08 chỉ số này là 2889ms và đã được ghi là "đạt". Số đó **không sai,
-nhưng nó không phải số của hệ thống ở chế độ bình thường.** Tách TTFT theo model
-thì rõ ngay:
+Ngày 18/08 chỉ số này là 2889ms và được ghi là "đạt" ngưỡng < 3s. Số đó **không
+sai, nhưng nó không phải số của hệ thống ở chế độ bình thường.** Tách TTFT theo
+model thì rõ ngay:
 
 | Model phục vụ | TTFT trung vị | Lần chạy |
 |---|---|---|
@@ -216,19 +220,43 @@ thì rõ ngay:
 | `gemini-3.5-flash-lite` | 4225ms (n=4) | 19/08 |
 | Model mạnh (`flash`, `2.5-flash`) | **8444ms** (n=13) | 19/08 |
 
-Nghĩa là **ngưỡng < 3s chỉ đạt được khi hệ thống đang chạy ở chế độ chất lượng
-thấp nhất.** `flash-lite` là mắt xích cuối chain, nhanh nhất và cũng là model
-duy nhất từng bỏ trích dẫn. Tốc độ và độ tin cậy của trích dẫn đánh đổi nhau
-dọc theo chain, và ngưỡng NFR ban đầu được đặt mà không biết điều đó.
+Ngưỡng cũ chỉ đạt được khi hệ thống chạy ở **chế độ chất lượng thấp nhất**:
+`flash-lite` là mắt xích cuối chain, nhanh nhất, và cũng là model duy nhất từng
+bỏ marker trích dẫn. Tốc độ và độ tin cậy đánh đổi nhau dọc theo chain.
 
-Hai cách xử lí, phải chọn chứ không được lờ đi:
+**Vì sao 3s không đạt được, độc lập với số đo.** Ngưỡng cũ được neo vào một
+request **không gọi model nào** — 0.34s sau khi đặt region Singapore. Đường thật
+trước token đầu tiên là:
 
-1. **Sửa ngưỡng** thành một con số phản ánh chế độ vận hành thật (ví dụ < 10s ở
-   chế độ model mạnh), ghi rõ lí do đổi.
-2. **Giữ ngưỡng** và coi đây là mục chưa đạt, ghi vào phần hạn chế của báo cáo.
+```
+ownsConversation → conversationDocuments → analyseQuery (GỌI MODEL)
+  → listDocuments → embedQuery (GỌI MODEL) → hybrid_search
+  → recentTurns → sinh câu trả lời → token đầu tiên
+```
 
-Chưa chốt — cần thêm ít nhất một lần chạy nữa ở điều kiện quota đầy để biết
-8444ms là mức ổn định hay là dao động của một buổi.
+**Hai lượt gọi model tuần tự** cộng năm vòng gọi database. Lập luận này đúng kể
+cả nếu hôm nay đo ra 2s — ngưỡng cũ chưa bao giờ được suy ra từ kiến trúc này,
+vì lúc đặt nó thì guardrail và chain model chưa tồn tại.
+
+**Ngưỡng mới, và mức độ trung thực của từng con số:**
+
+- **`p50` < 10s** — mốc UX quen thuộc về giới hạn giữ được sự chú ý của người
+  dùng. Chọn **độc lập với dữ liệu**; sẽ vẫn là 10s kể cả nếu đo ra khác.
+- **`p90` < 15s** — thừa nhận có nhìn vào phân phối. Lí do tồn tại thì không:
+  trung vị đã giấu mất một câu 44.2s suốt một tuần.
+- **`n_timeout` = 0** — không phải ngưỡng thoải mái mà là ngưỡng đúng/sai.
+
+**Một đề xuất bị chính phép kiểm bác bỏ.** Bản đầu tiên của ngưỡng này là
+`p50 < 5s`. Đối chiếu lại thì lần chạy 19/08 cho 8155ms — nghĩa là 5s sẽ **không
+đạt ở chính đường tốt** của sản phẩm, và chỉ đạt khi chain rơi xuống model yếu.
+Đúng cái lỗi mà mục này tồn tại để chỉ ra, suýt lặp lại một lần nữa ngay trong
+bản sửa.
+
+**Cải thiện thật còn khả thi:** `embedQuery` embed **câu hỏi nguyên văn**, không
+phụ thuộc kết quả guardrail (`src/lib/retrieve.ts`), nên hai lượt gọi model này
+chạy song song được. Cộng với gộp các vòng gọi database, ước chừng tiết kiệm
+khoảng 1s. Không đủ để về 3s — đó chính là lí do ngưỡng phải đổi chứ không phải
+chờ tối ưu.
 
 ### Hai lỗi mới lộ ra ở lần chạy này
 

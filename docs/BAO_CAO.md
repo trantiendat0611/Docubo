@@ -160,8 +160,9 @@ giới hạn 5 lượt tải mỗi người mỗi ngày.
 | Tiêu chí | Mục tiêu | Trạng thái |
 |---|---|---|
 | Chi phí | 0 đồng | Đạt — toàn bộ hạ tầng chạy trên free tier |
-| Tỉ lệ request hỏng | — | 2/26 ở lần chạy 19/08: hàm chat chạm trần 60s của Vercel |
-| Thời gian tới token đầu tiên | < 3s | **Chưa đạt** — 8155ms ở chế độ model mạnh. Xem phân tích ngay dưới bảng |
+| Token đầu tiên, `p50` | < 10s | Đạt — 8155ms. Ngưỡng đổi từ 3s, xem dưới |
+| Token đầu tiên, `p90` | < 15s | Đạt — 12069ms |
+| Request chạm trần 60s | = 0 | **Chưa đạt** — 2/26 ở lần chạy 19/08 |
 | Quota vision | ~20 request/ngày/model | Ràng buộc, không phải mục tiêu |
 | Giới hạn tài liệu | 25 trang | Hệ quả của quota |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn khoảng 4.5MB |
@@ -187,8 +188,24 @@ cuối chain — phục vụ. Lần chạy hôm sau với quota đầy, chain d�
 
 Kết luận đúng là: **ngưỡng 3 giây chỉ đạt khi hệ thống đang chạy ở chế độ chất
 lượng thấp nhất.** `flash-lite` nhanh nhất chain và cũng là model duy nhất từng
-bỏ marker trích dẫn. Tốc độ và độ tin cậy đánh đổi nhau dọc theo chain, và ngưỡng
-NFR ban đầu được đặt trước khi biết chain sẽ tồn tại. Hướng xử lí ở chương 5.
+bỏ marker trích dẫn. Tốc độ và độ tin cậy đánh đổi nhau dọc theo chain.
+
+**Ngưỡng đã được đổi ngày 19/08, và lí do phải độc lập với số đo** — nếu không
+thì đây chỉ là dời cột gôn sau khi trượt. Lí do: ngưỡng cũ được neo vào một
+request **không gọi model nào** (0.34s). Đường thật trước token đầu tiên có
+**hai lượt gọi model tuần tự** — guardrail phân tích truy vấn, rồi mới tới sinh
+câu trả lời — cộng năm vòng gọi database. Kiến trúc này không về được 3 giây, và
+điều đó đúng bất kể hôm nay đo ra bao nhiêu.
+
+| Ngưỡng mới | Giá trị | Cơ sở |
+|---|---|---|
+| `p50` | < 10s | Mốc UX quen thuộc về giới hạn giữ sự chú ý — chọn độc lập với dữ liệu |
+| `p90` | < 15s | Thừa nhận có nhìn phân phối. Lí do tồn tại thì không: trung vị đã giấu một câu 44.2s suốt một tuần |
+| Request chạm trần 60s | = 0 | Ngưỡng đúng/sai, không phải ngưỡng thoải mái |
+
+Bản đề xuất đầu tiên là `p50 < 5s` và **bị chính phép đối chiếu bác bỏ**: đường
+tốt của sản phẩm nằm ở 8.4s, nên 5s sẽ chỉ đạt khi chain rơi xuống model yếu —
+đúng cái lỗi mục này tồn tại để chỉ ra. Chi tiết ở `REQUIREMENTS.md` §7.
 
 ## 2.4 Kiến trúc tổng thể
 

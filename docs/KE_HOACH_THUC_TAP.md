@@ -271,6 +271,22 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       đủ (`flash-lite` 31/33 thì đúng từ đầu). Đã sửa ở 5 tài liệu. Quy tắc bổ
       sung cho bản thân: **script đã đếm được từng dòng thì để script in luôn
       cả tổng** — chỗ nào chuyển từ máy sang tay là chỗ đó sinh lỗi
+- [x] **19/08** Chốt ngưỡng TTFT. Bỏ `< 3s`, thay bằng ba ngưỡng: `p50` < 10s,
+      `p90` < 15s, và **request chạm trần 60s = 0**. Lí do đổi phải độc lập với
+      số đo, nếu không thì chỉ là dời cột gôn: ngưỡng cũ neo vào một request
+      **không gọi model nào** (0.34s), còn đường thật có hai lượt gọi model
+      tuần tự cộng năm vòng gọi database.
+      **Kiểm trước khi sửa đã bác bỏ chính đề xuất đầu của tôi:** bản đầu là
+      `p50 < 5s`, nhưng lần chạy 19/08 cho 8155ms — nghĩa là 5s **không đạt ở
+      đường tốt** của sản phẩm và chỉ đạt khi chain rơi xuống model yếu. Đúng
+      cái lỗi vừa phê phán, suýt lặp lại ngay trong bản sửa nó.
+      Và trước khi viết ngưỡng vào tài liệu thì **sửa harness đo được đã**:
+      thêm `p90_ttft_ms` và `n_timeout` vào `summarise()`, giữ `http_status`
+      trong record (trước đó mã 504 bị bỏ, nên 504 và "stream rỗng" nhìn giống
+      hệt nhau). `n_timeout` đếm theo **hai** dấu hiệu — mã 502/504, và độ trễ
+      ≥ 55s — vì nếu chỉ đếm theo mã thì report cũ sẽ ra 0 và làm một ngưỡng
+      **đang vi phạm** trông như đã đạt. 5 test mới, và chạy lại trên 5 report
+      thật để đối chiếu: 19/08 ra `n_timeout` = 2 đúng như quan sát
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

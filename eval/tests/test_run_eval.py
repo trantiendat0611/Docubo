@@ -172,3 +172,73 @@ def test_summarise_omits_the_reasons_key_when_everything_got_scored():
     summary = run_eval.summarise(results)
 
     assert "faithfulness_unavailable_reasons" not in summary
+
+
+def test_summarise_reports_a_p90_alongside_the_median():
+    """The median is what hid the problem. One run sat at 44s — 74% of the
+    function ceiling — while its median looked ordinary, and no number in the
+    summary said so until two questions finally crossed the line.
+    """
+    results = [
+        _record(ttft_ms=ms) for ms in (100, 200, 300, 400, 500, 600, 700, 800, 900, 9000)
+    ]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["median_ttft_ms"] == 600
+    # Nearest-rank over ten values: the ninth, which is the first the tail
+    # cannot hide behind.
+    assert summary["p90_ttft_ms"] == 900
+
+
+def test_p90_is_the_maximum_when_the_sample_is_smaller_than_ten():
+    """An interpolated p90 over four points invents precision the sample does
+    not have. The largest observed value is the honest answer."""
+    results = [_record(ttft_ms=ms) for ms in (1000, 2000, 3000, 20000)]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["p90_ttft_ms"] == 20000
+
+
+def test_summarise_counts_a_gateway_timeout_from_its_status():
+    results = [
+        _record(citation_validity=1.0),
+        _record(type="error", citation_validity=None, latency_ms=62402, http_status=504),
+    ]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["n_timeout"] == 1
+    assert summary["n_generation_failed"] == 1
+
+
+def test_summarise_still_counts_a_timeout_in_a_report_written_before_http_status():
+    """Reports from before the field existed carry only the latency. Counting
+    on status alone would report zero for those runs and make an unmet
+    threshold read as met — which is the failure mode this metric exists to
+    stop, arriving through the metric itself."""
+    results = [
+        _record(citation_validity=1.0),
+        _record(type="error", citation_validity=None, latency_ms=62580),
+    ]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["n_timeout"] == 1
+
+
+def test_a_failure_the_route_reported_itself_is_not_a_timeout():
+    """503 with a reason comes back in milliseconds. Counting it here would
+    blame the platform for a quota the route handled correctly."""
+    results = [
+        _record(citation_validity=1.0),
+        _record(
+            type="error", citation_validity=None, latency_ms=430, reason="daily_quota"
+        ),
+    ]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["n_timeout"] == 0
+    assert summary["n_generation_failed"] == 1

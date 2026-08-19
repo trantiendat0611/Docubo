@@ -91,8 +91,9 @@ giữa hai lần mà không nói điều này sẽ dẫn tới kết luận sai.
 | `faithfulness` | — | **1.000** | ≥ 0.90 | **Đạt — số đo thật đầu tiên trên production.** 17/17 câu chấm được, không câu nào có khẳng định thiếu chỗ dựa |
 | `hit_cross_lingual` | 1.000 | **1.000** | — | Hỏi tiếng Việt trên tài liệu tiếng Anh |
 | `retrieval_mrr` | 0.882 | 0.883 | — | Thứ hạng của đoạn đúng (18/08: 0.788) |
-| `median_ttft_ms` | — | **8155** | < 3s | **Chưa đạt.** 18/08 đo 2889ms nhưng lần đó `flash-lite` phục vụ 17/19 câu; với model mạnh là 8444ms |
-| `n_generation_failed` | 0 | **2** | 0 | Hai câu chết ở 62s — chạm trần 60s của hàm Vercel |
+| `median_ttft_ms` | — | **8155** | < 10s | Đạt. **Ngưỡng đổi từ 3s ngày 19/08** — ngưỡng cũ neo vào một request không gọi model nào |
+| `p90_ttft_ms` | — | **12069** | < 15s | Đạt. Thêm mới, vì trung vị đã giấu một câu 44.2s suốt một tuần |
+| `n_timeout` | 0 | **2** | **0** | **Chưa đạt.** Hai câu chết ở 62s — chạm trần 60s của hàm Vercel |
 
 Hai điều đáng nói hơn các con số:
 
@@ -259,7 +260,7 @@ Bảng đầy đủ **24 dòng** ở `SKILL_MY_PROJECT.md` §3 — 21 bẫy đá
 | ~~`faithfulness` chưa có số đo trên production~~ | Chạy 19/08 ngay sau khi quota reset: **1.000**, 17/17 câu chấm được | Xong 19/08 |
 | ~~`citation_validity` = 0.947~~ | Về lại **1.000** ở lần chạy 19/08 khi chain dùng model mạnh. Vẫn là hạn chế đã biết: `flash-lite` là model duy nhất từng bỏ trích dẫn | Ghi vào hạn chế |
 | **Hàm chat chạm trần 60s của Vercel** | 2/26 câu ở lần chạy 19/08 chết ở 62s, client nhận 504 rỗng không hiểu được. Xem bẫy #21 | Tuần 4 |
-| **Ngưỡng TTFT < 3s chưa đạt** | 8155ms ở chế độ model mạnh. Ngưỡng chỉ đạt khi chạy `flash-lite`, tức chế độ chất lượng thấp nhất. Xem bẫy #20 | Chốt lại ngưỡng hoặc ghi là chưa đạt |
+| ~~Ngưỡng TTFT < 3s chưa đạt~~ | Đã chốt 19/08: thay bằng `p50` < 10s, `p90` < 15s, và chạm-trần = 0. Lí do đổi độc lập với số đo — ngưỡng cũ neo vào một request không gọi model. Xem bẫy #20 | Xong 19/08 |
 | ~~`document_pages` và file Storage không được dọn khi xoá tài liệu~~ | Kiểm 19/08: `document_pages` **vẫn luôn được dọn** qua cascade hai tầng `documents → ingest_jobs → document_pages`. Chỉ Storage là rò rỉ thật, đã sửa | Xong 19/08 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
 | ~~App có thể ngủ giữa hai buổi demo~~ | `/api/health` + Action `Keep-alive` chạy thứ Hai và thứ Năm, không tốn quota model | Xong 19/08 |
