@@ -41,8 +41,14 @@ def main() -> None:
     token = session.session.access_token
     print("\nToken (dán vào lệnh dưới đây):\n")
     print(f'$env:EVAL_ACCESS_TOKEN = "{token}"')
-    print("\nRồi chạy:")
-    print("  .venv/Scripts/python -m eval.run_eval --limit 8")
+    # --api mặc định là localhost. Một lần chạy full 26 câu quên cờ này đã đo
+    # máy local rồi ghi vào report như thể là số production, và chỉ lộ ra khi
+    # đọc lại trường "api" trong file. Gợi ý ở đây vì thế luôn ghi rõ endpoint.
+    print("\nRồi chạy — nhớ --api, mặc định là localhost:")
+    print(
+        "  .venv/Scripts/python -m eval.run_eval --limit 8"
+        " --api https://docubo.vercel.app/api/chat"
+    )
 
 
 def _anon_key() -> str:
