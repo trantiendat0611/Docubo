@@ -287,6 +287,20 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       ≥ 55s — vì nếu chỉ đếm theo mã thì report cũ sẽ ra 0 và làm một ngưỡng
       **đang vi phạm** trông như đã đạt. 5 test mới, và chạy lại trên 5 report
       thật để đối chiếu: 19/08 ra `n_timeout` = 2 đúng như quan sát
+- [x] **19/08** Sửa trần 60s (bẫy #21). Hạn chót **cho cả request**
+      (`REQUEST_BUDGET_MS = 50_000`) đo từ `started`, không phải từ lúc gọi
+      model — guardrail và truy hồi đã tiêu thời gian trước đó. Thêm nhánh
+      `reason: "timeout"` vì gộp chung với `rate_limited` sẽ khuyên người dùng
+      "đợi một phút" trong khi chẳng có gì bị bóp.
+      **Bản vá đầu của tôi sai và test bắt được.** Tôi truyền `abortSignal` cho
+      `streamText` rồi cho là xong; đo bằng model không bao giờ resolve với
+      signal 120ms thì **test treo đủ 10 giây**. `abortSignal` chỉ đi xuống
+      fetch — provider không đọc thì chỗ `await` vẫn treo. Hạn chót phải đặt
+      đúng chỗ đang đợi, trong `openTextStream`. Giữ `abortSignal` làm lớp thứ
+      hai vì nó huỷ thật lượt gọi khi provider có đọc, đỡ tốn quota.
+      12 test mới, trong đó có một ca **cố ý pin lại** việc `abortSignal` một
+      mình không đủ. Chưa kiểm được đường có đăng nhập vì cần session người
+      dùng — cách kiểm 0 quota đã ghi lại để chạy khi tiện
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

@@ -112,17 +112,28 @@ export function needsDocumentMessage(lang: "en" | "vi"): string {
  * made on the server — where the quota id is actually readable — rather than
  * guessed at by each client.
  */
+export type GenerationFailure = "daily_quota" | "rate_limited" | "timeout";
+
 export function generationFailedMessage(
   lang: "en" | "vi",
-  daily: boolean,
+  failure: GenerationFailure,
 ): string {
-  if (daily) {
+  if (failure === "daily_quota") {
     // No "tomorrow" here. The budget refills at midnight Pacific, which is the
     // same afternoon in Vietnam — the client is given the instant and says when
     // in local time.
     return lang === "vi"
       ? "Đã hết hạn mức sinh câu trả lời trong ngày, trên cả bốn model."
       : "The daily generation quota is spent on all four models.";
+  }
+  if (failure === "timeout") {
+    // Not a rate limit, and telling someone to wait a minute would be wrong
+    // advice: nothing is throttled, the model was simply too slow this time and
+    // the request was cut off before the platform could kill it. Asking again
+    // is worth doing immediately.
+    return lang === "vi"
+      ? "Model mất quá lâu để bắt đầu trả lời nên yêu cầu đã bị dừng. Thử hỏi lại, hoặc rút ngắn câu hỏi."
+      : "The model took too long to start answering, so the request was stopped. Try asking again, or shorten the question.";
   }
   return lang === "vi"
     ? "Hệ thống đang bị giới hạn tần suất nên chưa sinh được câu trả lời. Thử lại sau khoảng một phút."

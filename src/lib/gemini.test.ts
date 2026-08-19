@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isDailyQuota, nextQuotaReset } from "./gemini";
+import { isAborted, isDailyQuota, nextQuotaReset, withChatModel } from "./gemini";
+import { GenerationTimeout } from "./stream";
 
 describe("nextQuotaReset", () => {
   it("lands on the next midnight in Los Angeles, not the next local midnight", () => {
@@ -59,5 +60,44 @@ describe("isDailyQuota", () => {
     expect(
       isDailyQuota({ lastError: { responseBody: '{"error":{"code":429}}' } }),
     ).toBe(false);
+  });
+});
+
+describe("isAborted", () => {
+  it("recognises the DOMException AbortSignal.timeout produces", () => {
+    const controller = new AbortController();
+    controller.abort(new DOMException("timed out", "TimeoutError"));
+    expect(isAborted(controller.signal.reason)).toBe(true);
+  });
+
+  it("finds it once the SDK has wrapped it, which is how it arrives", () => {
+    // Same reason isDailyQuota walks instead of reading: a top-level name check
+    // compiles, reads correctly, and never fires.
+    const wrapped = { name: "AI_RetryError", lastError: { name: "AbortError" } };
+    expect(isAborted(wrapped)).toBe(true);
+  });
+
+  it("does not mistake a quota failure for a cancellation", () => {
+    expect(isAborted({ name: "AI_APICallError", cause: { name: "TypeError" } })).toBe(
+      false,
+    );
+  });
+});
+
+describe("withChatModel and a spent deadline", () => {
+  it("does not spend another model on a request that has run out of time", async () => {
+    // Rotation exists for quota, and the two failures want opposite handling:
+    // another model has quota, but nobody has more time. A retry here would
+    // guarantee the platform kills the request instead of the route answering.
+    let attempts = 0;
+
+    await expect(
+      withChatModel(async () => {
+        attempts += 1;
+        throw new GenerationTimeout();
+      }),
+    ).rejects.toBeInstanceOf(GenerationTimeout);
+
+    expect(attempts).toBe(1);
   });
 });

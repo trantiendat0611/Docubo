@@ -255,8 +255,9 @@ Postgres một lần và trả `{ ok, database, ms }` — không gọi model. Gi
   trích dẫn**: cộng dồn bốn lần chạy đầy đủ, model mạnh 41/41 câu có trích dẫn,
   `flash-lite` 31/33. Hai thứ này đánh đổi nhau, nên một lần đo tốc độ đẹp
   thường là một lần đo ở chế độ chất lượng thấp.
-- Một tỉ lệ nhỏ câu hỏi chạm **trần 60 giây của hàm Vercel** khi Gemini chậm
-  bất thường — 2/26 ở lần chạy 19/08 — và hiện client chỉ nhận được lỗi chung.
+- Khi Gemini chậm bất thường, câu hỏi bị dừng ở **50 giây** kèm thông báo rõ
+  thay vì chạm trần 60 giây của hàm Vercel và trả về lỗi client không đọc được
+  (đã đo 2/26 câu ở lần chạy 19/08 trước khi sửa).
 
 ## Nguồn tài liệu
 

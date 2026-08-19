@@ -105,6 +105,36 @@ export function isDailyQuota(error: unknown): boolean {
 }
 
 /**
+ * Did this call end because we ran out of time rather than out of quota?
+ *
+ * `AbortSignal.timeout()` aborts with a DOMException named "TimeoutError"; a
+ * signal aborted any other way carries "AbortError". Either one reaching the
+ * route means the generation was cut off deliberately, which needs different
+ * advice from a rate limit — "try again in a minute" is wrong when the model
+ * simply took too long.
+ *
+ * Walks the same way isDailyQuota does. The SDK wraps the abort before it gets
+ * here, so a top-level `name` check compiles, reads correctly, and never fires.
+ */
+export function isAborted(error: unknown): boolean {
+  const seen = new Set<unknown>();
+
+  const walk = (value: unknown, depth: number): boolean => {
+    if (depth > 4 || value == null || typeof value !== "object") return false;
+    if (seen.has(value)) return false;
+    seen.add(value);
+
+    const record = value as Record<string, unknown>;
+    if (record.name === "TimeoutError" || record.name === "AbortError") return true;
+
+    return ["errors", "lastError", "cause"].some((key) => walk(record[key], depth + 1));
+  };
+
+  return walk(error, 0);
+}
+
+
+/**
  * Retries are left to the model chain, not the SDK.
  *
  * By default the SDK retries a 429 three times. Against a daily quota those

@@ -259,7 +259,7 @@ Bảng đầy đủ **24 dòng** ở `SKILL_MY_PROJECT.md` §3 — 21 bẫy đá
 |---|---|---|
 | ~~`faithfulness` chưa có số đo trên production~~ | Chạy 19/08 ngay sau khi quota reset: **1.000**, 17/17 câu chấm được | Xong 19/08 |
 | ~~`citation_validity` = 0.947~~ | Về lại **1.000** ở lần chạy 19/08 khi chain dùng model mạnh. Vẫn là hạn chế đã biết: `flash-lite` là model duy nhất từng bỏ trích dẫn | Ghi vào hạn chế |
-| **Hàm chat chạm trần 60s của Vercel** | 2/26 câu ở lần chạy 19/08 chết ở 62s, client nhận 504 rỗng không hiểu được. Xem bẫy #21 | Tuần 4 |
+| ~~Hàm chat chạm trần 60s của Vercel~~ | Đã sửa 19/08: hạn chót cho cả request (50s) đặt ngay chỗ `await` token đầu, cộng nhánh lỗi `timeout` riêng. Xem bẫy #21 | Xong 19/08, chờ lần chạy full xác nhận `n_timeout` = 0 |
 | ~~Ngưỡng TTFT < 3s chưa đạt~~ | Đã chốt 19/08: thay bằng `p50` < 10s, `p90` < 15s, và chạm-trần = 0. Lí do đổi độc lập với số đo — ngưỡng cũ neo vào một request không gọi model. Xem bẫy #20 | Xong 19/08 |
 | ~~`document_pages` và file Storage không được dọn khi xoá tài liệu~~ | Kiểm 19/08: `document_pages` **vẫn luôn được dọn** qua cascade hai tầng `documents → ingest_jobs → document_pages`. Chỉ Storage là rò rỉ thật, đã sửa | Xong 19/08 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |

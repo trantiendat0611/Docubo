@@ -3,12 +3,14 @@ import {
   AllChatModelsExhausted,
   NO_SDK_RETRIES,
   gemini,
+  isAborted,
   isDailyQuota,
   nextQuotaReset,
   withChatModel,
 } from "@/lib/gemini";
 import { analyseQuery } from "@/lib/guardrail";
 import {
+  type GenerationFailure,
   buildCitations,
   buildContext,
   buildSystemPrompt,
@@ -31,7 +33,11 @@ import {
   saveMessage,
 } from "@/lib/conversation";
 import { logQuery } from "@/lib/log";
-import { openTextStream } from "@/lib/stream";
+import {
+  GenerationTimeout,
+  REQUEST_BUDGET_MS,
+  openTextStream,
+} from "@/lib/stream";
 import { currentUser } from "@/lib/supabase/server";
 
 // Node runtime, not edge: @supabase/supabase-js is happier here, and the
@@ -239,11 +245,22 @@ export async function POST(req: Request) {
     // a model that produced nothing.
     let generationError: unknown;
 
+    // Whatever is left of the request's budget after the guardrail call, the
+    // embedding, the search and the history read. Without this the only limit
+    // is the platform's, and hitting that produces a 504 the client cannot
+    // read — the failure has to happen while the response is still ours.
+    const msLeft = REQUEST_BUDGET_MS - (Date.now() - started);
+    if (msLeft <= 0) throw new GenerationTimeout();
+
     const result = streamText({
       model: gemini(model),
       system: buildSystemPrompt(analysis.lang, analysis.wants_overview),
       messages: prompt,
       temperature: 0.2,
+      // Cancels the call rather than abandoning it. A race would leave the
+      // model generating against a request nobody is reading, and still bill
+      // the quota for it.
+      abortSignal: AbortSignal.timeout(msLeft),
       ...NO_SDK_RETRIES,
       onError: ({ error }) => {
         generationError = error;
@@ -266,7 +283,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return openTextStream(result.textStream, () => generationError);
+    return openTextStream(result.textStream, () => generationError, msLeft);
   };
 
   let body: ReadableStream<Uint8Array>;
@@ -275,18 +292,27 @@ export async function POST(req: Request) {
   try {
     ({ result: body, model } = await withChatModel(attempt));
   } catch (error) {
-    const daily = error instanceof AllChatModelsExhausted || isDailyQuota(error);
+    // Three outcomes, three different pieces of advice. Folding the timeout in
+    // with the rate limit would tell the user to wait a minute when nothing is
+    // throttled — and would leave the failure that killed two questions in the
+    // 19/08 run looking like one the system already handles.
+    const failure: GenerationFailure =
+      error instanceof AllChatModelsExhausted || isDailyQuota(error)
+        ? "daily_quota"
+        : error instanceof GenerationTimeout || isAborted(error)
+          ? "timeout"
+          : "rate_limited";
+
     return replyWith(
       {
         type: "error",
-        message: generationFailedMessage(analysis.lang, daily),
-        // A spent daily budget and a per-minute limit need different advice,
-        // and only the server can tell them apart.
-        reason: daily ? "daily_quota" : "rate_limited",
+        message: generationFailedMessage(analysis.lang, failure),
+        reason: failure,
         // When the budget resets, as an instant rather than a word. "Tomorrow"
         // is wrong for most of the world: the reset is midnight Pacific, which
         // is the middle of the afternoon in Vietnam.
-        resetAt: daily ? nextQuotaReset().toISOString() : undefined,
+        resetAt:
+          failure === "daily_quota" ? nextQuotaReset().toISOString() : undefined,
       },
       { status: 503 },
     );
