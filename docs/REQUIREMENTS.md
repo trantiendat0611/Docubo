@@ -187,7 +187,7 @@ chúng sẽ dẫn tới kết luận sai.
 | Chỉ số | Ngưỡng | Đo được | Ghi chú |
 |---|---|---|---|
 | `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
-| `citation_validity` | ≥ 0.95 | **1.000** | Đạt, 17/17. Cả ba model đều đủ trích dẫn ở lần này (`flash` 6/6, `2.5-flash` 7/7, `flash-lite` 4/4). Con số 0.947 ngày 18/08 đến từ `flash-lite`, model duy nhất từng bỏ trích dẫn — cộng dồn ba lần chạy: model mạnh **34/34**, `flash-lite` **31/33**. Xem bẫy #18 |
+| `citation_validity` | ≥ 0.95 | **1.000** | Đạt, 17/17. Cả ba model đều đủ trích dẫn ở lần này (`flash` 6/6, `2.5-flash` 7/7, `flash-lite` 4/4). Con số 0.947 ngày 18/08 đến từ `flash-lite`, model duy nhất từng bỏ trích dẫn — cộng dồn bốn lần chạy đầy đủ: model mạnh **41/41**, `flash-lite` **31/33**. Xem bẫy #18 |
 | `refusal_rate` | ≥ 0.90 | **1.000** | Đạt. Trên nhóm `should_refuse`, `false_refusal_rate` = 0. Gồm 4 câu từ chối theo ngưỡng và 2 câu chặn ở guardrail |
 | `faithfulness` | ≥ 0.90 | **1.000** | **Đạt — số đo thật đầu tiên trên production.** 17/17 câu chấm được, `n_faithfulness_unscored` = 0, không câu nào có khẳng định thiếu chỗ dựa |
 | `latex_exact_match` | Chưa chốt | — | Cần nguồn có `.tex` gốc để so |

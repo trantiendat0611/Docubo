@@ -86,7 +86,7 @@ giữa hai lần mà không nói điều này sẽ dẫn tới kết luận sai.
 | Chỉ số | 13/08 | 18/08 | Ngưỡng | Ghi chú |
 |---|---|---|---|---|
 | `retrieval_hit_at_8` | 1.000 | **1.000** | ≥ 0.85 | Đạt |
-| `citation_validity` | 1.000 | **1.000** | ≥ 0.95 | Đạt, 17/17. Ngày 18/08 là 0.947 do `flash-lite`; cộng dồn ba lần chạy: model mạnh **34/34**, `flash-lite` **31/33** |
+| `citation_validity` | 1.000 | **1.000** | ≥ 0.95 | Đạt, 17/17. Ngày 18/08 là 0.947 do `flash-lite`; cộng dồn bốn lần chạy: model mạnh **41/41**, `flash-lite` **31/33** |
 | `refusal_rate` | 1.000 | **1.000** | ≥ 0.90 | Đạt, `false_refusal_rate` = 0 |
 | `faithfulness` | — | **1.000** | ≥ 0.90 | **Đạt — số đo thật đầu tiên trên production.** 17/17 câu chấm được, không câu nào có khẳng định thiếu chỗ dựa |
 | `hit_cross_lingual` | 1.000 | **1.000** | — | Hỏi tiếng Việt trên tài liệu tiếng Anh |
@@ -113,13 +113,13 @@ giữa các lần chạy. So truy hồi giữa hai thời điểm thì phải so
 **Cùng một con số, hai câu hỏng khác nhau — nhưng một yếu tố chung.** Lần chạy
 local cùng ngày cũng ra đúng `0.947`, hỏng ở câu khác với triệu chứng khác (một
 câu từ chối bằng văn xuôi, không có gì để trích dẫn). Đọc riêng hai ca thì thấy
-hai câu chuyện. Lập bảng chéo model × trích dẫn qua cả ba lần chạy mới thấy cái
-chung:
+hai câu chuyện. Lập bảng chéo model × trích dẫn qua cả **bốn** lần chạy đầy đủ
+mới thấy cái chung:
 
 | Model | Câu có trích dẫn |
 |---|---|
-| `gemini-3.5-flash` + `gemini-2.5-flash` | **21/21** |
-| `gemini-3.5-flash-lite` | 27/29 |
+| `gemini-3.5-flash` + `gemini-2.5-flash` | **41/41** |
+| `gemini-3.5-flash-lite` | 31/33 |
 
 Cả hai câu hỏng đều do `flash-lite` phục vụ. Xem `SKILL_MY_PROJECT.md` bẫy #17,
 #18 và #18b.

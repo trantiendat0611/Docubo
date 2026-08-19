@@ -219,7 +219,9 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       *(Đính chính trong ngày: kết luận đầu tiên của tôi — "hai nguyên nhân
       không liên quan gì nhau" — **sai**. Lập bảng chéo model × trích dẫn qua
       cả ba lần chạy đầy đủ thì lộ yếu tố chung: `flash` + `2.5-flash` đạt
-      **21/21** câu có trích dẫn, `flash-lite` **27/29**, và **cả hai** câu
+      ~~21/21~~ **28/28** câu có trích dẫn *(số 21/21 ghi ở đây lúc đầu là
+      sai — tôi cộng tay và bỏ sót cả một lần chạy; xem mục 19/08 cuối tuần
+      3)*, `flash-lite` **27/29**, và **cả hai** câu
       hỏng đều do `flash-lite` phục vụ. Đọc hai ca hỏng riêng lẻ thì thấy hai
       câu chuyện; đếm theo model thì thấy một.)* Bài học kép: chỉ số nói *có
       hỏng*, không nói *hỏng ở đâu*; và đọc từng ca hỏng vẫn chưa đủ, phải
@@ -258,7 +260,17 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       **(b)** `t-001` và `f-003` chết ở 62.4s/62.6s — chạm trần
       `maxDuration = 60` của Vercel. Không phải quota: `f-001` cùng lần chạy
       mất 27s và thành công. Đường sinh không có timeout riêng nên client nhận
-      một 504 rỗng. Bẫy #21, cùng họ với bẫy #14
+      một 504 rỗng. Bẫy #21, cùng họ với bẫy #14. Rà lại 11 lần chạy trước
+      thì không lần nào vượt 55s, nhưng 13/08 đã có câu mất **44.2s = 74% của
+      trần** — rủi ro tích sẵn từ lâu mà không chỉ số nào trong summary cho
+      thấy
+- [x] **19/08** Kiểm lại trước khi push và bắt được lỗi của chính mình: con số
+      cộng dồn "model mạnh 21/21" (viết sáng 19/08) và "34/34" (viết chiều
+      19/08) **đều sai**. Tôi lập bảng chéo bằng script nhưng **cộng tổng bằng
+      tay**, và bỏ sót cả một lần chạy. Số đúng: **41/41** qua 4 lần chạy đầy
+      đủ (`flash-lite` 31/33 thì đúng từ đầu). Đã sửa ở 5 tài liệu. Quy tắc bổ
+      sung cho bản thân: **script đã đếm được từng dòng thì để script in luôn
+      cả tổng** — chỗ nào chuyển từ máy sang tay là chỗ đó sinh lỗi
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

@@ -252,7 +252,7 @@ Postgres một lần và trả `{ ok, database, ms }` — không gọi model. Gi
 - **Chất lượng và tốc độ phụ thuộc thời điểm trong ngày.** Khi các model mạnh
   cạn hạn mức, chain rơi xuống `gemini-3.5-flash-lite`. Model này **nhanh hơn**
   (token đầu tiên 2.9–4.2s so với 8.4s) nhưng là model duy nhất từng **bỏ marker
-  trích dẫn**: cộng dồn ba lần chạy đầy đủ, model mạnh 34/34 câu có trích dẫn,
+  trích dẫn**: cộng dồn bốn lần chạy đầy đủ, model mạnh 41/41 câu có trích dẫn,
   `flash-lite` 31/33. Hai thứ này đánh đổi nhau, nên một lần đo tốc độ đẹp
   thường là một lần đo ở chế độ chất lượng thấp.
 - Một tỉ lệ nhỏ câu hỏi chạm **trần 60 giây của hàm Vercel** khi Gemini chậm
