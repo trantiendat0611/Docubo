@@ -1,5 +1,5 @@
 %% Sơ đồ 1 — Tổng quan hệ thống (Task 1.4)
-%% Cập nhật 11/08: người dùng tự tải tài liệu lên, có đăng nhập và cô lập dữ liệu.
+%% Cập nhật 19/08: thêm nhiều khung hội thoại (migration 007) và /api/health.
 %% Xem trước: dán vào https://mermaid.live hoặc extension Mermaid của VS Code
 
 graph TB
@@ -16,6 +16,7 @@ graph TB
         STEP["/api/ingest/step<br/>đọc 1 lô trang"]
         FIN["/api/ingest/finish<br/>chunk + embed"]
         CHAT["/api/chat<br/>guardrail · truy hồi · sinh"]
+        HLT["/api/health<br/>đánh thức Postgres, không gọi model"]
     end
 
     subgraph google["Google AI — free tier"]
@@ -26,7 +27,7 @@ graph TB
 
     subgraph supa["Supabase — free tier 500MB"]
         AUTH[("Auth<br/>auth.users")]
-        DB[("Postgres + pgvector<br/>documents · chunks<br/>ingest_jobs · document_pages")]
+        DB[("Postgres + pgvector<br/>documents · chunks<br/>ingest_jobs · document_pages<br/>conversations · conversation_documents · messages")]
         ST[("Storage<br/>PDF gốc, riêng tư")]
     end
 
@@ -51,7 +52,9 @@ graph TB
     CHAT -->|"hybrid_search / document_overview"| DB
     CHAT -.->|"stream SSE"| UI
 
-    UI -->|"đọc danh sách tài liệu trực tiếp"| DB
+    UI -->|"đọc danh sách tài liệu và khung chat trực tiếp"| DB
+    HLT --> DB
+    GHA(["GitHub Action Keep-alive<br/>thứ Hai và thứ Năm"]) --> HLT
     MW --> AUTH
 
     classDef free fill:#E1F5EE,stroke:#0F6E56,color:#04342C

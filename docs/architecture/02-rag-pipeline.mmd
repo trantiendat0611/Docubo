@@ -1,7 +1,8 @@
 %% Sơ đồ 2 — Luồng RAG Pipeline (Task 1.4)
-%% Cập nhật 11/08. Hai ý chính:
+%% Cập nhật 19/08. Ba ý chính:
 %%   1. Mỗi chunk mang hai biểu diễn — embed_text để máy tìm, display_text để người đọc
 %%   2. Câu hỏi mức tài liệu KHÔNG đi qua tìm kiếm tương đồng
+%%   3. Phạm vi mặc định là tài liệu của khung chat đang mở, không phải cả corpus
 
 flowchart TB
     subgraph ingest["Pha 1 — Ingest (trình duyệt lái, từng lô)"]
@@ -29,11 +30,14 @@ flowchart TB
 
     subgraph query["Pha 3 — Truy vấn (Vercel, dưới JWT người dùng)"]
         direction TB
-        Q["Câu hỏi<br/>VI hoặc EN"] --> R["Một lần gọi Gemini:<br/>an toàn · ngôn ngữ ·<br/>query_en/vi · wants_overview"]
+        Q["Câu hỏi<br/>VI hoặc EN"] --> CV{"Khung chat có<br/>tài liệu nào chưa?"}
+        CV -->|"chưa"| NEED["needs_document<br/>trả ngay, KHÔNG gọi model"]
+        CV -->|"rồi"| R["Một lần gọi Gemini:<br/>an toàn · ngôn ngữ ·<br/>query_en/vi · wants_overview"]
         R -->|không an toàn| RX["Chặn"]
         R --> SC{"Phạm vi tài liệu?<br/>chọn tay → nhắc tên →<br/>toàn corpus"}
 
         SC --> OV{"Câu hỏi mức<br/>tài liệu?"}
+        HIST[("messages<br/>3 lượt gần nhất, đọc từ DB")] --> X
         OV -->|"có, chưa rõ tài liệu"| ASK["Hỏi lại: tài liệu nào?"]
         OV -->|"có, đã rõ"| DOC["document_overview<br/>ntile 12 phần,<br/>trải đều theo thứ tự đọc"]
         OV -->|không| T["Embed câu hỏi<br/>RETRIEVAL_QUERY"]
@@ -56,3 +60,7 @@ flowchart TB
     %% "Tóm tắt toàn bộ" không có đoạn nào tương đồng với nó, nên tìm kiếm
     %% tương đồng trả về đoạn na ná chủ đề từ tài liệu bất kì — đã quan sát
     %% thấy ở mức cosine 0.64, vừa đủ vượt ngưỡng từ chối.
+
+    %% Vì sao lịch sử đọc từ database chứ không lấy từ request body:
+    %% client gửi gì cũng được, nên một client sửa tay có thể bịa ra lượt
+    %% hội thoại chưa từng xảy ra và mớm nội dung vào grounding prompt.

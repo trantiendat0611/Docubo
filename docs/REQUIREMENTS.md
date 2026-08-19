@@ -81,7 +81,6 @@ trong bất kì câu trả lời nào.
 - [ ] Trích dẫn mở ra ảnh trang gốc (ảnh đã render sẵn lúc ingest)
 - [ ] Rerank top-20 xuống top-5 bằng Gemini
 - [ ] Nạp DOCX / TXT
-- [ ] Dọn `document_pages` và file Storage khi xoá tài liệu
 - [ ] Đính tài liệu có sẵn vào khung chat từ giao diện — hiện chỉ gắn được
       bằng cách tải lên trong khung đó, dù schema đã hỗ trợ dùng lại
 

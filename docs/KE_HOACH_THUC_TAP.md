@@ -291,7 +291,16 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       rác trong `document_pages`/Storage; cập nhật `BAO_CAO_TIEN_DO.md`
 
 **Tuần 5 · 31/08 – 06/09** — báo cáo chương 1–2
-- [ ] `docs/BAO_CAO.md` Chương 1 — Tổng quan, dựng từ `README.md` +
+- [x] **(làm sớm 19/08)** `docs/BAO_CAO.md` Chương 1 và Chương 2 viết xong.
+      Dựng chương 2 buộc phải đối chiếu 2 sơ đồ với code, và **cả hai đều đã
+      lệch**: sơ đồ 1 thiếu hẳn ba bảng của migration 007
+      (`conversations`, `conversation_documents`, `messages`) và route
+      `/api/health`; sơ đồ 2 thiếu bước kiểm tra khung chat đã có tài liệu chưa
+      (trả `needs_document` **trước khi** gọi model) và thiếu nguồn lịch sử 3
+      lượt. Đã cập nhật cả hai. Việc còn lại: xuất PNG cho 2 sơ đồ trước khi
+      chuyển sang `.docx`, vì pandoc không render mermaid — ghi vào tuần 8.
+      *(Mục gốc giữ lại bên dưới để đối chiếu:)*
+- [ ] ~~`docs/BAO_CAO.md` Chương 1~~ — Tổng quan, dựng từ `README.md` +
       `REQUIREMENTS.md` §1–2
 - [ ] Chương 2 — Phân tích & Thiết kế, dựng từ `REQUIREMENTS.md` §3–6 + 2 sơ đồ
 - [ ] Kiểm tra 2 sơ đồ kiến trúc còn khớp route/bảng thật trong code, sửa nếu
