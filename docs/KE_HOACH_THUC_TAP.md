@@ -252,7 +252,17 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
 > dồn thời gian dư sang bắt đầu chương 1 báo cáo sớm. Các mục còn lại không
 > phụ thuộc câu trả lời đó.
 
-- [ ] **24–25/08** Dọn `document_pages` + file Storage khi xoá tài liệu: sửa
+- [x] **24–25/08 (làm sớm 19/08)** Dọn Storage khi xoá tài liệu. **Kiểm trước
+      khi sửa thì mục này sai một nửa:** `document_pages` vẫn luôn được dọn qua
+      cascade hai tầng `documents → ingest_jobs → document_pages` — chèn thật
+      một bộ document + job + page vào database rồi xoá, cả ba hàng đều đi. Rò
+      rỉ thật chỉ có Storage, vì bucket không có khoá ngoại. Đã thêm
+      `src/lib/documents.ts` (`deleteDocument`) đọc `storage_path` **trước** khi
+      xoá hàng — job cascade mất thì không lấy lại được path — rồi xoá hàng
+      trước, xoá file sau (hỏng ở bước cuối thì mất một file thừa, còn thứ tự
+      ngược lại để lại tài liệu không có file gốc). 5 test mới. Ghi thành bẫy
+      #19. *(Việc gốc ghi ở dòng dưới, giữ lại để đối chiếu:)*
+- [ ] ~~**24–25/08**~~ Dọn `document_pages` + file Storage khi xoá tài liệu: sửa
       route xoá tài liệu để cascade xoá `document_pages` và gọi
       `.remove()` trên Storage. Xác minh: xoá 1 tài liệu test, `document_pages`
       rỗng theo `document_id`, file biến mất khỏi Storage dashboard

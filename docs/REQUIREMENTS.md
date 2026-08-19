@@ -219,7 +219,14 @@ JSON (từ chối / hỏi lại tài liệu), trả rất nhanh và kéo trung v
       tại trong trình duyệt lúc upload, không lưu
 - [ ] `CHARS_PER_TOKEN` cho tiếng Việt — hiện ước lượng 2.6, cần hiệu chỉnh
       bằng `countTokens`
-- [ ] Dọn `document_pages` và file Storage khi người dùng xoá tài liệu
+- [x] Dọn `document_pages` và file Storage khi người dùng xoá tài liệu — **một
+      nửa mục này chưa bao giờ đúng.** `document_pages.job_id` cascade theo
+      `ingest_jobs`, mà `ingest_jobs.document_id` cascade theo `documents`, nên
+      xoá tài liệu đã dọn sạch trang từ trước. Kiểm bằng cách chèn thật một bộ
+      document + job + page rồi xoá: cả ba hàng đều đi. Rò rỉ thật chỉ có
+      **Storage** — bucket không có khoá ngoại để cascade theo. `deleteDocument()`
+      đọc `storage_path` **trước** khi xoá hàng (job cascade mất thì không lấy
+      lại được), xoá hàng rồi mới xoá file
 - [ ] Có nên giới hạn kích thước file, ngoài giới hạn số trang
 - [ ] **`citation_validity` có nên tính cả câu từ chối bằng văn xuôi không?**
       Đo 18/08 (`eval-full-20260818-081602.json`, `g-002`): model nhận đúng

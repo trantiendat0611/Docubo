@@ -234,7 +234,7 @@ Supabase thật, nên toàn bộ nhánh này chưa từng được chạy trư�
 
 ## 7. Bốn cái bẫy đáng kể nhất
 
-Bảng đầy đủ **21 dòng** ở `SKILL_MY_PROJECT.md` §3 — 18 bẫy đánh số, cộng 3 dòng
+Bảng đầy đủ **22 dòng** ở `SKILL_MY_PROJECT.md` §3 — 19 bẫy đánh số, cộng 3 dòng
 đính chính lại kết luận cũ của chính tôi (`3b`, `14b`, `18b`).
 
 | Triệu chứng | Nguyên nhân thật |
@@ -252,7 +252,7 @@ Bảng đầy đủ **21 dòng** ở `SKILL_MY_PROJECT.md` §3 — 18 bẫy đá
 |---|---|---|
 | `faithfulness` chưa có số đo trên production | Đã nối vào harness 18/08 (cờ `--judge`); local cho 1.000, production trả `UNAVAILABLE` cả 19 câu vì cạn hạn mức lúc chạy | Chạy lại sau khi quota reset |
 | `citation_validity` = 0.947, dưới ngưỡng 0.95 | 1 câu (`t-009`) trả lời đúng nội dung nhưng không có marker `[n]` nào — do `gemini-3.5-flash-lite`, model yếu nhất trong chain. Xem bẫy #18 | Tuần 4 |
-| `document_pages` và file Storage không được dọn khi xoá tài liệu | Rò rỉ thật với hạn 500MB của Supabase | Tuần 4 |
+| ~~`document_pages` và file Storage không được dọn khi xoá tài liệu~~ | Kiểm 19/08: `document_pages` **vẫn luôn được dọn** qua cascade hai tầng `documents → ingest_jobs → document_pages`. Chỉ Storage là rò rỉ thật, đã sửa | Xong 19/08 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
 | Đường hội thoại chưa kiểm chứng khi chạy thật | Mới qua trình biên dịch và test | Đã chạy thật, xong |
 

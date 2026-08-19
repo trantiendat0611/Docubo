@@ -43,7 +43,7 @@ insert into storage.buckets (id, name, public)
 values ('documents', 'documents', false)
 on conflict (id) do nothing;
 
--- Objects are keyed <user-id>/<job-id>/<filename>, so the owner check is the
+-- Objects are keyed <user-id>/<timestamp>-<filename>, so the owner check is the
 -- first path segment. Uploads are performed server-side with the service-role
 -- key; these policies exist so a user can read back their own files and delete
 -- them, and nothing more.

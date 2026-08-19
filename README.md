@@ -248,7 +248,6 @@ demo nếu ứng dụng im lặng cả tuần.
 - Chuyển tab khi đang xử lí sẽ tạm dừng việc đọc trang.
 - Một số trang bị Gemini từ chối đọc vì `RECITATION`; chain model xử lí được
   phần lớn nhưng không phải tất cả.
-- `document_pages` và PDF trong Storage chưa được dọn khi xoá tài liệu.
 - Khi các model mạnh đã cạn hạn mức ngày, chain rơi xuống
   `gemini-3.5-flash-lite` và câu trả lời có thể **thiếu marker trích dẫn**
   dù nội dung vẫn đúng. Qua ba lần chạy đầy đủ: `gemini-3.5-flash` và

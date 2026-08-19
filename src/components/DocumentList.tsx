@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { deleteDocument } from "@/lib/documents";
 import { browserClient } from "@/lib/supabase/client";
 
 /**
@@ -90,9 +91,11 @@ export function DocumentList({
         .eq("conversation_id", conversationId)
         .eq("document_id", doc.id);
     } else {
-      if (!confirm(`Xoá hẳn "${label}"? Các đoạn đã lập chỉ mục cũng bị xoá theo.`)) return;
-      // Chunks go with it: the foreign key cascades.
-      await client.from("documents").delete().eq("id", doc.id);
+      if (!confirm(`Xoá hẳn "${label}"? Các đoạn đã lập chỉ mục và file gốc cũng bị xoá theo.`))
+        return;
+      // Chunks, the job and its page cache all cascade. The uploaded PDF does
+      // not — Storage has no foreign key — so deleteDocument removes it too.
+      await deleteDocument(client, doc.id);
     }
 
     onChange();
