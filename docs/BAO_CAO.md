@@ -577,6 +577,24 @@ như đang hoạt động. Nâng lên **0.60**.
 có ngưỡng nào mang từ trực giác hay từ model khác sang mà tin được — với mỗi model
 và mỗi corpus phải đo lại.
 
+**Đo lại trên cả 26 câu (20/08).** Bộ eval đầy đủ cho bức tranh rộng hơn phép đo
+gốc bảy câu, và kèm một bài học về cách đọc nó. Nhìn thô, khe giữa hai nhóm chỉ còn
+**0.024**. Nhưng hai câu ghi điểm cao nhất trong nhóm "phải từ chối" là **prompt
+injection** (0.588 và 0.578) — mà ngưỡng cosine không phải thứ chặn chúng, guardrail
+chặn trước. Chúng không ràng buộc ngưỡng.
+
+Trên đúng việc của ngưỡng — tách câu hỏi **nội dung** trong phạm vi khỏi ngoài phạm
+vi:
+
+```
+cao nhất ngoài phạm vi  0.554  (r-001, "Giá cổ phiếu VNM hôm nay bao nhiêu?")
+NGƯỠNG                  0.600
+thấp nhất trong phạm vi 0.612  (g-001, câu hỏi về nội dung chỉ nằm trong biểu đồ)
+```
+
+Khe thật là **0.058**. Nhưng biên phía trên chỉ **+0.012**, và nó nằm trên đúng
+nhóm câu phụ thuộc tính bất định của ingest (§3.4) — xem §4.8.
+
 ## 3.9 Chịu lỗi trong ràng buộc free tier
 
 Phần lớn công sức triển khai nằm ở đây, và gần như toàn bộ đến từ ràng buộc 0
@@ -723,9 +741,16 @@ Giờ ghi theo giờ Việt Nam (`run_at` trong report lưu UTC, +7).
 | 8 | 18/08 15:16 | full | local | 26 | 1.000 | 1.000 | 0.882 | 0.947 | 1.000 | **1.000** | 4933 | Nối `--judge`, đo TTFT thật |
 | 9 | 18/08 15:54 | full | **prod** | 26 | 1.000 | 1.000 | 0.788 | 0.947 | 1.000 | — | **2889** | Chạy lại trên production |
 | 10 | 19/08 14:14 | full | **prod** | 26 | 1.000 | 1.000 | 0.883 | **1.000** | 1.000 | **1.000** | 8155 | Quota vừa reset |
+| 11 | 20/08 08:42 | retrieval | — | 26 | 1.000 | 1.000 | **0.926** | — | 1.000 | — | — | Lặp lại đúng dòng 4 sau **8 ngày** |
 
 Các lần chạy 3, 5, 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải
 phép đo.
+
+**Dòng 11 là bằng chứng cho tính lặp lại.** Nó chạy lại đúng điều kiện của dòng 4
+sau tám ngày và cho **cùng ba chữ số thập phân** (1.000 / 1.000 / 0.926), trong khi
+MRR ở chế độ full dao động 0.788–0.883 giữa các lần chạy. Khác biệt nằm ở chỗ biến
+thể truy vấn đến từ đâu: chế độ truy-hồi lấy từ dataset, chế độ full sinh trực tiếp
+mỗi lần gọi.
 
 ## 4.5 Ba con số trông như kết quả mà không phải
 
@@ -833,6 +858,14 @@ có".
 **Bộ eval do chính tác giả viết.** Nó đo hệ thống có làm được thứ nó hứa hay không,
 không đo hệ thống có hữu ích với người lạ hay không. Kiểm thử với người dùng thật
 là việc riêng, chưa làm.
+
+**Ngưỡng từ chối xanh với biên rất mỏng.** `refusal_rate` 1.000 và
+`false_refusal_rate` 0.000 đều đạt, nhưng câu trong phạm vi có điểm thấp nhất
+(`g-001`) chỉ cách ngưỡng **+0.012**. Đó lại đúng là câu hỏi về nội dung **chỉ nằm
+trong biểu đồ** — nhóm phụ thuộc vào tính bất định của ingest ở §3.4. Nếu một lần
+nạp lại rơi vào chế độ "1 hình", mô tả biểu đồ có thể không vào chỉ mục và câu ấy bị
+**từ chối nhầm**. Hai điểm yếu đã biết cộng hưởng, và không chỉ số nào trong bảng
+cho thấy điều đó.
 
 **Một đường đi mà không phép đo nào chạm tới.** Bộ eval gọi thẳng API, nên nó không
 bao giờ đụng giao diện — và lỗi phạm vi tài liệu ở §3.10 nằm đúng chỗ đó. Bốn chỉ

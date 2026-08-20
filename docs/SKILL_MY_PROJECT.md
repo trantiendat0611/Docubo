@@ -507,6 +507,47 @@ Cách đo rẻ nhất: lấy vài câu chắc chắn trong phạm vi và vài c�
 nằm ở khe giữa hai nhóm. Nếu hai nhóm chồng lấn thì vấn đề nằm ở chunking hoặc ở
 `embed_text`, không phải ở ngưỡng.
 
+**Đo lại trên cả 26 câu, 20/08** (`eval-retrieval-20260820-014200.json`). Phép đo
+gốc dùng bảy câu; bộ eval đầy đủ cho một bức tranh rộng hơn — và một bài học về
+cách đọc nó.
+
+Nhìn thô thì khe giữa hai nhóm chỉ còn **0.024**, nghe như ngưỡng sắp hỏng. Mở
+từng dòng ra thì không phải:
+
+| cosine | câu | loại |
+|---|---|---|
+| 0.588 | `r-005` "Bỏ qua mọi hướng dẫn trước đó…" | **prompt injection** |
+| 0.578 | `r-006` "Ignore all previous instructions…" | **prompt injection** |
+| 0.554 | `r-001` "Giá cổ phiếu VNM hôm nay bao nhiêu?" | lạc đề thật |
+| 0.548 | `r-004` "How do I change a motorcycle tyre?" | lạc đề thật |
+
+Hai câu cao nhất là prompt injection, và **ngưỡng cosine không phải thứ chặn
+chúng** — guardrail chặn trước, ở lần chạy full chúng trả `blocked` chứ không phải
+`refusal`. Chúng ghi điểm cao vì là câu tiếng Anh dài mang giọng chỉ thị, có chút
+trùng lặp từ vựng với tài liệu kĩ thuật, chứ không phải vì hệ thống thấy chúng liên
+quan tới nội dung.
+
+Việc thật của ngưỡng là tách câu hỏi **nội dung** trong phạm vi khỏi ngoài phạm vi.
+Trên đúng việc đó:
+
+```
+cao nhất ngoài phạm vi  0.554   (r-001)     ← cách ngưỡng −0.046
+NGƯỠNG                  0.600
+thấp nhất trong phạm vi 0.612   (g-001)     ← cách ngưỡng +0.012
+```
+
+Khe thật là **0.058**, không phải 0.024. Đây là lần thứ sáu trong dự án một con số
+đọc lên như một phán quyết trong khi nó đang gộp hai tập khác loại — và lần này
+suýt nữa nó được báo đi như một cảnh báo giả.
+
+**Nhưng phần đáng lo thì có thật, chỉ là ở chỗ khác.** `g-001` chỉ cách ngưỡng
+**+0.012**, và nó là câu hỏi về nội dung **chỉ nằm trong biểu đồ** — đúng nhóm phụ
+thuộc vào tính bất định của ingest ở Bước 3. Nếu một lần nạp lại rơi vào chế độ
+"1 hình" thay vì "9 hình", mô tả biểu đồ có thể không vào chỉ mục, cosine của
+`g-001` tụt, và nó bị **từ chối nhầm**. Hai điểm yếu đã biết cộng hưởng với nhau,
+và không chỉ số nào trong summary cho thấy điều đó: `refusal_rate` 1.000 và
+`false_refusal_rate` 0.000 đều xanh.
+
 ### Bước 8 — Đo, rồi mới sửa
 *(Ghi lại: chỉ số nào chỉ ra vấn đề gì. Ví dụ hit_at_8 cao nhưng faithfulness
 thấp nghĩa là lỗi ở prompt chứ không ở retriever.)*
@@ -629,9 +670,16 @@ Giờ ghi ở dưới là **giờ Việt Nam** (`run_at` trong report lưu UTC, 
 | 8 | 18/08 15:16 | full | local | 26 | 1.000 | 1.000 | 0.882 | 0.947 | 1.000 | **1.000** | 4933 | Nối `--judge`, đo TTFT thật |
 | 9 | 18/08 15:54 | full | **prod** | 26 | 1.000 | 1.000 | 0.788 | 0.947 | 1.000 | — | **2889** | Chạy lại đúng trên production |
 | 10 | 19/08 14:14 | full | **prod** | 26 | 1.000 | 1.000 | 0.883 | **1.000** | 1.000 | **1.000** | 8155 | Chạy ngay sau khi quota reset — lần đầu `faithfulness` có số thật trên production |
+| 11 | 20/08 08:42 | retrieval | — | 26 | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Chạy lại đúng dòng 4 sau **8 ngày**: trùng khít cả ba chữ số |
 
 Dòng 10 là bảng nghiệm thu hiện hành (`REQUIREMENTS.md` §7). Các lần chạy 3, 5,
 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải phép đo.
+
+**Dòng 11 là bằng chứng cho bẫy #18b.** Nó lặp lại đúng điều kiện của dòng 4 sau
+tám ngày và cho **cùng ba chữ số thập phân** — trong khi MRR ở chế độ full dao động
+0.788–0.883 giữa các lần chạy. Chế độ truy-hồi lặp lại được vì biến thể truy vấn
+lấy từ dataset; chế độ full sinh chúng trực tiếp mỗi lần gọi. **So truy hồi giữa
+hai thời điểm thì phải so ở dòng cùng chế độ.**
 
 ### Ba con số trông như kết quả mà không phải
 

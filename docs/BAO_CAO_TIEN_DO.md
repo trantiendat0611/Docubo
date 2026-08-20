@@ -263,6 +263,7 @@ Bảng đầy đủ **25 dòng** ở `SKILL_MY_PROJECT.md` §3 — 22 bẫy đá
 | ~~Ngưỡng TTFT < 3s chưa đạt~~ | Đã chốt 19/08: thay bằng `p50` < 10s, `p90` < 15s, và chạm-trần = 0. Lí do đổi độc lập với số đo — ngưỡng cũ neo vào một request không gọi model. Xem bẫy #20 | Xong 19/08 |
 | ~~`document_pages` và file Storage không được dọn khi xoá tài liệu~~ | Kiểm 19/08: `document_pages` **vẫn luôn được dọn** qua cascade hai tầng `documents → ingest_jobs → document_pages`. Chỉ Storage là rò rỉ thật, đã sửa | Xong 19/08 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
+| **Biên `MIN_COSINE` chỉ +0.012 ở câu sát ngưỡng** | Đo 20/08 trên cả 26 câu. Câu sát ngưỡng là câu hỏi về biểu đồ — cộng hưởng với tính bất định của ingest, có thể gây từ chối nhầm | Câu hỏi mở, cần đo trên nhiều lần nạp |
 | ~~App có thể ngủ giữa hai buổi demo~~ | `/api/health` + Action `Keep-alive` chạy thứ Hai và thứ Năm, không tốn quota model | Xong 19/08 |
 | Đường hội thoại chưa kiểm chứng khi chạy thật | Mới qua trình biên dịch và test | Đã chạy thật, xong |
 

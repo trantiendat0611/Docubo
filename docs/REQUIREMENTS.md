@@ -294,6 +294,17 @@ của model.
       đọc `storage_path` **trước** khi xoá hàng (job cascade mất thì không lấy
       lại được), xoá hàng rồi mới xoá file
 - [ ] Có nên giới hạn kích thước file, ngoài giới hạn số trang
+- [ ] **Biên của `MIN_COSINE` có đủ rộng không?** Đo lại trên cả 26 câu ngày
+      20/08 (`eval-retrieval-20260820-014200.json`): câu ngoài phạm vi cao nhất
+      **0.554**, câu trong phạm vi thấp nhất **0.612** — ngưỡng 0.60 nằm giữa,
+      nhưng biên phía trên chỉ **+0.012**. *(Hai câu prompt injection ghi 0.588
+      và 0.578, cao hơn cả nhóm lạc đề, nhưng guardrail chặn chúng trước nên
+      chúng không ràng buộc ngưỡng.)* Câu sát ngưỡng là `g-001` — hỏi về nội
+      dung **chỉ nằm trong biểu đồ**, tức đúng nhóm phụ thuộc tính bất định của
+      ingest. Một lần nạp lại rơi vào chế độ "1 hình" có thể đẩy nó xuống dưới
+      ngưỡng và gây **từ chối nhầm**. Chưa quyết: hạ ngưỡng thì mất khả năng
+      chặn câu lạc đề, giữ nguyên thì chấp nhận rủi ro này. Cần đo trên nhiều
+      lần nạp trước khi chốt
 - [ ] **`citation_validity` có nên tính cả câu từ chối bằng văn xuôi không?**
       Đo 18/08 (`eval-full-20260818-081602.json`, `g-002`): model nhận đúng
       context (`hit=true`, `mrr=1.0`) nhưng viết văn xuôi từ chối thay vì trả
