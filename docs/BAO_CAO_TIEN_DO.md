@@ -73,7 +73,8 @@ trả ra thứ *đọc như đúng* ở đúng chỗ tài liệu có giá trị 
 
 ## 3. Số liệu đã đo
 
-Bộ đánh giá **26 câu**, 6 nhóm, 8 câu xuyên ngôn ngữ.
+Bộ đánh giá **31 câu**, 7 nhóm, 8 câu xuyên ngôn ngữ. (26 câu tới 19/08; nhóm
+`hard_negative` 5 câu thêm 20/08.)
 
 Chạy đầy đủ trên production ngày **19/08**, ngay sau khi quota reset
 (`eval-full-20260819-071406.json`). Cột 13/08 giữ lại để thấy cái gì đổi.

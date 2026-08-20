@@ -242,3 +242,56 @@ def test_a_failure_the_route_reported_itself_is_not_a_timeout():
 
     assert summary["n_timeout"] == 0
     assert summary["n_generation_failed"] == 1
+
+
+def test_hard_negatives_stay_out_of_refusal_rate():
+    """They never take the structural refusal path — every one of them clears
+    MIN_COSINE by design — so counting them there would turn a passing metric
+    into a failing one while the system behaved correctly."""
+    results = [
+        _record(category="should_refuse", type="refusal", refused=True),
+        _record(category="should_refuse", type="refusal", refused=True),
+        _record(category="hard_negative", type="answer", refused=False),
+        _record(category="hard_negative", type="answer", refused=False),
+    ]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["refusal_rate"] == 1.0
+    assert summary["n_hard_negative"] == 2
+
+
+def test_a_hard_negative_does_not_drag_down_citation_validity():
+    """The right answer to one is a refusal, and citation_validity() returns 0.0
+    when it finds no marker. Averaging that in scores correct behaviour as a
+    citation failure — trap 17, five more times per run."""
+    results = [
+        _record(citation_validity=1.0),
+        _record(category="hard_negative", citation_validity=0.0),
+    ]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["citation_validity"] == 1.0
+
+
+def test_hard_negatives_are_scored_by_faithfulness_when_the_judge_ran():
+    results = [
+        _record(category="hard_negative", faithfulness_score=1.0),
+        _record(category="hard_negative", faithfulness_score=0.5),
+    ]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["hard_negative_faithfulness"] == 0.75
+
+
+def test_hard_negatives_are_counted_even_with_no_judge():
+    """A run without --judge still records them, so the answers land in the
+    report where a person can read them."""
+    results = [_record(category="hard_negative", citation_validity=1.0)]
+
+    summary = run_eval.summarise(results)
+
+    assert summary["n_hard_negative"] == 1
+    assert "hard_negative_faithfulness" not in summary

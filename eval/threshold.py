@@ -73,10 +73,14 @@ def in_scope_from_report() -> list[tuple[str, str, float]]:
     data = json.loads(Path(newest).read_text(encoding="utf-8"))
     print(f"Điểm trong phạm vi đọc từ: {os.path.basename(newest)}\n")
 
+    # hard_negative is excluded alongside should_refuse: those questions were
+    # added to the eval set *because* this script found them out of scope, and
+    # letting them back in as "in scope" would raise the floor this compares
+    # against with the very cases that motivated the comparison.
     return [
         (r["id"], r["category"], r["top_cosine"])
         for r in data["results"]
-        if r["category"] != "should_refuse"
+        if r["category"] not in ("should_refuse", "hard_negative")
     ]
 
 

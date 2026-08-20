@@ -74,9 +74,10 @@ trong bất kì câu trả lời nào.
 - [x] Giới hạn 5 lượt tải lên mỗi người mỗi ngày
 
 **Đánh giá**
-- [x] Bộ eval **26 câu**, chạy đủ trên production, cả 4 chỉ số đều đã nối vào
-      harness (`faithfulness` từ 18/08, cờ `--judge`). `faithfulness` còn thiếu
-      **số đo trên production** — xem bảng ngưỡng bên dưới
+- [x] Bộ eval **31 câu**, chạy đủ trên production, cả 4 chỉ số đều nối vào
+      harness. Nhóm `hard_negative` (5 câu) thêm 20/08: ngoài phạm vi nhưng
+      **cùng lĩnh vực**, và cả năm **vượt được ngưỡng cosine** — chúng đo tầng
+      phòng thủ thứ hai, thứ mà 26 câu gốc không chạm tới
 
 ### P1 — làm nếu còn thời gian
 
@@ -203,6 +204,10 @@ Toàn bộ 26 câu do model mạnh phục vụ (`gemini-3.5-flash` 10, `gemini-2
 | `n_timeout` | **= 0** | **0** | **Đạt — bản vá trần 60s đã xác nhận** |
 | `median_ttft_ms` (`p50`) | < 10s | **8594** | Đạt |
 | `p90_ttft_ms` | < 15s | **18368** | **Không đạt** |
+
+**Ngân sách sau khi thêm nhóm `hard_negative`:** full eval giờ 31 câu = **62
+request sinh**, nên full + `--judge` (~86) không còn vừa một ngày. Chạy `--judge`
+vào ngày riêng.
 
 Chỉ số phụ: `hit_cross_lingual` 1.000 · `retrieval_mrr` 0.882 ·
 `overview_asked_for_document` 1.000 · `overview_answered_when_named` 1.000 ·

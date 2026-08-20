@@ -61,7 +61,7 @@ người dùng không có cách nào biết câu nào đáng tin.
 **Trong phạm vi (P0, đã hoàn thành):** đăng nhập, tải PDF tối đa 25 trang, trích
 xuất bằng vision, nhiều khung hội thoại với tài liệu gắn theo từng khung, truy
 hồi hybrid ba nhánh, trả lời có trích dẫn, từ chối theo ngưỡng, cô lập dữ liệu
-giữa người dùng, và một bộ đánh giá 26 câu chạy được trên bản production.
+giữa người dùng, và một bộ đánh giá 31 câu chạy được trên bản production.
 
 **Ngoài phạm vi, có chủ ý:**
 
@@ -707,9 +707,10 @@ nhìn như một kết quả, thực ra không lần chạy nào cho ra cả b�
 
 ## 4.1 Bộ đánh giá
 
-**26 câu hỏi, 6 nhóm**, viết bằng cách đọc chính các chunk đã lập chỉ mục — nên
-không câu nào hỏi về nội dung không tồn tại, và không giá trị `expected_pages` nào
-là phỏng đoán.
+**31 câu hỏi, 7 nhóm.** Hai mươi sáu câu đầu viết ngày 11/08 bằng cách đọc chính
+các chunk đã lập chỉ mục — nên không câu nào hỏi về nội dung không tồn tại, và không
+giá trị `expected_pages` nào là phỏng đoán. Năm câu `hard_negative` thêm ngày 20/08,
+sau khi §3.8 cho thấy bộ negative cũ quá dễ.
 
 | Nhóm | Đo cái gì |
 |---|---|
@@ -718,7 +719,8 @@ là phỏng đoán.
 | `figure` | Nội dung **chỉ** nằm trong biểu đồ |
 | `cross_page` | Câu trả lời trải qua nhiều trang |
 | `overview` | Câu hỏi mức tài liệu |
-| `should_refuse` | Câu **phải** bị từ chối |
+| `should_refuse` | Câu **phải** bị từ chối, hiển nhiên lạc đề |
+| `hard_negative` | Ngoài phạm vi nhưng **cùng lĩnh vực** — vượt được ngưỡng cosine |
 
 **8 câu xuyên ngôn ngữ** — hỏi tiếng Việt trên tài liệu tiếng Anh — trong đó 6 câu
 tính điểm truy hồi (2 câu overview không tính, vì chúng đi nhánh `document_overview`
@@ -782,6 +784,7 @@ Giờ ghi theo giờ Việt Nam (`run_at` trong report lưu UTC, +7).
 | 10 | 19/08 14:14 | full | **prod** | 26 | 1.000 | 1.000 | 0.883 | **1.000** | 1.000 | **1.000** | 8155 | Quota vừa reset |
 | 11 | 20/08 08:42 | retrieval | — | 26 | 1.000 | 1.000 | **0.926** | — | 1.000 | — | — | Lặp lại đúng dòng 4 sau **8 ngày** |
 | 12 | 20/08 14:15 | full | **prod** | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | 8594 | Xác nhận `n_timeout` = **0** |
+| 13 | 20/08 14:56 | retrieval | — | **31** | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Thêm nhóm `hard_negative` 5 câu. Mọi chỉ số cũ **không đổi** — đúng ý đồ |
 
 Các lần chạy 3, 5, 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải
 phép đo.
@@ -917,7 +920,7 @@ và có ca LaTeX còn nhỉnh hơn. Thứ LaTeX thật sự phá là **chỉ m�
 
 Phải nói ra, vì mọi con số ở trên chỉ có nghĩa trong khuôn khổ này.
 
-**Cỡ mẫu nhỏ.** 26 câu, 3 tài liệu. Nhóm xuyên ngôn ngữ chỉ 6 câu tính điểm, nên
+**Cỡ mẫu nhỏ.** 31 câu, 3 tài liệu. Nhóm xuyên ngôn ngữ chỉ 6 câu tính điểm, nên
 một câu bằng 16.7 điểm phần trăm. Không con số nào ở đây nên được trích dẫn tới ba
 chữ số thập phân như thể nó ổn định.
 
@@ -938,11 +941,20 @@ không đo hệ thống có hữu ích với người lạ hay không. Kiểm th
 là việc riêng, chưa làm.
 
 **`refusal_rate` đo trên một tập negative quá dễ.** Cả sáu câu `should_refuse`
-đều hiển nhiên lạc đề, nên 1.000 **nói ít hơn** hệ thống thật sự làm được. Phép
-thử bổ sung ở §4.7 cho thấy năm câu khó hơn cũng bị từ chối — nhưng đó là **năm
-câu**, do tác giả tự viết, trên một corpus ba tài liệu. Nó nâng mức tin cậy, không
-biến thành một chỉ số. Cách sửa đúng là **đưa nhóm câu này vào bộ eval** để mọi
-lần chạy sau đều đo, chứ không phải một phép thử rời.
+đều hiển nhiên lạc đề, nên 1.000 **nói ít hơn** hệ thống thật sự làm được. Năm
+câu khó ở §4.7 nay đã được **đưa hẳn vào bộ eval** thành nhóm `hard_negative`, để
+mọi lần chạy sau đều đo thay vì dựa vào một phép thử rời.
+
+Chúng **không** được tính vào `refusal_rate`, và lí do đáng nói: cả năm **vượt
+được ngưỡng cosine**, nên chúng không bao giờ đi đường từ chối có cấu trúc. Tính
+chúng vào đó sẽ kéo chỉ số từ 1.000 xuống **0.545** trong khi hệ thống vẫn hành xử
+đúng — đúng dạng chỉ số sai theo hướng bi quan ở §4.5. Chúng được chấm bằng
+`faithfulness` thay vào đó: một câu trả lời dựng từ kiến thức riêng của model sẽ
+có khẳng định mà ngữ cảnh không đỡ, còn một câu từ chối được chính prompt chấm là
+trung thực hoàn toàn.
+
+Vẫn còn giới hạn: **năm câu, do tác giả tự viết, trên corpus ba tài liệu.** Nó
+nâng mức tin cậy chứ chưa thành một chỉ số vững.
 
 **Ngưỡng từ chối xanh với biên rất mỏng.** `refusal_rate` 1.000 và
 `false_refusal_rate` 0.000 đều đạt, nhưng câu trong phạm vi có điểm thấp nhất

@@ -462,6 +462,14 @@ def summarise(results: list[dict]) -> dict:
     retrievable = [r for r in scored if r["category"] in RETRIEVABLE]
     refuse = [r for r in scored if r["category"] == "should_refuse"]
     overview = [r for r in scored if r["category"] == "overview"]
+    # Out of scope, but inside the corpus's own subject — and every one of them
+    # clears MIN_COSINE, so the threshold cannot stop them and the grounding
+    # prompt is what has to. Deliberately not part of `refuse`: refusal_rate
+    # measures the structural path, which these never take. They come back as
+    # ordinary answers whose text happens to be a refusal, so counting them
+    # there would drop a passing metric to 0.545 while the system was behaving
+    # correctly — the same pessimistic-metric failure as citation_validity 0.15.
+    hard = [r for r in scored if r["category"] == "hard_negative"]
     cross = [r for r in retrievable if r["cross_lingual"]]
     same = [r for r in retrievable if not r["cross_lingual"]]
 
@@ -516,7 +524,13 @@ def summarise(results: list[dict]) -> dict:
         summary["n_ttft_measured"] = len(ttft_values)
 
     if any("citation_validity" in r for r in results):
-        summary["citation_validity"] = mean([r.get("citation_validity") for r in scored])
+        # Hard negatives are excluded. The right answer to one of them is a
+        # refusal, and citation_validity() returns 0.0 when it finds no [n]
+        # marker — so a correct refusal would be scored as a citation failure.
+        # That is trap 17, which cost 0.947 on a question that behaved exactly
+        # as designed; averaging five more of them in would make it routine.
+        citable = [r for r in scored if r["category"] != "hard_negative"]
+        summary["citation_validity"] = mean([r.get("citation_validity") for r in citable])
         # Split by what each item is supposed to do. Dividing by every overview
         # item scored a clean run at 0.333 — two of the three questions name a
         # document and are meant to be answered, so counting them as failures to
@@ -562,6 +576,21 @@ def summarise(results: list[dict]) -> dict:
             )
         )
         summary["n_degraded"] = sum(1 for r in results if r.get("degraded"))
+
+    if hard:
+        # Counted, not scored. Whether one of these was refused lives in the
+        # wording of its answer, and a keyword list that decides is a metric
+        # waiting to be believed — this project has already produced five
+        # numbers that looked like results without being any. faithfulness is
+        # the instrument that can actually read them: an answer built from the
+        # model's own knowledge has claims the context does not support, and a
+        # refusal is scored fully faithful by the judge's own prompt. Which
+        # means these are measured on --judge runs and merely recorded on the
+        # rest, with the answers in the report for a person to read.
+        summary["n_hard_negative"] = len(hard)
+        scores = [r.get("faithfulness_score") for r in hard]
+        if any(s is not None for s in scores):
+            summary["hard_negative_faithfulness"] = mean(scores)
 
     if any("faithfulness_score" in r for r in results):
         answered = [r for r in scored if r.get("type") == "answer"]

@@ -351,6 +351,27 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       khảo; L1 có nhắc nhưng không có L2). Nghĩa là `refusal_rate = 1.000`
       **nói ít hơn** hệ thống làm được, và kiến trúc hai tầng đúng: tầng thứ
       hai gánh được phần tầng thứ nhất về nguyên tắc không làm được
+- [x] **20/08** Đưa 5 câu khó vào `eval_dataset.json` thành nhóm
+      `hard_negative` — để mọi lần chạy sau đều đo, thay vì dựa vào một phép
+      thử rời. **Thêm ẩu sẽ phá chỉ số:** cả năm câu **vượt được ngưỡng
+      cosine**, nên nếu xếp chúng vào `should_refuse` thì `refusal_rate` rơi từ
+      1.000 xuống **0.545** trong khi hệ thống vẫn chạy đúng — đúng dạng "chỉ
+      số sai theo hướng bi quan" của bẫy #14. Ba chỗ phải tách riêng:
+      **(a)** `refusal_rate` chỉ đo đường từ chối **có cấu trúc**, nhóm mới
+      không thuộc về nó; **(b)** `citation_validity` loại nhóm mới ra, vì câu
+      trả lời đúng cho chúng là một lời từ chối và hàm chấm trả 0.0 khi không
+      thấy marker — bẫy #17 nhân lên năm lần mỗi lần chạy; **(c)** chấm chúng
+      bằng `faithfulness`, công cụ duy nhất **đọc được** nội dung: trả lời từ
+      kiến thức riêng thì có khẳng định không được ngữ cảnh đỡ, còn từ chối thì
+      chính prompt chấm là trung thực hoàn toàn.
+      Cũng phải sửa `eval/threshold.py`: nó lọc "trong phạm vi" bằng
+      `category != "should_refuse"`, nên nhóm mới sẽ bị đếm nhầm thành trong
+      phạm vi và **nâng chính cái sàn mà nó dùng để so sánh**.
+      Xác minh bằng lần chạy retrieval-only 31 câu: mọi chỉ số cũ giữ nguyên
+      đến từng chữ số (`mrr` 0.926, `refusal_rate` 1.000), `n_hard_negative` =
+      5, và cosine 5 câu khớp đúng lần đo threshold. 4 test mới.
+      **Hệ quả ngân sách:** full eval giờ 31 câu = **62 request**, nên
+      full + `--judge` (~86) **không còn vừa một ngày**. Chạy `--judge` riêng
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

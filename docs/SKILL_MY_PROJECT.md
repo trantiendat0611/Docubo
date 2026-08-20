@@ -761,9 +761,18 @@ Giờ ghi ở dưới là **giờ Việt Nam** (`run_at` trong report lưu UTC, 
 | 10 | 19/08 14:14 | full | **prod** | 26 | 1.000 | 1.000 | 0.883 | **1.000** | 1.000 | **1.000** | 8155 | Chạy ngay sau khi quota reset — lần đầu `faithfulness` có số thật trên production |
 | 11 | 20/08 08:42 | retrieval | — | 26 | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Chạy lại đúng dòng 4 sau **8 ngày**: trùng khít cả ba chữ số |
 | 12 | 20/08 14:15 | full | **prod** | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | 8594 | Xác nhận `n_timeout` = **0** sau khi sửa trần 60s. Không chạy `--judge` |
+| 13 | 20/08 14:56 | retrieval | — | **31** | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Thêm nhóm `hard_negative` 5 câu. Mọi chỉ số cũ **không đổi** — đúng ý đồ |
 
 Dòng 10 là bảng nghiệm thu hiện hành (`REQUIREMENTS.md` §7). Các lần chạy 3, 5,
 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải phép đo.
+
+**Dòng 13 là phép kiểm cho chính thay đổi ở dòng đó.** Thêm 5 câu vào bộ eval là
+đúng loại thay đổi có thể âm thầm làm hỏng chỉ số: nhóm mới **vượt được ngưỡng
+cosine** nên nếu tính chúng vào `refusal_rate` thì con số rơi từ 1.000 xuống
+**0.545** trong khi hệ thống vẫn chạy đúng — đúng dạng "chỉ số sai theo hướng bi
+quan" ở §4.5. Chúng vì thế tách riêng: `refusal_rate` chỉ đo đường từ chối **có
+cấu trúc**, còn nhóm này đi đường sinh câu trả lời và từ chối bằng văn xuôi. Kết
+quả dòng 13 xác nhận: mọi chỉ số cũ giữ nguyên đến từng chữ số.
 
 **Dòng 11 là bằng chứng cho bẫy #18b.** Nó lặp lại đúng điều kiện của dòng 4 sau
 tám ngày và cho **cùng ba chữ số thập phân** — trong khi MRR ở chế độ full dao động
