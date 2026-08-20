@@ -380,6 +380,15 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       chạy 0 câu rồi ghi ra một report toàn null trông như đã chạy xong;
       **(b)** chế độ full in số request ước tính **trước** khi tiêu gì. 3 test
       mới (49 test Python)
+- [x] **20/08** Chạy `--only hard_negative` qua production (10 request) để kiểm
+      đường full mode của nhóm mới. Ba phép tách đều đúng như thiết kế:
+      `citation_validity` = `null` (đã loại nhóm này ra), `refusal_rate` =
+      `null` (lần chạy không có câu `should_refuse` nào), `hit@8`/`mrr` =
+      `null` (nhóm không thuộc `RETRIEVABLE`), `n_hard_negative` = 5.
+      **Và kết quả model lặp lại: 5/5 từ chối**, 46 phút sau lần đo sáng, qua
+      một đường code khác. Câu chữ khác đi nhưng nội dung trùng, kể cả hai ca
+      tìm ra bằng chứng một phần — `h-005` độc lập tìm lại câu về L1 và độc lập
+      chỉ ra không có gì về L2. Một lần 5/5 có thể là may; hai lần thì không
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

@@ -785,6 +785,7 @@ Giờ ghi theo giờ Việt Nam (`run_at` trong report lưu UTC, +7).
 | 11 | 20/08 08:42 | retrieval | — | 26 | 1.000 | 1.000 | **0.926** | — | 1.000 | — | — | Lặp lại đúng dòng 4 sau **8 ngày** |
 | 12 | 20/08 14:15 | full | **prod** | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | 8594 | Xác nhận `n_timeout` = **0** |
 | 13 | 20/08 14:56 | retrieval | — | **31** | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Thêm nhóm `hard_negative` 5 câu. Mọi chỉ số cũ **không đổi** — đúng ý đồ |
+| 14 | 20/08 15:19 | full | **prod** | 5 | — | — | — | — | — | — | 3565 | Chỉ nhóm `hard_negative`. **5/5 từ chối**, lặp lại kết quả trước đó |
 
 Các lần chạy 3, 5, 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải
 phép đo.
@@ -907,9 +908,15 @@ thay vì từ chối trống:
 > *"Tài liệu chỉ nhắc đến LoRA như một tài liệu tham khảo […] nhưng không giải
 > thích về phương pháp này hay đưa ra sự khác biệt với full fine-tuning."*
 
-Đó là đọc ngữ cảnh, không phải khớp mẫu. Kết luận: kiến trúc hai tầng đúng, và
-tầng thứ hai gánh được phần việc mà tầng thứ nhất **về nguyên tắc** không làm
-được.
+Đó là đọc ngữ cảnh, không phải khớp mẫu.
+
+**Lặp lại 46 phút sau qua đường eval chính thức: vẫn 5/5.** Câu chữ khác đi —
+model không đọc thuộc một mẫu — nhưng nội dung trùng, kể cả hai ca tìm ra bằng
+chứng một phần. Một lần 5/5 có thể là may; hai lần, qua hai đường code khác nhau,
+thì không.
+
+Kết luận: kiến trúc hai tầng đúng, và tầng thứ hai gánh được phần việc mà tầng thứ
+nhất **về nguyên tắc** không làm được.
 
 **Hai biểu diễn mỗi chunk.** Lí lẽ ban đầu — *"LaTeX thô embed ra vector gần như vô
 nghĩa"* — khi đo thì **sai**: chênh cosine giữa hai biểu diễn chỉ **0.004–0.031**,

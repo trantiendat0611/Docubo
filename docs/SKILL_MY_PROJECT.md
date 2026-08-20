@@ -626,6 +626,12 @@ phần rồi giải thích vì sao nó không đủ**, thay vì trả lời tr�
 Đó là đọc ngữ cảnh, không phải khớp mẫu. Ba câu còn lại từ chối gọn và gợi ý đúng
 những chủ đề tài liệu **có** nói.
 
+**Lặp lại 46 phút sau, qua đường eval chính thức: vẫn 5/5**
+(`eval-full-20260820-081922.json`). Câu chữ khác đi — model không đọc thuộc một
+mẫu — nhưng nội dung trùng, kể cả hai ca tìm ra bằng chứng một phần. Riêng `h-005`
+độc lập tìm lại đúng câu về L1 và độc lập chỉ ra rằng không có gì về L2. Một lần
+5/5 có thể là may; hai lần, hai đường code khác nhau, thì không.
+
 **Kết luận cho cả Bước 7:** kiến trúc hai tầng đúng, và tầng thứ hai gánh phần
 việc tầng thứ nhất về nguyên tắc không làm được. `refusal_rate = 1.000` đo trên
 sáu câu lạc đề hiển nhiên vì thế **nói ít hơn** hệ thống thật sự làm được — nhưng
@@ -762,6 +768,7 @@ Giờ ghi ở dưới là **giờ Việt Nam** (`run_at` trong report lưu UTC, 
 | 11 | 20/08 08:42 | retrieval | — | 26 | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Chạy lại đúng dòng 4 sau **8 ngày**: trùng khít cả ba chữ số |
 | 12 | 20/08 14:15 | full | **prod** | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | 8594 | Xác nhận `n_timeout` = **0** sau khi sửa trần 60s. Không chạy `--judge` |
 | 13 | 20/08 14:56 | retrieval | — | **31** | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Thêm nhóm `hard_negative` 5 câu. Mọi chỉ số cũ **không đổi** — đúng ý đồ |
+| 14 | 20/08 15:19 | full | **prod** | 5 | — | — | — | — | — | — | 3565 | Chỉ nhóm `hard_negative` (`--only`). **5/5 từ chối**, lặp lại kết quả 46 phút trước qua đường code khác |
 
 Dòng 10 là bảng nghiệm thu hiện hành (`REQUIREMENTS.md` §7). Các lần chạy 3, 5,
 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải phép đo.
