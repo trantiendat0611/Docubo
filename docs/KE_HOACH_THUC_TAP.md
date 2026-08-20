@@ -372,6 +372,14 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       5, và cosine 5 câu khớp đúng lần đo threshold. 4 test mới.
       **Hệ quả ngân sách:** full eval giờ 31 câu = **62 request**, nên
       full + `--judge` (~86) **không còn vừa một ngày**. Chạy `--judge` riêng
+- [x] **20/08** Thêm cờ `--only` cho `run_eval`: chạy đúng một nhóm hoặc vài
+      id thay vì cả bộ. Lí do cụ thể: `--limit` lấy **N câu đầu**, mà nhóm
+      `hard_negative` nằm ở vị trí 27–31, nên không giá trị `--limit` nào chạm
+      tới nó ngoài 31 — tức đúng bằng full run. Kèm hai thứ nhỏ mà quan trọng:
+      **(a)** `--only` gõ sai thì **dừng hẳn và liệt kê nhóm hợp lệ**, thay vì
+      chạy 0 câu rồi ghi ra một report toàn null trông như đã chạy xong;
+      **(b)** chế độ full in số request ước tính **trước** khi tiêu gì. 3 test
+      mới (49 test Python)
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

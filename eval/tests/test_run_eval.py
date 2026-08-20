@@ -10,6 +10,8 @@ not to CI.
 
 from __future__ import annotations
 
+import pytest
+
 from eval import run_eval
 from eval.judge import FaithfulnessJudgment
 
@@ -295,3 +297,32 @@ def test_hard_negatives_are_counted_even_with_no_judge():
 
     assert summary["n_hard_negative"] == 1
     assert "hard_negative_faithfulness" not in summary
+
+
+def _item(ident, category):
+    return {"id": ident, "category": category}
+
+
+def test_select_items_matches_a_category():
+    items = [_item("t-001", "text"), _item("h-001", "hard_negative")]
+
+    assert [i["id"] for i in run_eval.select_items(items, "hard_negative")] == ["h-001"]
+
+
+def test_select_items_matches_ids_and_keeps_dataset_order():
+    items = [_item("g-001", "figure"), _item("t-001", "text"), _item("g-002", "figure")]
+
+    chosen = run_eval.select_items(items, "g-002,g-001")
+
+    assert [i["id"] for i in chosen] == ["g-001", "g-002"]
+
+
+def test_select_items_refuses_a_typo_instead_of_running_nothing():
+    """Silently selecting zero would write a report of nulls that reads like a
+    finished run — the same shape as citation_validity 0.15 and refusal_rate 0.0."""
+    items = [_item("h-001", "hard_negative")]
+
+    with pytest.raises(SystemExit) as excinfo:
+        run_eval.select_items(items, "hard_negatives")
+
+    assert "hard_negative" in str(excinfo.value)

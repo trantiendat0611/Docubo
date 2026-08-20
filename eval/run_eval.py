@@ -441,6 +441,28 @@ def run_full(
     return results
 
 
+def select_items(items: list[dict], only: str) -> list[dict]:
+    """Keep the questions named by id or by category.
+
+    Exists as its own function so the empty case can be tested. A typo would
+    otherwise run zero questions, write a report full of nulls, and look for all
+    the world like a completed run — the shape of failure this harness has
+    produced four times already. It refuses instead, and lists the valid
+    categories rather than sending the caller to read the JSON.
+    """
+    wanted = {w.strip() for w in only.split(",") if w.strip()}
+    chosen = [i for i in items if i["id"] in wanted or i["category"] in wanted]
+
+    if not chosen:
+        every = sorted({i["category"] for i in items})
+        raise SystemExit(
+            f"--only {only!r} không khớp id hay nhóm nào.\n"
+            f"Các nhóm có sẵn: {', '.join(every)}"
+        )
+
+    return chosen
+
+
 def summarise(results: list[dict]) -> dict:
     def mean(values: list[float]) -> float | None:
         clean = [v for v in values if v is not None]
@@ -643,6 +665,13 @@ def main() -> None:
     )
     parser.add_argument("--limit", type=int, help="Run only the first N items.")
     parser.add_argument(
+        "--only",
+        help="Chỉ chạy các id hoặc nhóm này, cách nhau bằng dấu phẩy. "
+        "Ví dụ: --only hard_negative, hoặc --only g-001,g-002. "
+        "Khác với --limit ở chỗ --limit lấy N câu ĐẦU, nên nó không bao giờ "
+        "với tới các nhóm nằm cuối dataset.",
+    )
+    parser.add_argument(
         "--delay",
         type=float,
         default=5.0,
@@ -680,6 +709,10 @@ def main() -> None:
     config.assert_ready()
 
     items = load_items()
+
+    if args.only:
+        items = select_items(items, args.only)
+
     if args.limit:
         items = items[: args.limit]
 
@@ -689,6 +722,14 @@ def main() -> None:
     print(
         f"mode={mode}  items={len(items)}  MIN_COSINE={config.MIN_COSINE}{judge_note}\n"
     )
+
+    if not retrieval_only:
+        # Printed before anything is spent. The daily allowance is small enough
+        # that starting a run which cannot finish is a real way to waste it, and
+        # the number is not obvious: each question costs a guardrail call as
+        # well as an answer.
+        judged = f" + tối đa {len(items)} lượt chấm" if args.judge else ""
+        print(f"≈ {len(items) * 2} request sinh{judged}\n")
 
     started = time.time()
 

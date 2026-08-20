@@ -209,6 +209,16 @@ Bốn chỉ số, mỗi cái trả lời một câu hỏi khác nhau:
 | `faithfulness` | Mọi khẳng định có nằm trong context không |
 | `refusal_rate` | Có từ chối đúng lúc khi tài liệu không chứa câu trả lời không |
 
+Chạy đúng một nhóm hoặc vài câu, thay vì cả bộ — hữu ích khi chỉ muốn xem lại
+một chỗ mà không tiêu 62 request:
+
+```bash
+.venv/Scripts/python -m eval.run_eval --only hard_negative
+```
+
+`--limit` khác: nó lấy **N câu đầu**, nên không bao giờ với tới các nhóm nằm
+cuối dataset.
+
 `faithfulness` cần chế độ full (gọi `/api/chat` thật) và cờ `--judge`, vì nó
 chấm bằng Gemini làm giám khảo trên chính context đã sinh ra câu trả lời —
 tốn thêm một lượt gọi model cho mỗi câu đã trả lời:
