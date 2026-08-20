@@ -314,6 +314,25 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       thái `null`, nên sau khi đổi nghĩa thì **không còn đường tới** — đã tách
       thành hai nút "Bỏ ra" và "Xoá hẳn" ngay trong khung chat, nếu không thì
       chính bản vá dọn Storage sáng nay thành code chết
+- [x] **20/08** Hai quyết định phạm vi và một phát hiện.
+      **(1) Bỏ TXT/DOCX khỏi phạm vi**, vì lí do kĩ thuật chứ không phải thiếu
+      thời gian: cả hai không có số trang nên buộc phải đổi đơn vị trích dẫn —
+      chính lời hứa trung tâm — và chúng không đi qua đường vision, tức không
+      dùng tới phần lõi của đồ án. Ghi vào mục "Không làm" để bảo vệ khi phản
+      biện. Tuần 4 vì thế trống, dồn cho báo cáo.
+      **(2) Chốt `MIN_COSINE` — và câu hỏi ban đầu hoá ra đặt sai.** Tôi định
+      tìm ngưỡng tối ưu; đo rộng hơn thì thấy **không tồn tại ngưỡng tối ưu**.
+      Viết `eval/threshold.py` chấm thêm 16 câu dò chia hai loại (chỉ tốn
+      embedding quota): ngoài phạm vi **hiển nhiên** 0.522–0.562, ngoài phạm vi
+      **cùng lĩnh vực** 0.572–**0.654**, trong phạm vi **0.612**–0.825. Hai
+      phân bố chồng lấn, và `o-001` ghi nhận cùng 0.654 với câu dò cao nhất. Cosine đo
+      độ liên quan chủ đề, không đo khả năng trả lời được. Giữ 0.60, phát biểu
+      lại vai trò của nó là **bộ lọc thô chứ không phải bảo chứng** — bảo chứng
+      nằm ở grounding prompt, tầng đã đo là có tác dụng ở bẫy #17.
+      **(3) Lỗ hổng thật nằm ở bộ đo, không ở ngưỡng:** cả 6 câu `should_refuse`
+      đều hiển nhiên lạc đề, nên `refusal_rate = 1.000` nói ít hơn nó có vẻ nói.
+      Việc còn nợ: chạy 5 câu vùng chồng lấn qua `/api/chat` thật xem model có
+      từ chối không (~10 request). Ghi thành bẫy #23
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

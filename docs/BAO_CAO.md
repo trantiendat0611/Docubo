@@ -70,6 +70,7 @@ giữa người dùng, và một bộ đánh giá 26 câu chạy được trên 
 | OCR tài liệu scan | Chất lượng phụ thuộc bản scan, không kiểm soát được |
 | Fine-tuning | Không có ngân sách, và RAG đã giải quyết bài toán |
 | Agent / multi-hop | Vượt phạm vi MVP 8 tuần |
+| Nạp DOCX / TXT | Không có số trang nên phải đổi đơn vị trích dẫn; và không đi qua đường vision, tức không dùng tới phần lõi của đồ án |
 | Render PDF phía server | Cần native canvas binding — thứ hạ tầng serverless xử lí tệ nhất |
 | Xác nhận email khi đăng ký | Free tier không có SMTP; bật lại chỉ là một công tắc khi triển khai thật |
 
@@ -592,8 +593,42 @@ NGƯỠNG                  0.600
 thấp nhất trong phạm vi 0.612  (g-001, câu hỏi về nội dung chỉ nằm trong biểu đồ)
 ```
 
-Khe thật là **0.058**. Nhưng biên phía trên chỉ **+0.012**, và nó nằm trên đúng
-nhóm câu phụ thuộc tính bất định của ingest (§3.4) — xem §4.8.
+Khe thật là **0.058**, và biên phía trên chỉ **+0.012**.
+
+**Nhưng câu hỏi đúng không phải "biên rộng bao nhiêu" mà là "đo bằng câu hỏi
+nào".** Cả sáu câu `should_refuse` trong bộ eval đều **hiển nhiên lạc đề**. Không
+câu nào hỏi một thứ nằm trong đúng lĩnh vực của tài liệu mà tài liệu không trả lời
+được — tức đúng ca một ngưỡng từ chối phải xử lí đúng. Đo bằng toàn negative dễ
+thì ngưỡng nào cũng trông an toàn.
+
+Chấm thêm 16 câu dò (`eval/threshold.py`, chỉ tốn embedding quota —
+`eval/reports/threshold-20260820-031504.json`):
+
+| Nhóm | n | Khoảng cosine |
+|---|---|---|
+| Ngoài phạm vi, **hiển nhiên** | 6 | 0.522 – 0.562 |
+| Ngoài phạm vi, **cùng lĩnh vực** | 10 | 0.572 – **0.654** |
+| Trong phạm vi | 20 | **0.612** – 0.825 |
+
+**Hai phân bố chồng lấn.** Năm câu cùng lĩnh vực ghi điểm cao hơn câu trong phạm
+vi thấp nhất — cao nhất là *"Giải thích thuật toán k-means"* ở **0.654**, khớp vào
+một trang nói về ca dao dự báo thời tiết. Đã mở từng đoạn ra đọc để chắc chúng
+thật sự ngoài phạm vi.
+
+Nghĩa là **không tồn tại ngưỡng tối ưu**: nâng lên trên 0.654 để chặn k-means thì
+chặn luôn `o-001` (ghi nhận cùng 0.654 ở ba chữ số) và `g-001` (0.612); hạ xuống để nới biên cho
+`g-001` thì thả thêm câu ngoài phạm vi qua.
+
+Lí do sâu xa: **cosine đo độ liên quan chủ đề, không đo khả năng trả lời được.**
+Một câu hỏi về k-means gần với giáo trình ML bất kể giáo trình có nói về k-means
+hay không.
+
+**Vai trò đúng của ngưỡng, phát biểu lại.** Nó là **bộ lọc thô, không phải bảo
+chứng**. Ở 0.60 nó chặn sạch nhiễu rõ ràng (biên 0.038), **không chặn nhầm câu hợp
+lệ nào**, và đẩy vùng mờ sang **grounding prompt** — tầng đã được đo là có tác dụng
+(§3.7, và ca `g-002` qua được ngưỡng nhưng model vẫn từ chối vì context không trả
+lời được). Quyết định 20/08: **giữ 0.60**, không phải vì tối ưu mà vì không có
+điểm tối ưu, và đây là điểm duy nhất trong dữ liệu không chặn nhầm ai.
 
 ## 3.9 Chịu lỗi trong ràng buộc free tier
 
@@ -858,6 +893,13 @@ có".
 **Bộ eval do chính tác giả viết.** Nó đo hệ thống có làm được thứ nó hứa hay không,
 không đo hệ thống có hữu ích với người lạ hay không. Kiểm thử với người dùng thật
 là việc riêng, chưa làm.
+
+**`refusal_rate` đo trên một tập negative quá dễ.** Cả sáu câu `should_refuse`
+đều hiển nhiên lạc đề, nên 1.000 nói ít hơn nó có vẻ nói. Khi chấm thêm câu ngoài
+phạm vi **cùng lĩnh vực** thì phân bố của chúng chồng lấn với câu trong phạm vi
+(§3.8) — và năm câu ấy hiện **đi qua** được ngưỡng. Chúng có bị model từ chối ở
+tầng grounding prompt hay không thì **chưa đo**; đó là phép thử thật của lời hứa
+trung tâm và là việc còn nợ.
 
 **Ngưỡng từ chối xanh với biên rất mỏng.** `refusal_rate` 1.000 và
 `false_refusal_rate` 0.000 đều đạt, nhưng câu trong phạm vi có điểm thấp nhất

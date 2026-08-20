@@ -82,7 +82,15 @@ trong bất kì câu trả lời nào.
 
 - [ ] Trích dẫn mở ra ảnh trang gốc (ảnh đã render sẵn lúc ingest)
 - [ ] Rerank top-20 xuống top-5 bằng Gemini
-- [ ] Nạp DOCX / TXT
+- [x] ~~Nạp DOCX / TXT~~ — **quyết định 20/08: bỏ khỏi phạm vi.** Hai lí do kĩ
+      thuật, không phải thiếu thời gian. **(1)** Cả hai định dạng **không có số
+      trang** — `.docx` không lưu ngắt trang, việc chia trang do phần mềm mở nó
+      quyết định — nên hỗ trợ chúng buộc phải đổi đơn vị trích dẫn, tức đổi
+      chính lời hứa trung tâm của sản phẩm. **(2)** Chúng **không đi qua đường
+      vision**: tiền đề của cả đồ án là lớp text của PDF phá huỷ công thức và
+      biểu đồ, mà `.txt` thì chỉ là text — vấn đề đó không tồn tại. Nên đây là
+      một đường ingest thứ hai chạy song song, không phải phần mở rộng của
+      đường hiện có. Ghi lại ở "Không làm" §3 để bảo vệ khi phản biện
 - [ ] Đính tài liệu có sẵn vào khung chat từ giao diện — hiện chỉ gắn được
       bằng cách tải lên trong khung đó, dù schema đã hỗ trợ dùng lại
 
@@ -93,6 +101,7 @@ trong bất kì câu trả lời nào.
 | OCR tài liệu scan | Chất lượng phụ thuộc bản scan, không kiểm soát được |
 | Công thức nhúng OMML trong DOCX | Định dạng phức tạp, PDF đã phủ hết ca dùng thật |
 | Fine-tuning | Không có ngân sách, và RAG đã giải quyết bài toán |
+| **Nạp DOCX / TXT** | Không có số trang nên phải đổi đơn vị trích dẫn — lời hứa trung tâm của sản phẩm. Và chúng không đi qua đường vision, tức không dùng tới phần lõi của đồ án. Quyết định 20/08 |
 | Agent / multi-hop | Vượt phạm vi MVP 8 tuần |
 | Render PDF phía server | Cần native canvas binding — thứ serverless xử lí tệ nhất. Trình duyệt đã có sẵn canvas và có sẵn file |
 | Xác nhận email khi đăng ký | Free tier không có SMTP; bật lại chỉ là một công tắc khi triển khai thật |
@@ -293,8 +302,21 @@ của model.
       **Storage** — bucket không có khoá ngoại để cascade theo. `deleteDocument()`
       đọc `storage_path` **trước** khi xoá hàng (job cascade mất thì không lấy
       lại được), xoá hàng rồi mới xoá file
+- [ ] **Model có từ chối 5 câu vùng chồng lấn không?** Chúng đi qua được ngưỡng
+      cosine, nên thứ duy nhất còn chặn chúng là grounding prompt. Đây là phép
+      thử thật của lời hứa trung tâm, và chưa đo. Cần chạy 5 câu qua
+      `/api/chat` thật, khoảng 10 request sinh
 - [ ] Có nên giới hạn kích thước file, ngoài giới hạn số trang
-- [ ] **Biên của `MIN_COSINE` có đủ rộng không?** Đo lại trên cả 26 câu ngày
+- [x] **Biên của `MIN_COSINE` có đủ rộng không?** — **câu hỏi sai, đã trả lời
+      20/08 bằng một câu khác.** Chấm thêm 16 câu dò (`eval/threshold.py`) thì
+      hai phân bố **chồng lấn**: câu ngoài phạm vi **cùng lĩnh vực** cao nhất
+      0.654, câu trong phạm vi thấp nhất 0.612, và `o-001` cũng đúng 0.654. Nên
+      **không tồn tại ngưỡng tối ưu** — cosine đo độ liên quan chủ đề, không đo
+      khả năng trả lời được. Giữ **0.60** và phát biểu lại vai trò: bộ lọc thô,
+      không phải bảo chứng; bảo chứng nằm ở grounding prompt. Chi tiết ở
+      `SKILL_MY_PROJECT.md` Bước 7 và bẫy #23. *(Nội dung câu hỏi cũ giữ lại bên
+      dưới để đối chiếu.)*
+- [ ] ~~**Biên của `MIN_COSINE` có đủ rộng không?**~~ Đo lại trên cả 26 câu ngày
       20/08 (`eval-retrieval-20260820-014200.json`): câu ngoài phạm vi cao nhất
       **0.554**, câu trong phạm vi thấp nhất **0.612** — ngưỡng 0.60 nằm giữa,
       nhưng biên phía trên chỉ **+0.012**. *(Hai câu prompt injection ghi 0.588

@@ -241,7 +241,7 @@ Supabase thật, nên toàn bộ nhánh này chưa từng được chạy trư�
 
 ## 7. Bốn cái bẫy đáng kể nhất
 
-Bảng đầy đủ **25 dòng** ở `SKILL_MY_PROJECT.md` §3 — 22 bẫy đánh số, cộng 3 dòng
+Bảng đầy đủ **26 dòng** ở `SKILL_MY_PROJECT.md` §3 — 23 bẫy đánh số, cộng 3 dòng
 đính chính lại kết luận cũ của chính tôi (`3b`, `14b`, `18b`).
 
 | Triệu chứng | Nguyên nhân thật |
@@ -263,7 +263,8 @@ Bảng đầy đủ **25 dòng** ở `SKILL_MY_PROJECT.md` §3 — 22 bẫy đá
 | ~~Ngưỡng TTFT < 3s chưa đạt~~ | Đã chốt 19/08: thay bằng `p50` < 10s, `p90` < 15s, và chạm-trần = 0. Lí do đổi độc lập với số đo — ngưỡng cũ neo vào một request không gọi model. Xem bẫy #20 | Xong 19/08 |
 | ~~`document_pages` và file Storage không được dọn khi xoá tài liệu~~ | Kiểm 19/08: `document_pages` **vẫn luôn được dọn** qua cascade hai tầng `documents → ingest_jobs → document_pages`. Chỉ Storage là rò rỉ thật, đã sửa | Xong 19/08 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
-| **Biên `MIN_COSINE` chỉ +0.012 ở câu sát ngưỡng** | Đo 20/08 trên cả 26 câu. Câu sát ngưỡng là câu hỏi về biểu đồ — cộng hưởng với tính bất định của ingest, có thể gây từ chối nhầm | Câu hỏi mở, cần đo trên nhiều lần nạp |
+| ~~Biên `MIN_COSINE` chỉ +0.012~~ | Đo rộng hơn 20/08: hai phân bố **chồng lấn**, nên **không có ngưỡng tối ưu**. Giữ 0.60, phát biểu lại là bộ lọc thô chứ không phải bảo chứng. Xem bẫy #23 | Đã chốt 20/08 |
+| **`refusal_rate` đo trên tập negative quá dễ** | Cả 6 câu `should_refuse` đều hiển nhiên lạc đề. Câu ngoài phạm vi **cùng lĩnh vực** thì đi qua được ngưỡng, và chưa đo model có từ chối chúng không | Chạy 5 câu qua `/api/chat` khi có quota |
 | ~~App có thể ngủ giữa hai buổi demo~~ | `/api/health` + Action `Keep-alive` chạy thứ Hai và thứ Năm, không tốn quota model | Xong 19/08 |
 | Đường hội thoại chưa kiểm chứng khi chạy thật | Mới qua trình biên dịch và test | Đã chạy thật, xong |
 

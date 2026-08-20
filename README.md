@@ -246,6 +246,10 @@ Postgres một lần và trả `{ ok, database, ms }` — không gọi model. Gi
 - Chỉ hỗ trợ PDF. DOCX/TXT nằm ở P1.
 - Không OCR tài liệu scan.
 - Full-text tiếng Việt dùng config `simple`, không stem được.
+- Ngưỡng từ chối `MIN_COSINE` là **bộ lọc thô, không phải bảo chứng**. Câu hỏi
+  ngoài phạm vi nhưng **cùng lĩnh vực** với tài liệu ghi điểm chồng lấn với câu
+  trong phạm vi (đo 20/08: 0.572–0.654 so với 0.612–0.825), nên không ngưỡng nào
+  tách được hai nhóm. Thứ chặn vùng mờ là grounding prompt.
 - Chuyển tab khi đang xử lí sẽ tạm dừng việc đọc trang.
 - Một số trang bị Gemini từ chối đọc vì `RECITATION`; chain model xử lí được
   phần lớn nhưng không phải tất cả.
