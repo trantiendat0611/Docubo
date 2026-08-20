@@ -1,0 +1,153 @@
+{
+  "mode": "full",
+  "run_at": "2026-08-12T01:23:22+00:00",
+  "min_cosine": 0.6,
+  "summary": {
+    "n_items": 8,
+    "retrieval_hit_at_8": 0.857,
+    "retrieval_mrr": 0.786,
+    "hit_same_language": 1.0,
+    "hit_cross_lingual": 0.5,
+    "refusal_rate": null,
+    "false_refusal_rate": 0.0,
+    "median_latency_ms": 13677,
+    "citation_validity": 0.571,
+    "overview_asked_for_document": null
+  },
+  "results": [
+    {
+      "id": "t-001",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "error",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": null,
+      "cited_sources": [],
+      "latency_ms": 1109,
+      "answer": ""
+    },
+    {
+      "id": "t-002",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 11567,
+      "answer": "Trong định nghĩa của học máy (machine learning), ba yếu tố $T$, $P$, $E$ có ý nghĩa như sau:\n\n*   **T**: Là một công việc hoặc nhiệm vụ (task) [1][3].\n*   **P**: Là tiêu chí đánh giá hiệu năng hoặc độ đo hiệu suất (performance measure) [1][3].\n*   **E**: Là kinh nghiệm (experience) [1][3].\n\nMối quan hệ giữa ba yếu tố này được định nghĩa là: một chương trình máy tính được cho là học từ kinh nghiệm $E$ đối với một lớp các nhiệm vụ $T$ với độ đo hiệu suất $P$, nếu hiệu suất của nó khi thực hiện nhiệm vụ $T$, được đánh giá bằng $P$, tăng lên cùng với kinh nghiệm $E$ [3].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-003",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 10843,
+      "answer": "Based on the provided context, semi-supervised learning is a class of machine learning techniques that use both labeled and unlabeled data for training [1]. Typically, this involves using a small amount of labeled data combined with a large amount of unlabeled data [1].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-004",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 13201,
+      "answer": "Based on the provided documents, transfer learning aims to develop methods to transfer knowledge learned in one or more source tasks and use it to improve learning in a related target task [1].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-005",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 18263,
+      "answer": "Dựa vào tài liệu cung cấp, học tăng cường (Reinforcement learning) quan tâm đến các khía cạnh sau:\n\n* **Thu thập dữ liệu mới:** Thực hiện bằng cách đưa ra các hành động và nhận lại các phản hồi trong quá trình thực hiện [1].\n* **Thử nghiệm và tối ưu hóa:** Giúp thuật toán học bằng cách thử nhiều hành động hoặc chiến lược khác nhau, từ đó chọn ra phương án tốt nhất [1].\n* **Sự đánh đổi giữa thăm dò và khai thác (exploration-exploitation trade-offs):** \n    * *Exploration* (thăm dò): Ví dụ như đi đến nhà hàng mới (going to new restaurant) [1].\n    * *Exploitation* (khai thác): Ví dụ như đi đến nhà hàng yêu thích (going to favorite restaurant) [1].\n    * Sự đánh đổi này (như trong thuật toán Bandit Algorithm: multi-armed bandit) nhằm giúp giảm thiểu chi phí thăm dò và nâng cao hiệu quả khai t",
+      "hit": false,
+      "mrr": 0.0
+    },
+    {
+      "id": "t-006",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 14070,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-007",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "2402.00253v2.pdf"
+      ],
+      "latency_ms": 13677,
+      "answer": "",
+      "hit": true,
+      "mrr": 0.5
+    },
+    {
+      "id": "t-008",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "2402.00253v2.pdf"
+      ],
+      "latency_ms": 13883,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    }
+  ]
+}

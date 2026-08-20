@@ -1,0 +1,158 @@
+{
+  "mode": "full",
+  "run_at": "2026-08-12T01:56:23+00:00",
+  "min_cosine": 0.6,
+  "summary": {
+    "n_items": 8,
+    "retrieval_hit_at_8": 0.875,
+    "retrieval_mrr": 0.619,
+    "hit_same_language": 1.0,
+    "hit_cross_lingual": 0.5,
+    "refusal_rate": null,
+    "false_refusal_rate": 0.0,
+    "median_latency_ms": 3411,
+    "citation_validity": 1.0,
+    "overview_asked_for_document": null
+  },
+  "results": [
+    {
+      "id": "t-001",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 11591,
+      "answer": "Machine Learning (ML) và Deep Learning (DL) có những điểm khác biệt chính sau:\n\n1.  **Định nghĩa và mối quan hệ**:\n    *   ML là một tập hợp con của AI tập trung vào việc tạo ra các thuật toán cho phép máy học từ dữ liệu và đưa ra dự đoán [4].\n    *   DL là một tập hợp con của ML sử dụng mạng lưới thần kinh nhân tạo với nhiều lớp để tìm hiểu và đưa ra quyết định [4].\n\n2.  **Cấu trúc mạng lưới thần kinh**:\n    *   DL bao gồm nhiều lớp giữa lớp đầu vào và đầu ra [4]. Một khác biệt chính giữa ML và DL là số lớp trong mạng lưới thần kinh [3]. Các khái niệm chính trong DL bao gồm deep architecture, deep representation, và multi levels of latent variables [1].\n\n3.  **Sự can thiệp của con người và feature engineering**:\n    *   Các mô hình ML cơ bản có thể cần sự can thiệp của con người nếu đưa r",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-002",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 5584,
+      "answer": "Trong định nghĩa học máy, ba yếu tố T, P, E có nghĩa là:\n*   **T**: một công việc (nhiệm vụ) [1].\n*   **P**: tiêu chí đánh giá hiệu năng [1].\n*   **E**: kinh nghiệm [1].\n\nCụ thể hơn, một chương trình máy tính được nói là học từ kinh nghiệm **E** cho một lớp các nhiệm vụ **T** với độ đo hiệu suất **P**, nếu hiệu suất của nó với nhiệm vụ **T**, đánh giá bằng **P**, có thể tăng lên cùng kinh nghiệm [3].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-003",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 2791,
+      "answer": "Semi-supervised learning is a class of machine learning techniques that make use of both labeled and unlabeled data for training—typically a small amount of labeled data with a large amount of unlabeled data [2].",
+      "hit": true,
+      "mrr": 0.25
+    },
+    {
+      "id": "t-004",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 2668,
+      "answer": "Transfer learning aims to develop methods to transfer knowledge learned in one or more source tasks and use it to improve learning in a related target task [1].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-005",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 2510,
+      "answer": "Học tăng cường (Reinforcement learning) quan tâm đến việc thu thập dữ liệu mới bằng cách thực hiện các hành động và từ các phản hồi trong quá trình thực hiện [1]. Thuật toán học bằng cách thử nhiều hành động hoặc chiến lược khác nhau và chọn ra cái tốt nhất [1].",
+      "hit": false,
+      "mrr": 0.0
+    },
+    {
+      "id": "t-006",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 2699,
+      "answer": "Ensemble learning (ensemble methods) employs multiple learners and combine their predictions to achieve higher performance than that of a single learner [2].",
+      "hit": true,
+      "mrr": 0.2
+    },
+    {
+      "id": "t-007",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "2402.00253v2.pdf"
+      ],
+      "latency_ms": 3492,
+      "answer": "A hallucination in a large vision-language model (LVLM) denotes a disagreement or inconsistency between the factual content of an image and the corresponding textual content generated by the model [1][2]. \n\nFrom a semantic perspective, this misalignment can manifest as [2]:\n* **Object hallucinations:** claiming non-existent objects in the image (e.g., generating \"laptop\" or \"small dog\").\n* **Attribute hallucinations:** providing incorrect attribute descriptions (e.g., describing a man as \"long-haired\").\n* **Relationship hallucinations:** making inaccurate assertions about the relationships between objects (e.g., claiming a bicycle is \"in front of\" a man).\n\nThrough the lens of vision-language tasks, hallucination symptoms can also be interpreted as deficiencies in judgment or description [5",
+      "hit": true,
+      "mrr": 0.5
+    },
+    {
+      "id": "t-008",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "2402.00253v2.pdf"
+      ],
+      "latency_ms": 3411,
+      "answer": "Dựa trên tài liệu được cung cấp, các nguyên nhân gây ra hallucination xuất phát từ phía LLM trong các mô hình LVLM bao gồm:\n\n* **Insufficient Context Attention (Thiếu sự chú ý đến ngữ cảnh):** Hiện tượng mô hình trong quá trình giải mã chỉ tập trung vào một phần thông tin từ ngữ cảnh. Điều này bao gồm việc tập trung quá mức vào phân đoạn nội dung được tạo ra hiện tại trong khi bỏ qua thông tin thị giác đầu vào [1], ưu tiên các mẫu ngôn ngữ để tạo ra nội dung trôi chảy nhưng không chính xác [1], hoặc tập trung vào các token tóm tắt một phần của nội dung đã tạo, dẫn đến việc bịa đặt và nội dung gây hallucination [1].\n* **Stochastic Sampling Decoding (Giải mã lấy mẫu ngẫu nhiên):** Việc kết hợp tính ngẫu nhiên vào quá trình giải mã (một chiến lược phổ biến trong LLM để làm phong phú nội dung)",
+      "hit": true,
+      "mrr": 1.0
+    }
+  ]
+}

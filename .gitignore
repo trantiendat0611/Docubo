@@ -3,13 +3,19 @@
 .env.local
 .env*.local
 
-# Source documents and derived artifacts — never commit (size + copyright).
+# Source documents — never commit (size + copyright). PDFs, rendered page
+# images and the vision cache all live here.
 # `data/*` not `data/`: git cannot un-ignore a file inside an ignored directory,
 # so excluding the directory itself would also drop the .gitkeep.
 data/*
 !data/.gitkeep
-eval/reports/*
-!eval/reports/.gitkeep
+
+# eval/reports/ used to be ignored on this same line, grouped with data/ under
+# "size + copyright". Neither reason held: the reports are 288K in total and
+# carry generated answers rather than source text. Meanwhile run_eval.py says
+# "keep them all: the progression across runs is what chapter 4 of the report is
+# made of", and chapter 4 cites nine of them by filename — pointing at files the
+# repository did not contain. They are committed now.
 
 # Python
 __pycache__/

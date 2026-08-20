@@ -1,0 +1,204 @@
+{
+  "run_at": "2026-08-20T03:15:04+00:00",
+  "min_cosine": 0.6,
+  "in_scope": [
+    {
+      "id": "t-001",
+      "category": "text",
+      "top_cosine": 0.805
+    },
+    {
+      "id": "t-002",
+      "category": "text",
+      "top_cosine": 0.815
+    },
+    {
+      "id": "t-003",
+      "category": "text",
+      "top_cosine": 0.766
+    },
+    {
+      "id": "t-004",
+      "category": "text",
+      "top_cosine": 0.742
+    },
+    {
+      "id": "t-005",
+      "category": "text",
+      "top_cosine": 0.698
+    },
+    {
+      "id": "t-006",
+      "category": "text",
+      "top_cosine": 0.743
+    },
+    {
+      "id": "t-007",
+      "category": "text",
+      "top_cosine": 0.825
+    },
+    {
+      "id": "t-008",
+      "category": "text",
+      "top_cosine": 0.783
+    },
+    {
+      "id": "t-009",
+      "category": "text",
+      "top_cosine": 0.726
+    },
+    {
+      "id": "t-010",
+      "category": "text",
+      "top_cosine": 0.787
+    },
+    {
+      "id": "f-001",
+      "category": "formula",
+      "top_cosine": 0.708
+    },
+    {
+      "id": "f-002",
+      "category": "formula",
+      "top_cosine": 0.722
+    },
+    {
+      "id": "f-003",
+      "category": "formula",
+      "top_cosine": 0.728
+    },
+    {
+      "id": "g-001",
+      "category": "figure",
+      "top_cosine": 0.612
+    },
+    {
+      "id": "g-002",
+      "category": "figure",
+      "top_cosine": 0.779
+    },
+    {
+      "id": "c-001",
+      "category": "cross_page",
+      "top_cosine": 0.779
+    },
+    {
+      "id": "c-002",
+      "category": "cross_page",
+      "top_cosine": 0.776
+    },
+    {
+      "id": "o-001",
+      "category": "overview",
+      "top_cosine": 0.654
+    },
+    {
+      "id": "o-002",
+      "category": "overview",
+      "top_cosine": 0.725
+    },
+    {
+      "id": "o-003",
+      "category": "overview",
+      "top_cosine": 0.672
+    }
+  ],
+  "probes": [
+    {
+      "kind": "unrelated",
+      "question": "Giá vàng SJC hôm nay bao nhiêu một lượng?",
+      "top_cosine": 0.544,
+      "matched": "testta1.pdf tr.3"
+    },
+    {
+      "kind": "unrelated",
+      "question": "Cách làm bánh mì thịt nướng tại nhà",
+      "top_cosine": 0.553,
+      "matched": "testta1.pdf tr.27"
+    },
+    {
+      "kind": "unrelated",
+      "question": "What time does the last train to Manchester leave?",
+      "top_cosine": 0.533,
+      "matched": "NET Developer Roadmap Minimal.pdf tr.1"
+    },
+    {
+      "kind": "unrelated",
+      "question": "How do I renew a Vietnamese passport?",
+      "top_cosine": 0.54,
+      "matched": "NET Developer Roadmap Minimal.pdf tr.1"
+    },
+    {
+      "kind": "unrelated",
+      "question": "Đội tuyển Việt Nam đá với Thái Lan lúc mấy giờ?",
+      "top_cosine": 0.522,
+      "matched": "NET Developer Roadmap Minimal.pdf tr.1"
+    },
+    {
+      "kind": "unrelated",
+      "question": "What is the boiling point of water at sea level?",
+      "top_cosine": 0.562,
+      "matched": "NET Developer Roadmap Minimal.pdf tr.1"
+    },
+    {
+      "kind": "adjacent",
+      "question": "Cơ chế attention trong kiến trúc Transformer hoạt động thế nào?",
+      "top_cosine": 0.599,
+      "matched": "testta1.pdf tr.24"
+    },
+    {
+      "kind": "adjacent",
+      "question": "How does backpropagation compute gradients through a deep network?",
+      "top_cosine": 0.597,
+      "matched": "NET Developer Roadmap Minimal.pdf tr.1"
+    },
+    {
+      "kind": "adjacent",
+      "question": "Sự khác nhau giữa LoRA và full fine-tuning là gì?",
+      "top_cosine": 0.644,
+      "matched": "2402.00253v2.pdf tr.8"
+    },
+    {
+      "kind": "adjacent",
+      "question": "What is the vanishing gradient problem in recurrent networks?",
+      "top_cosine": 0.572,
+      "matched": "NET Developer Roadmap Minimal.pdf tr.1"
+    },
+    {
+      "kind": "adjacent",
+      "question": "Cách chọn learning rate schedule cho quá trình huấn luyện?",
+      "top_cosine": 0.644,
+      "matched": "testta1.pdf tr.24"
+    },
+    {
+      "kind": "adjacent",
+      "question": "What does the softmax temperature parameter control?",
+      "top_cosine": 0.578,
+      "matched": "2402.00253v2.pdf tr.9"
+    },
+    {
+      "kind": "adjacent",
+      "question": "Giải thích thuật toán k-means và cách chọn số cụm k",
+      "top_cosine": 0.654,
+      "matched": "testta1.pdf tr.3"
+    },
+    {
+      "kind": "adjacent",
+      "question": "How is BLEU score computed for machine translation?",
+      "top_cosine": 0.592,
+      "matched": "testta1.pdf tr.25"
+    },
+    {
+      "kind": "adjacent",
+      "question": "Batch normalization giúp gì cho quá trình huấn luyện?",
+      "top_cosine": 0.623,
+      "matched": "testta1.pdf tr.24"
+    },
+    {
+      "kind": "adjacent",
+      "question": "What is the difference between L1 and L2 regularisation?",
+      "top_cosine": 0.613,
+      "matched": "testta1.pdf tr.36"
+    }
+  ]
+}

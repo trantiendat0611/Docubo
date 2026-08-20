@@ -1,0 +1,441 @@
+{
+  "mode": "full",
+  "run_at": "2026-08-12T07:20:24+00:00",
+  "api": "https://docubo.vercel.app/api/chat",
+  "min_cosine": 0.6,
+  "summary": {
+    "n_items": 26,
+    "retrieval_hit_at_8": 1.0,
+    "retrieval_mrr": 0.882,
+    "hit_same_language": 1.0,
+    "hit_cross_lingual": 1.0,
+    "refusal_rate": 1.0,
+    "false_refusal_rate": 0.0,
+    "median_latency_ms": 964,
+    "citation_validity": 0.15,
+    "overview_asked_for_document": 0.0
+  },
+  "results": [
+    {
+      "id": "t-001",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 13016,
+      "answer": "Dựa trên các tài liệu được cung cấp, sự khác biệt giữa Machine Learning (ML) và Deep Learning (DL) được thể hiện qua các điểm chính sau:\n\n* **Cách xử lý và học từ dữ liệu:**\n  * Các mô hình ML cơ bản cần có sự can thiệp của con người (như yêu cầu các kỹ sư cung cấp dữ liệu được xử lý trước để tiếp tục cải thiện kết quả đầu ra [4], hoặc cần sự can thiệp nếu đưa ra dự đoán không chính xác [3]).\n  * Ngược lại, các mô hình DL không cần sự can thiệp của con người để học vì chúng có thể tự động xác định tập hợp các tính năng giúp phân biệt các loại đầu vào khác nhau [4]. Chúng có thể tự xác định liệu dự đoán có chính xác hay không thông qua mạng lưới thần kinh của chính mình [3].\n\n* **Cấu trúc mạng lưới thần kinh:**\n  * Sự khác biệt nằm ở số lớp trong mạng lưới thần kinh [3]. Các mô hình DL bao ",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-002",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 7631,
+      "answer": "Trong định nghĩa của học máy, ba yếu tố T, P, E có ý nghĩa như sau:\n\n*   **T**: Là một công việc hoặc nhiệm vụ (task) [1][3].\n*   **P**: Là tiêu chí đánh giá hiệu năng [1] hoặc độ đo hiệu suất [3].\n*   **E**: Là kinh nghiệm (experience) [1][3].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-003",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 5409,
+      "answer": "Based on the provided context, semi-supervised learning is a class of machine learning techniques that use both labeled and unlabeled data for training [2]. Typically, this involves using a small amount of labeled data along with a large amount of unlabeled data [2].",
+      "hit": true,
+      "mrr": 0.25
+    },
+    {
+      "id": "t-004",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 2053,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-005",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "2402.00253v2.pdf",
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 3577,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-006",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 1111,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-007",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "2402.00253v2.pdf"
+      ],
+      "latency_ms": 1051,
+      "answer": "",
+      "hit": true,
+      "mrr": 0.5
+    },
+    {
+      "id": "t-008",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "2402.00253v2.pdf"
+      ],
+      "latency_ms": 1208,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-009",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 1084,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-010",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 964,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "f-001",
+      "category": "formula",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 997,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "f-002",
+      "category": "formula",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 913,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "f-003",
+      "category": "formula",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 906,
+      "answer": "",
+      "hit": true,
+      "mrr": 0.25
+    },
+    {
+      "id": "g-001",
+      "category": "figure",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 916,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "g-002",
+      "category": "figure",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 939,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "c-001",
+      "category": "cross_page",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 983,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "c-002",
+      "category": "cross_page",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 1063,
+      "answer": "",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "o-001",
+      "category": "overview",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "2402.00253v2.pdf"
+      ],
+      "latency_ms": 942,
+      "answer": ""
+    },
+    {
+      "id": "o-002",
+      "category": "overview",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 959,
+      "answer": ""
+    },
+    {
+      "id": "o-003",
+      "category": "overview",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 0.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 951,
+      "answer": ""
+    },
+    {
+      "id": "r-001",
+      "category": "should_refuse",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "refusal",
+      "refused": true,
+      "needs_document": false,
+      "citation_validity": null,
+      "cited_sources": [],
+      "latency_ms": 790,
+      "answer": "Tôi không tìm thấy nội dung liên quan trong tài liệu đã nạp, nên tôi không trả lời câu này để tránh bịa. Bạn thử hỏi cụ thể hơn, hoặc kiểm tra xem tài liệu chứa chủ đề đó đã được nạp chưa."
+    },
+    {
+      "id": "r-002",
+      "category": "should_refuse",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "refusal",
+      "refused": true,
+      "needs_document": false,
+      "citation_validity": null,
+      "cited_sources": [],
+      "latency_ms": 932,
+      "answer": "Tôi không tìm thấy nội dung liên quan trong tài liệu đã nạp, nên tôi không trả lời câu này để tránh bịa. Bạn thử hỏi cụ thể hơn, hoặc kiểm tra xem tài liệu chứa chủ đề đó đã được nạp chưa."
+    },
+    {
+      "id": "r-003",
+      "category": "should_refuse",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "refusal",
+      "refused": true,
+      "needs_document": false,
+      "citation_validity": null,
+      "cited_sources": [],
+      "latency_ms": 831,
+      "answer": "I could not find relevant content in the indexed documents, so I will not answer rather than guess. Try a more specific question, or check whether a document covering this topic has been ingested."
+    },
+    {
+      "id": "r-004",
+      "category": "should_refuse",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "refusal",
+      "refused": true,
+      "needs_document": false,
+      "citation_validity": null,
+      "cited_sources": [],
+      "latency_ms": 748,
+      "answer": "I could not find relevant content in the indexed documents, so I will not answer rather than guess. Try a more specific question, or check whether a document covering this topic has been ingested."
+    },
+    {
+      "id": "r-005",
+      "category": "should_refuse",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "blocked",
+      "refused": true,
+      "needs_document": false,
+      "citation_validity": null,
+      "cited_sources": [],
+      "latency_ms": 235,
+      "answer": "Câu hỏi này bị chặn bởi bộ lọc an toàn. Tôi chỉ trả lời câu hỏi về nội dung tài liệu đã nạp."
+    },
+    {
+      "id": "r-006",
+      "category": "should_refuse",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "blocked",
+      "refused": true,
+      "needs_document": false,
+      "citation_validity": null,
+      "cited_sources": [],
+      "latency_ms": 198,
+      "answer": "This question was blocked by the safety filter. I only answer questions about the content of the indexed documents."
+    }
+  ]
+}

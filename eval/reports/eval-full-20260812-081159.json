@@ -1,0 +1,141 @@
+{
+  "mode": "full",
+  "run_at": "2026-08-12T08:11:59+00:00",
+  "api": "https://docubo.vercel.app/api/chat",
+  "min_cosine": 0.6,
+  "summary": {
+    "n_items": 6,
+    "retrieval_hit_at_8": 1.0,
+    "retrieval_mrr": 0.85,
+    "hit_same_language": 1.0,
+    "hit_cross_lingual": 1.0,
+    "refusal_rate": null,
+    "false_refusal_rate": 0.0,
+    "median_latency_ms": 15550,
+    "citation_validity": 1.0,
+    "overview_asked_for_document": null,
+    "n_generation_failed": 1,
+    "n_degraded": 1
+  },
+  "results": [
+    {
+      "id": "t-001",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "error",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": null,
+      "cited_sources": [],
+      "model": null,
+      "degraded": false,
+      "reason": "rate_limited",
+      "latency_ms": 17889,
+      "answer": "Hệ thống đang bị giới hạn tần suất nên chưa sinh được câu trả lời. Thử lại sau khoảng một phút."
+    },
+    {
+      "id": "t-002",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": true,
+      "reason": null,
+      "latency_ms": 15550,
+      "answer": "Trong định nghĩa của học máy, ba yếu tố **T**, **P**, **E** có ý nghĩa như sau:\n\n*   **T**: Là một công việc hoặc nhiệm vụ (task) [1][3].\n*   **P**: Là tiêu chí đánh giá hiệu năng hoặc độ đo hiệu suất (performance measure) [1][3].\n*   **E**: Là kinh nghiệm (experience) [1][3].\n\nMối quan hệ giữa ba yếu tố này được thể hiện qua định nghĩa của T. Mitchell: Một chương trình máy tính được nói là học từ kinh nghiệm **E** cho một lớp các nhiệm vụ **T** với độ đo hiệu suất **P**, nếu hiệu suất của nó với nhiệm vụ **T**, được đánh giá bằng **P**, có thể tăng lên cùng với kinh nghiệm **E** [3].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-003",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": false,
+      "reason": null,
+      "latency_ms": 8091,
+      "answer": "Based on the provided documents, semi-supervised learning is defined as:\n\n* **Definition:** A class of machine learning techniques that make use of both labeled and unlabeled data for training—typically a small amount of labeled data with a large amount of unlabeled data [2].\n* **Classes of Semi-Supervised Learning (SSL) methods:** \n  * Generative models [3]\n  * Low-density separation [3]\n  * Graph-based methods [3]\n  * Change of representation [3]",
+      "hit": true,
+      "mrr": 0.25
+    },
+    {
+      "id": "t-004",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": false,
+      "reason": null,
+      "latency_ms": 10214,
+      "answer": "Based on the provided documents, transfer learning aims to develop methods to transfer knowledge learned in one or more source tasks and use it to improve learning in a related target task [1]. \n\nIt is also recognized as a successful application of machine learning [2] and is used as an advanced statistical machine learning method to help solve problems in language processing [4].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-005",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "2402.00253v2.pdf",
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": false,
+      "reason": null,
+      "latency_ms": 17728,
+      "answer": "Dựa vào tài liệu cung cấp, học tăng cường (reinforcement learning) quan tâm đến các vấn đề sau:\n\n* **Thu thập dữ liệu mới:** Thực hiện thông qua các hành động và nhận phản hồi trong quá trình thực hiện [1].\n* **Thử nghiệm và tối ưu hóa:** Cho phép thuật toán học bằng cách thử nhiều hành động/chiến lược khác nhau và chọn ra phương án tốt nhất [1].\n* **Sự đánh đổi giữa thăm dò và khai thác (exploration-exploitation trade-offs):** \n  * *Exploration* (thăm dò): Ví dụ như đi đến một nhà hàng mới [1].\n  * *Exploitation* (khai thác): Ví dụ như đi đến nhà hàng yêu thích [1].\n  * Sự đánh đổi này (như trong Bandit Algorithm: multi-armed bandit) giúp thuật toán giảm thiểu chi phí thăm dò và tăng hiệu quả khai thác được [1].\n* **Các thuật toán liên quan:** Q-learning và Bandit Algorithm [1].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-006",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": false,
+      "reason": null,
+      "latency_ms": 6288,
+      "answer": "Based on the provided documents, ensemble learning (or ensemble methods) employs multiple learners and combines their predictions to achieve higher performance than that of a single learner [1]. \n\nKey techniques in ensemble learning include:\n* **Boosting**: Making examples that are currently misclassified more important [1].\n* **Bagging**: Using different subsets of the training data for each model [1].",
+      "hit": true,
+      "mrr": 1.0
+    }
+  ]
+}

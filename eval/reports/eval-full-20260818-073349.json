@@ -1,0 +1,101 @@
+{
+  "mode": "full",
+  "run_at": "2026-08-18T07:33:49+00:00",
+  "api": "http://localhost:3000/api/chat",
+  "note": null,
+  "min_cosine": 0.6,
+  "summary": {
+    "n_items": 3,
+    "n_scored": 3,
+    "retrieval_hit_at_8": 1.0,
+    "retrieval_mrr": 0.75,
+    "hit_same_language": 1.0,
+    "hit_cross_lingual": null,
+    "refusal_rate": null,
+    "false_refusal_rate": 0.0,
+    "median_latency_ms": 16926,
+    "citation_validity": 1.0,
+    "overview_asked_for_document": null,
+    "overview_answered_when_named": null,
+    "n_generation_failed": 0,
+    "n_degraded": 0,
+    "faithfulness": 1.0,
+    "n_faithfulness_unscored": 0
+  },
+  "results": [
+    {
+      "id": "t-001",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "expect_needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": false,
+      "reason": null,
+      "retried": false,
+      "latency_ms": 16926,
+      "answer": "Dựa trên tài liệu cung cấp, sự khác biệt giữa Machine Learning (ML) và Deep Learning (DL) được thể hiện qua các điểm chính sau:\n\n*   **Cách xử lý, học từ dữ liệu và sự can thiệp của con người:**\n    *   Các mô hình ML cơ bản cần có sự can thiệp của con người nếu đưa ra dự đoán không chính xác [3]. ML yêu cầu các kỹ sư con người cung cấp dữ liệu được xử lý trước để tiếp tục cải thiện kết quả đầu ra [4].\n    *   Ngược lại, các mô hình DL có thể tự xác định xem dự đoán có chính xác hay không thông qua mạng lưới thần kinh của chính chúng mà không cần đến sự trợ giúp của con người [3]. Chúng không cần sự can thiệp của con người để học vì có thể tự động xác định tập hợp các tính năng giúp phân biệt các loại đầu vào khác nhau [4].\n*   **Số lượng lớp trong mạng lưới thần kinh:**\n    *   Một sự khá",
+      "hit": true,
+      "mrr": 1.0,
+      "faithfulness_score": 1.0,
+      "faithfulness_unsupported": []
+    },
+    {
+      "id": "t-002",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "expect_needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": false,
+      "reason": null,
+      "retried": false,
+      "latency_ms": 8382,
+      "answer": "Trong định nghĩa học máy, ba yếu tố **T**, **P**, **E** có ý nghĩa như sau:\n\n*   **T**: Là một công việc hoặc nhiệm vụ (task) [1][3].\n*   **P**: Là tiêu chí đánh giá hiệu năng hoặc độ đo hiệu suất (performance measure) [1][3].\n*   **E**: Là kinh nghiệm (experience) [1][3].\n\nCụ thể, một chương trình máy tính được định nghĩa là học từ kinh nghiệm **E** cho một lớp các nhiệm vụ **T** với độ đo hiệu suất **P**, nếu hiệu suất của nó với nhiệm vụ **T**, được đánh giá bằng **P**, có thể tăng lên cùng với kinh nghiệm **E** [3].",
+      "hit": true,
+      "mrr": 1.0,
+      "faithfulness_score": 1.0,
+      "faithfulness_unsupported": []
+    },
+    {
+      "id": "t-003",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "expect_needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": false,
+      "reason": null,
+      "retried": true,
+      "latency_ms": 20565,
+      "answer": "Based on the provided context, semi-supervised learning is defined as:\n\n* A class of machine learning techniques that make use of both labeled and unlabeled data for training—typically a small amount of labeled data with a large amount of unlabeled data [2].",
+      "hit": true,
+      "mrr": 0.25,
+      "faithfulness_score": 1.0,
+      "faithfulness_unsupported": []
+    }
+  ]
+}

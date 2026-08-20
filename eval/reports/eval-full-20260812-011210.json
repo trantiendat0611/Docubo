@@ -1,0 +1,72 @@
+{
+  "mode": "full",
+  "run_at": "2026-08-12T01:12:10+00:00",
+  "min_cosine": 0.6,
+  "summary": {
+    "n_items": 3,
+    "retrieval_hit_at_8": 1.0,
+    "retrieval_mrr": 1.0,
+    "hit_same_language": 1.0,
+    "hit_cross_lingual": null,
+    "refusal_rate": null,
+    "false_refusal_rate": 0.0,
+    "median_latency_ms": 7371,
+    "citation_validity": 1.0,
+    "overview_asked_for_document": null
+  },
+  "results": [
+    {
+      "id": "t-001",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 15527,
+      "answer": "Dựa vào tài liệu cung cấp, sự khác biệt giữa Machine Learning (ML) và Deep Learning (DL) được thể hiện qua các khía cạnh sau:\n\n*   **Sự can thiệp của con người và cách học từ dữ liệu:**\n    *   Các mô hình ML cơ bản vẫn cần sự can thiệp của con người nếu đưa ra dự đoán không chính xác [1]. Ngoài ra, ML yêu cầu các kỹ sư con người cung cấp dữ liệu được xử lý trước để tiếp tục cải thiện kết quả đầu ra [2].\n    *   Ngược lại, các mô hình DL có thể tự xác định xem dự đoán có chính xác hay không thông qua mạng lưới thần kinh của chính chúng mà không cần sự trợ giúp của con người [1]. Chúng có thể tự động xác định tập hợp các tính năng giúp phân biệt các loại đầu vào khác nhau mà không cần con người can thiệp để học [2].\n*   **Cấu trúc mạng lưới thần kinh:**\n    *   Một sự khác biệt chính giữa h",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-002",
+      "category": "text",
+      "q_lang": "vi",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf",
+        "testtv1.pdf"
+      ],
+      "latency_ms": 7371,
+      "answer": "Trong định nghĩa của học máy (machine learning), ba yếu tố **T**, **P**, **E** có ý nghĩa như sau:\n\n*   **T**: Là một công việc hoặc nhiệm vụ (task) [1][3].\n*   **P**: Là tiêu chí đánh giá hiệu năng hoặc độ đo hiệu suất (performance measure) [1][3].\n*   **E**: Là kinh nghiệm (experience) [1][3].\n\nCụ thể, một chương trình máy tính được cho là học từ kinh nghiệm **E** đối với một lớp các nhiệm vụ **T** với độ đo hiệu suất **P**, nếu hiệu suất của nó khi thực hiện nhiệm vụ **T** (được đánh giá bằng **P**) cải thiện/tăng lên cùng với kinh nghiệm **E** [2][3].",
+      "hit": true,
+      "mrr": 1.0
+    },
+    {
+      "id": "t-003",
+      "category": "text",
+      "q_lang": "en",
+      "cross_lingual": false,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "testta1.pdf"
+      ],
+      "latency_ms": 4932,
+      "answer": "Based on the provided context, semi-supervised learning is a class of machine learning techniques that use both labeled and unlabeled data for training [1]. Typically, this involves using a small amount of labeled data along with a large amount of unlabeled data [1].",
+      "hit": true,
+      "mrr": 1.0
+    }
+  ]
+}
