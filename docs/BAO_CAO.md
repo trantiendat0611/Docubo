@@ -6,7 +6,7 @@
 > Mã nguồn: https://github.com/trantiendat0611/Docubo
 > Bản chạy thật: https://docubo.vercel.app
 >
-> *Chương 1–2 viết ngày 19/08. Trạng thái các chương còn lại ở cuối tài liệu.*
+> *Chương 1–4 viết ngày 19/08. Trạng thái chương 5 ở cuối tài liệu.*
 
 ---
 
@@ -406,6 +406,438 @@ lớn được thêm vào **sau khi gặp thật**. Vài ca tiêu biểu:
 Cả bốn đều được kiểm chứng bằng số đo chứ không dừng ở lí lẽ — và một trong bốn
 lí lẽ đã bị chính phép đo bác bỏ rồi phải viết lại. Chi tiết ở chương 4.
 
+# Chương 3 — Triển khai kĩ thuật
+
+Chương này không kể lại mã nguồn. Nó kể **thứ tự xây dựng**, những chỗ thiết kế
+va vào thực tế, và những lỗi chỉ lộ ra khi chạy trên dữ liệu thật. Bản đầy đủ,
+kèm mọi số đo, nằm ở `docs/SKILL_MY_PROJECT.md` §2 và §3.
+
+## 3.1 Thứ tự xây dựng, và vì sao thứ tự đó
+
+Tám bước, theo đúng trình tự đã làm và sẽ làm lại nếu bắt đầu lần nữa:
+
+| Bước | Việc | Vì sao đứng ở đây |
+|---|---|---|
+| 1 | Spike 6 trang khó nhất | Model không đọc nổi tài liệu thì mọi thiết kế phía sau vô nghĩa |
+| 2 | Cache từng trang | Trước lần gọi API thứ hai, không phải khi thấy chậm |
+| 3 | Prompt trích xuất | Sau khi đã có cache để chỉnh mà không đốt quota |
+| 4 | Chunking | Cần đầu ra ổn định từ bước 3 mới đo được |
+| 5 | Schema và chỉ mục | Sau khi biết chunk trông như thế nào |
+| 6 | Grounding prompt | Sau khi truy hồi trả về đúng đoạn |
+| 7 | Ngưỡng từ chối | Cần điểm cosine thật trên corpus thật |
+| 8 | Bộ đo | Trước khi tối ưu bất cứ thứ gì |
+
+Nguyên tắc xuyên suốt: **mỗi bước phải đo được trước khi bước sau bắt đầu.**
+
+## 3.2 Spike trước, kiến trúc sau
+
+Sáu trang được chọn không phải ngẫu nhiên mà là **sáu trang khó nhất** tìm được:
+trang dày công thức, trang toàn biểu đồ, trang trộn Việt–Anh trong cùng đoạn.
+
+Sáu trang đó lôi ra **bốn lỗi mà đọc code bao nhiêu lần cũng không thấy**:
+
+| Lỗi | Bản chất |
+|---|---|
+| Model mặc định không có quota | `gemini-2.0-flash` trả 429 với `limit: 0` — không phải cạn quota mà là **chưa từng có** |
+| LaTeX làm vỡ JSON | Model trả `\prod` một dấu gạch chéo; `\p` không phải escape hợp lệ, nên **cả trang trích xuất đúng bị mất ở khâu parse** |
+| Trang bị `RECITATION` | Model từ chối chép lại văn bản nó nhận ra là đã xuất bản; trả về rỗng, không báo lỗi |
+| Khối quá khổ lọt lưới | Markdown không có dòng trắng làm cả trang co thành một khối, mà một khối thì chưa bao giờ bị cắt |
+
+Cả bốn đều **chỉ lộ ra khi chạy trên dữ liệu thật**. Nếu chạy thẳng trên tài liệu
+300 trang: lỗi thứ nhất đốt quota vô ích, lỗi thứ ba **âm thầm mất trang mà không
+ai biết**.
+
+## 3.3 Cache — số học của một ràng buộc
+
+Cache đặt ở mức **từng trang**, ghi ra `data/cache/<tài liệu>/pNNNN.json`.
+
+```
+corpus đánh giá 83 trang  ÷  gộp 8 trang/request  =  11 request mỗi lần chạy lại
+ngân sách                                   ~20 request/ngày/model
+```
+
+Nghĩa là **một lần chỉnh prompt mà không có cache tốn quá nửa ngân sách ngày của
+một model.** Hai lần chỉnh là hết sạch, và phải đợi sang hôm sau mới chỉnh được
+lần thứ ba.
+
+Quy tắc rút ra: với bất kì bước nào gọi API tốn quota, **cache trước lần gọi thứ
+hai** — không phải khi thấy chậm. Lần chỉnh prompt đầu tiên là lúc đã muộn.
+
+## 3.4 Prompt trích xuất, và bài học về nhiễu
+
+Prompt được chỉnh nhiều lần nhưng **không commit theo từng lần**, nên lí do từng
+quy tắc ra đời chỉ còn trong trí nhớ. Nên thay vì dựng lại, tôi **đo lại**: bỏ
+từng quy tắc, chạy lại đúng trang đã có trong cache, so hai bên.
+
+Kết quả bốn thí nghiệm trông rất thuyết phục — bỏ quy tắc *"never invent"* làm số
+hình tụt từ **9 xuống 1**.
+
+Rồi một câu hỏi làm hỏng cả bảng: **cùng một prompt chạy hai lần có ra cùng kết
+quả không?**
+
+| Lần chạy | Số hình | Kí tự |
+|---|---|---|
+| 1 | **1** | 527 |
+| 2 | **9** | 745 |
+| 3 | **9** | 745 |
+
+**Prompt không đổi.** Dao động 1–9 hình đúng bằng "tác dụng" đo được ở trên.
+Nghĩa là ba trong bốn thí nghiệm **không kết luận được gì** — chúng chỉ là hai
+lần bốc thăm trùng hoặc lệch nhau.
+
+Chi tiết cuối đáng chú ý: lần 2 và 3 **trùng khít từng byte**, lần 1 khác hẳn.
+Đây không phải nhiễu rải quanh một trung bình mà là **hai chế độ hành vi** — model
+hoặc coi tám tấm ảnh là figure riêng, hoặc gộp hết thành gạch đầu dòng.
+
+Hệ quả sản phẩm, ít người nghĩ tới: **cùng một PDF nạp hai lần có thể cho ra số
+chunk và nội dung chunk khác nhau.** Con số `hit@8 = 1.000` ở chương 4 vì thế đo
+trên **một lần nạp cụ thể**, không phải trên mọi lần nạp có thể.
+
+## 3.5 Chunking — đo sai thứ
+
+Lỗi đắt nhất ở đây không phải chọn sai kích thước mà là **đo sai chuỗi**.
+
+Vòng gói chunk tính ngân sách trên **markdown**, còn `n_tokens` đo trên
+**`embed_text`**. Hai độ dài không hề gần nhau: `[[FIGURE:x]]` chỉ **17 kí tự**
+markdown nhưng nở ra hàng trăm kí tự mô tả trong `embed_text`.
+
+Hệ quả: **chỉ chunk chứa biểu đồ mới tràn**, và tràn khoảng **40%** — đúng loại
+nội dung mà cả dự án sinh ra để làm cho truy hồi được.
+
+| Ngân sách tính trên | Số chunk | Token mỗi chunk |
+|---|---|---|
+| markdown | 3 | 1067, 1233, … |
+| `embed_text` | 4 | 712, 831, 757, 548 |
+
+Quy tắc: **ngân sách phải đo trên đúng chuỗi sẽ được embed và lập chỉ mục.** Khi
+hệ thống có hai biểu diễn cho cùng một nội dung, mọi phép đếm phải nói rõ nó đang
+đếm bản nào.
+
+## 3.6 Lưu trữ và chỉ mục
+
+**768 chiều** là số chiều `gemini-embedding-001` trả về, và cột khai
+`vector(768)` để **khoá cứng** hai bên. Đổi model embedding là phải nạp lại vector
+toàn bộ corpus — vector của hai model không nằm chung một không gian. Khoá cứng ở
+schema biến việc đó từ một lỗi âm thầm thành lỗi báo ngay lúc insert.
+
+**HNSW** là chỉ mục láng giềng gần xấp xỉ: đi trên đồ thị nhiều tầng thay vì quét
+toàn bộ. Đổi một chút độ chính xác lấy tốc độ nhanh hơn nhiều bậc.
+
+**Hai cột `tsvector`** vì hai loại tìm kiếm hành xử ngược nhau:
+
+| | Đa ngữ | Cách xử lí |
+|---|---|---|
+| Vector | **Có** | Một không gian chung cho cả hai ngôn ngữ |
+| Full-text | **Không** — khớp theo mặt chữ | Mỗi ngôn ngữ một cột, cấu hình riêng |
+
+Postgres có bộ gốc từ tiếng Anh nhưng **không có từ điển tiếng Việt**, nên
+`fts_vi` dùng `'simple'`: hạ chữ thường và tách token, không cắt gốc. Đó là mức
+tốt nhất Postgres làm được nếu không cài từ điển riêng.
+
+Cả hai cột sinh bằng **trigger** từ `embed_text`, để không đường ghi nào có thể
+quên cập nhật chúng.
+
+## 3.7 Grounding prompt — quy tắc đắt giá nhất
+
+Lần này đo **có baseline trước**, theo đúng bài học §3.4. Baseline không tốn gì:
+lần chạy sạch 13/08 đã cho `citation_validity` **1.000** trên sáu câu, đo trên 20
+câu trả lời.
+
+Thí nghiệm: bỏ quy tắc bắt buộc trích dẫn, chạy lại đúng sáu câu ấy. Phải bỏ
+**hai chỗ** chứ không phải một — quy tắc 2 và dòng cuối mục Language — vì chỉ bỏ
+một chỗ thì marker còn sót lại không diễn giải được.
+
+| | `citation_validity` |
+|---|---|
+| Có quy tắc | **1.000** |
+| Bỏ quy tắc | **0.333** |
+
+Bốn trong sáu câu mất hẳn trích dẫn. **Vì sao hai câu kia vẫn trích dẫn** mới là
+phần đáng chú ý: mỗi khối ngữ cảnh được gói trong
+`<block n="1" source="…" pages="…">`, nên **cấu trúc dữ liệu tự nó đã gợi ý** rằng
+các khối có số và tham chiếu được.
+
+Rút ra: **cấu trúc dữ liệu cũng là một dạng prompt.** Khi thiết kế định dạng
+context, phải nghĩ nó đang ngầm dạy model điều gì.
+
+## 3.8 Ngưỡng từ chối
+
+Ngưỡng ban đầu **0.35**, chọn theo cảm tính. Đo trên corpus thật:
+
+| Loại câu hỏi | Cosine đo được |
+|---|---|
+| Trong phạm vi tài liệu | **0.648 – 0.750** |
+| Hoàn toàn không liên quan | **0.462 – 0.566** |
+
+Ở 0.35, **mọi câu lạc đề đều đi thẳng tới model** trong khi hàng rào trông vẫn
+như đang hoạt động. Nâng lên **0.60**.
+
+Điều chuyển giao được là **cái sàn, không phải con số**:
+`gemini-embedding-001` chấm văn bản hoàn toàn không liên quan quanh **0.5**. Không
+có ngưỡng nào mang từ trực giác hay từ model khác sang mà tin được — với mỗi model
+và mỗi corpus phải đo lại.
+
+## 3.9 Chịu lỗi trong ràng buộc free tier
+
+Phần lớn công sức triển khai nằm ở đây, và gần như toàn bộ đến từ ràng buộc 0
+đồng.
+
+**Xoay vòng chain 4 model.** Hạn mức là **per model**, nên khi một model cạn thì
+model sau vẫn còn. Phân biệt `is_daily_quota` với rate limit theo phút: cái đầu
+đổi model, cái sau đợi đúng `retryDelay` API trả về thay vì backoff mù.
+
+**Lỗi sinh câu trả lời không ném ra ngoài.** Vercel AI SDK `streamText` báo lỗi
+qua callback `onError`, còn `textStream` thì **kết thúc êm và rỗng** — không phân
+biệt được với một model không sinh gì. Tài liệu của chính thư viện ghi ngược lại.
+Bản vá đầu tiên bắt lỗi bằng `try/catch`, compile sạch, test xanh, và **không bao
+giờ kích hoạt**.
+
+**Trạng thái HTTP chốt ngay khi thân response bắt đầu.** Nên lỗi xảy ra sau đó
+chỉ có thể cắt cụt thân, không đổi được status: client nào cũng phải tự suy ra từ
+một stream rỗng rằng đã hỏng và hỏng vì gì — và hai client suy ra hai kiểu. Cách
+sửa là **kéo chunk đầu tiên ra trước khi cam kết header**, rồi trả 503 kèm lí do
+phân biệt được.
+
+**Hàm có trần 60 giây.** Chỗ `await` token đầu tiên không có hạn, nên một model
+chậm bất thường sẽ chạy tới khi nền tảng giết hàm — và vì header chưa gửi, client
+nhận một trang lỗi nó không đọc được. Đã đặt **hạn chót cho cả request** (50s, đo
+từ lúc nhận request chứ không phải từ lúc gọi model, vì guardrail và truy hồi đã
+tiêu thời gian trước đó).
+
+Chi tiết đáng ghi: truyền `abortSignal` cho `streamText` **không đủ**. Đo bằng
+một model không bao giờ trả lời, signal đặt 120ms — vẫn treo. Signal chỉ đi xuống
+tầng fetch; **provider không đọc nó thì chỗ `await` treo y như cũ.** Hạn chót phải
+nằm đúng chỗ đang đợi.
+
+## 3.10 Cô lập dữ liệu, và một giá trị mang hai nghĩa
+
+Cô lập giữa các người dùng nằm ở **tầng database** (§2.7), và đã kiểm chứng bằng
+thực nghiệm: client ẩn danh và người dùng thứ hai đều thấy 0 dòng ở cả bốn bảng.
+
+Nhưng cô lập **trong cùng một tài khoản** thì hỏng, ở một chỗ không test nào chạm
+tới. `conversationId = null` mang hai nghĩa cùng lúc: với sidebar là *"chưa chọn
+khung nào"*, với truy hồi là *"tìm trong mọi tài liệu"*. Hai nghĩa sống chung yên
+ổn cho tới đúng một đường đi — **xoá khung chat đang mở** — nơi người dùng rơi vào
+một màn hình trông y hệt "chat mới" nhưng chứa toàn bộ tài liệu của tài khoản.
+
+Không phải lỗi bảo mật, nhưng phá đúng tính chất trung tâm của sản phẩm. Đã cho
+`null` **một nghĩa duy nhất**: khung chat mới chưa lưu.
+
+Bài học: **một giá trị mang hai nghĩa sẽ trở thành lỗi ở đúng chỗ hai nghĩa đó
+tách ra.** Và chỗ đó thường là đường đi mà không bộ đo nào chạy qua — bộ eval gọi
+thẳng API, nên nó không bao giờ chạm tới giao diện.
+
+## 3.11 Kiểm thử
+
+| Loại | Số lượng | Chạy bằng |
+|---|---|---|
+| Test TypeScript | **61** chạy, 7 bỏ qua | `npm test` |
+| Test Python | **42** | `pytest ingest/tests eval/tests` |
+| — trong đó parity giữa hai pipeline ingest | 2 | `npx vitest run parity` |
+| — 7 test bỏ qua là test gọi thật Gemini/Supabase | | bật bằng `RUN_LIVE=1` |
+
+Hai pipeline ingest — TypeScript cho người dùng tải lên, Python cho nạp hàng loạt
+— **bắt buộc phải sinh ra chunk giống hệt nhau**, và có một parity test so từng
+byte để giữ điều đó.
+
+CI chạy lint, typecheck, test và build; **không gọi Gemini hay Supabase**, vì một
+job chạy tự động mà đốt quota là thứ rất tệ để phát hiện muộn.
+
+---
+
+# Chương 4 — Kết quả đánh giá
+
+**Một quy tắc áp cho mọi con số trong chương này:** ghi kèm **chế độ chạy**, **cỡ
+mẫu** và **nơi chạy**. Bộ số đẹp nhất dự án từng có là một bộ ghép ba chỉ số từ
+lần chạy 26 câu chế độ truy-hồi với một chỉ số từ lần chạy 8 câu chế độ full —
+nhìn như một kết quả, thực ra không lần chạy nào cho ra cả bốn số đó.
+
+## 4.1 Bộ đánh giá
+
+**26 câu hỏi, 6 nhóm**, viết bằng cách đọc chính các chunk đã lập chỉ mục — nên
+không câu nào hỏi về nội dung không tồn tại, và không giá trị `expected_pages` nào
+là phỏng đoán.
+
+| Nhóm | Đo cái gì |
+|---|---|
+| `text` | Sự kiện cụ thể trong văn xuôi |
+| `formula` | Nội dung nằm trong công thức |
+| `figure` | Nội dung **chỉ** nằm trong biểu đồ |
+| `cross_page` | Câu trả lời trải qua nhiều trang |
+| `overview` | Câu hỏi mức tài liệu |
+| `should_refuse` | Câu **phải** bị từ chối |
+
+**8 câu xuyên ngôn ngữ** — hỏi tiếng Việt trên tài liệu tiếng Anh — trong đó 6 câu
+tính điểm truy hồi (2 câu overview không tính, vì chúng đi nhánh `document_overview`
+chứ không qua tìm kiếm tương đồng).
+
+## 4.2 Ba chế độ chạy
+
+| Chế độ | Gọi gì | Dùng khi nào |
+|---|---|---|
+| `--retrieval-only` | RPC trực tiếp, **không tốn quota sinh** | Chế độ để sống cùng khi tinh chỉnh |
+| `--dense-only` | Thay `hybrid_search` bằng `dense_search` | Đo đóng góp thật của nhánh lexical |
+| full | `/api/chat` thật | Chỉ ở đây mới có `citation_validity` và `faithfulness` |
+
+Chế độ `--dense-only` là thứ biến *"chúng tôi có thêm hybrid search"* từ một lời
+khẳng định thành một phép đo.
+
+## 4.3 Kết quả hiện hành
+
+Lần chạy **19/08/2026** trên production, ngay sau khi hạn mức ngày reset —
+`eval/reports/eval-full-20260819-071406.json`. Đây là lần đầu `faithfulness` có số
+đo thật trên production.
+
+| Chỉ số | Ngưỡng | Đo được | |
+|---|---|---|---|
+| `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
+| `citation_validity` | ≥ 0.95 | **1.000** | Đạt (17/17) |
+| `refusal_rate` | ≥ 0.90 | **1.000** | Đạt, `false_refusal_rate` = 0 |
+| `faithfulness` | ≥ 0.90 | **1.000** | Đạt (17/17, không câu nào không chấm được) |
+| `median_ttft_ms` | < 10s | **8155** | Đạt |
+| `p90_ttft_ms` | < 15s | **12069** | Đạt |
+| `n_timeout` | **= 0** | **2** | **Chưa đạt** |
+
+Chỉ số phụ: `hit_cross_lingual` 1.000 · `retrieval_mrr` 0.883 ·
+`overview_asked_for_document` 1.000 · `overview_answered_when_named` 1.000 ·
+`median_latency_ms` 7808 · `n_scored` 24/26.
+
+**Điều kiện của lần đo này phải nói ra.** Chạy lúc quota còn đầy nên 13/17 câu trả
+lời do model mạnh phục vụ, chỉ 4 câu do `flash-lite`. Lần chạy hôm trước tỉ lệ
+ngược lại. Hai lần đo **hai chế độ vận hành khác nhau của cùng một hệ thống** —
+§4.6 nói vì sao điều đó quan trọng.
+
+## 4.4 Tiến triển qua mười lần chạy
+
+Giờ ghi theo giờ Việt Nam (`run_at` trong report lưu UTC, +7).
+
+| # | Thời điểm | Chế độ | Nơi | n | hit@8 | cross | MRR | citation | refusal | faithful | TTFT | Cái gì đổi |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 11/08 16:56 | retrieval | — | 26 | 0.941 | 0.833 | 0.824 | — | — | — | — | Lần chạy đầu của harness |
+| 2 | 11/08 17:00 | retrieval | — | 26 | **1.000** | **1.000** | 0.887 | — | — | — | — | Lưu sẵn biến thể `query_en`/`query_vi` |
+| 3 | 11/08 17:01 | dense-only | — | 26 | 0.941 | 0.833 | 0.868 | — | — | — | — | Bỏ hai nhánh full-text |
+| 4 | 12/08 08:59 | retrieval | — | 26 | 1.000 | 1.000 | **0.926** | — | — | — | — | Chấm câu đúng ở **mọi** trang có đáp án |
+| 5 | 12/08 14:20 | full | prod | 26 | 1.000 | 1.000 | 0.882 | **0.15** | 1.000 | — | — | Lần đầu gọi `/api/chat` — **số này sai** |
+| 6 | 12/08 15:20 | full | prod | 26 | 1.000 | 1.000 | 0.821 | 1.000 | **0.0** | — | — | **Số này cũng sai** |
+| 7 | 13/08 17:08 | full | prod | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | — | Lần chạy sạch đầu tiên |
+| 8 | 18/08 15:16 | full | local | 26 | 1.000 | 1.000 | 0.882 | 0.947 | 1.000 | **1.000** | 4933 | Nối `--judge`, đo TTFT thật |
+| 9 | 18/08 15:54 | full | **prod** | 26 | 1.000 | 1.000 | 0.788 | 0.947 | 1.000 | — | **2889** | Chạy lại trên production |
+| 10 | 19/08 14:14 | full | **prod** | 26 | 1.000 | 1.000 | 0.883 | **1.000** | 1.000 | **1.000** | 8155 | Quota vừa reset |
+
+Các lần chạy 3, 5, 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải
+phép đo.
+
+## 4.5 Ba con số trông như kết quả mà không phải
+
+Đây là phần đáng đọc nhất của chương. **Năm lần** trong dự án, một con số hiện ra
+trông như kết quả trong khi nó đang đo thứ khác. Ba lần lộ ra ngay trên bảng trên.
+
+**Dòng 5 — `citation_validity = 0.15`.** Ngưỡng cần 0.95, nên nhìn qua là "trích
+dẫn hỏng nặng". Xem tay thì **không trích dẫn nào sai**: 17/26 câu có thân response
+**rỗng** vì hết hạn mức, và hàm chấm trả 0.0 khi không thấy marker. Dấu hiệu lộ ra
+ngay ở cột bên cạnh — `median_latency_ms` 964, mà gần một giây cho một câu trả lời
+có sinh văn bản là **bất khả thi**.
+
+**Dòng 6 — `refusal_rate = 0.0`.** Đọc như "hệ thống không bao giờ từ chối", tức
+hỏng đúng tính năng trung tâm. Thực chất 19/26 request trả **401** vì token hết
+hạn, và một request hỏng bị tính là "câu hỏi mà hệ thống đã không từ chối".
+
+**Dòng 1 → 2 — `hit_cross_lingual` 0.833 → 1.000 trong 4 phút.** Không có commit
+nào giữa hai lần chạy, và hệ thống không tốt lên: **lần 1 đo một hệ thống không ai
+chạy.** Harness lúc đó đưa câu hỏi thô vào truy hồi, trong khi production luôn sinh
+`query_en`/`query_vi` trước.
+
+**Hai dòng 5 và 6 sai theo hướng bi quan** — hướng nguy hiểm hơn, vì nó dụ mình đi
+sửa thứ vốn đã đạt 1.000. Nếu tin `0.15` mà đi chỉnh prompt trích dẫn thì mất
+nhiều ngày cho một thứ không hỏng.
+
+**Hệ quả thiết kế cho bộ đo:** request hỏng phải bị **loại khỏi mẫu**, không được
+chấm 0, và mọi tỉ lệ phải kèm cỡ mẫu thật sự chấm được (`n_scored`) chứ không phải
+số câu đã gửi.
+
+## 4.6 Chain model quyết định cả chất lượng lẫn tốc độ
+
+Khi các model mạnh cạn hạn mức ngày, chain rơi xuống `gemini-3.5-flash-lite`.
+Điều đó **đổi kết quả đo theo hai hướng ngược nhau**.
+
+| Model phục vụ | Câu có trích dẫn | TTFT trung vị |
+|---|---|---|
+| `gemini-3.5-flash` + `gemini-2.5-flash` | **41/41** | 8444ms |
+| `gemini-3.5-flash-lite` | 31/33 | **2860–4225ms** |
+
+Cộng dồn qua bốn lần chạy đầy đủ. `flash-lite` là model **duy nhất** từng bỏ marker
+trích dẫn — và cũng là model **nhanh nhất**.
+
+Hai hệ quả:
+
+**`citation_validity` 1.000 → 0.947 → 1.000 giữa các lần chạy, không sửa dòng code
+nào.** Nó dao động theo model được chọn, tức theo **thời điểm trong ngày**. Đây là
+cái giá trực tiếp của ràng buộc 0 đồng, và phải nói ra chứ không giấu bằng cách chỉ
+trưng lần chạy đẹp nhất.
+
+**Ngưỡng "token đầu tiên < 3s" chỉ đạt khi hệ thống chạy ở chế độ chất lượng thấp
+nhất.** Lần đo 2889ms từng được ghi là "đạt" — nhưng lần đó `flash-lite` phục vụ
+17/19 câu. Tốc độ và độ tin cậy trích dẫn **đánh đổi nhau dọc theo chain**, và
+ngưỡng NFR ban đầu được đặt trước khi chain tồn tại. Ngưỡng đã được thay bằng ba
+ngưỡng mới ở §2.3.
+
+## 4.7 Đóng góp của từng thành phần
+
+Ba thí nghiệm bóc từng phần ra để xem nó đáng bao nhiêu.
+
+**Nhánh lexical.** `dense-only` cho `hit_cross_lingual` 0.833, hybrid cho 1.000.
+Chênh 16.7 điểm phần trăm — nhưng **đọc con số đó cho đúng**: bộ eval có 6 câu
+xuyên ngôn ngữ tính điểm, và `0.833` chính là `5/6`. Toàn bộ khoảng cách là **một
+câu duy nhất**, nên độ phân giải của phép đo là ±1 câu ≈ 16.7 điểm. Nó **không** đo
+được "nhánh lexical đáng bao nhiêu"; nó chứng minh **có tồn tại ca mà nhánh dense
+một mình không đủ**.
+
+Truy ra đúng câu đó (`t-005`, *"Học tăng cường quan tâm đến điều gì?"*): không có
+trong top-8 nếu thiếu biến thể tiếng Anh, **hạng 1** nếu có. Hai câu xuyên ngôn ngữ
+khác hạng 1 ở cả hai chiều. Câu hỏi ấy gần như không mang nội dung — bỏ *"quan tâm
+đến điều gì"* thì còn mỗi "học tăng cường" — nên vector nằm lưng chừng giữa nhiều
+đoạn, trong khi `fts_en` chỉ cần đúng cụm "reinforcement learning".
+
+Kết luận: **nhánh lexical không phải thứ làm truy hồi xuyên ngôn ngữ chạy được —
+nhánh dense làm việc đó.** Nó là lưới an toàn cho đúng nhóm câu mơ hồ mà đáp án nằm
+dưới một thuật ngữ có tên riêng.
+
+**Quy tắc trích dẫn trong prompt.** Bỏ đi: `citation_validity` 1.000 → **0.333**
+(§3.7). Đây là hiệu ứng lớn nhất đo được trong dự án.
+
+**Hai biểu diễn mỗi chunk.** Lí lẽ ban đầu — *"LaTeX thô embed ra vector gần như vô
+nghĩa"* — khi đo thì **sai**: chênh cosine giữa hai biểu diễn chỉ **0.004–0.031**,
+và có ca LaTeX còn nhỉnh hơn. Thứ LaTeX thật sự phá là **chỉ mục toàn văn**
+(`\langle` cắt gốc thành `langl`). Quyết định đúng, lí do ban đầu sai.
+
+## 4.8 Giới hạn của phép đo
+
+Phải nói ra, vì mọi con số ở trên chỉ có nghĩa trong khuôn khổ này.
+
+**Cỡ mẫu nhỏ.** 26 câu, 3 tài liệu. Nhóm xuyên ngôn ngữ chỉ 6 câu tính điểm, nên
+một câu bằng 16.7 điểm phần trăm. Không con số nào ở đây nên được trích dẫn tới ba
+chữ số thập phân như thể nó ổn định.
+
+**`hit@8 = 1.000` đo trên một lần nạp cụ thể.** Ingest bằng vision **không tất
+định** (§3.4): cùng một PDF nạp hai lần có thể cho ra chunk khác nhau.
+
+**MRR không so được giữa hai chế độ.** Chế độ truy-hồi dùng biến thể truy vấn lưu
+sẵn nên lặp lại được (0.926); chế độ full sinh biến thể trực tiếp mỗi lần gọi nên
+dao động (0.788 – 0.883). Muốn so truy hồi giữa hai thời điểm thì **phải** dùng
+`--retrieval-only`.
+
+**`faithfulness` chấm bằng LLM.** Người chấm cũng là một model, nên 1.000 nghĩa là
+"model chấm không tìm thấy khẳng định thiếu chỗ dựa", không phải "chắc chắn không
+có".
+
+**Bộ eval do chính tác giả viết.** Nó đo hệ thống có làm được thứ nó hứa hay không,
+không đo hệ thống có hữu ích với người lạ hay không. Kiểm thử với người dùng thật
+là việc riêng, chưa làm.
+
+**Một đường đi mà không phép đo nào chạm tới.** Bộ eval gọi thẳng API, nên nó không
+bao giờ đụng giao diện — và lỗi phạm vi tài liệu ở §3.10 nằm đúng chỗ đó. Bốn chỉ
+số xanh không nói gì về những đường mà bốn chỉ số ấy không đi qua.
+
 ---
 
 ## Trạng thái tài liệu
@@ -414,8 +846,8 @@ lí lẽ đã bị chính phép đo bác bỏ rồi phải viết lại. Chi ti�
 |---|---|---|
 | 1. Tổng quan | **Xong** 19/08 | `REQUIREMENTS.md` §1–2, `SKILL_MY_PROJECT.md` §1.1 |
 | 2. Phân tích & Thiết kế | **Xong** 19/08 | `REQUIREMENTS.md` §3–6, 2 sơ đồ, `SKILL` §1.2–1.3 |
-| 3. Triển khai kĩ thuật | Tuần 6 | `SKILL` §2 (8 bước), §3 (19 bẫy) |
-| 4. Kết quả đánh giá | Tuần 6 | `SKILL` §4, `eval/reports/*.json` |
+| 3. Triển khai kĩ thuật | **Xong** 19/08 | `SKILL` §2 (8 bước), §3 (22 bẫy) |
+| 4. Kết quả đánh giá | **Xong** 19/08 | `SKILL` §4, `eval/reports/*.json` |
 | 5. Kết luận | Tuần 7 | `SKILL` §5 |
 
 **Việc còn lại của chương 1–2:** hai sơ đồ mermaid cần xuất ra PNG trước khi
