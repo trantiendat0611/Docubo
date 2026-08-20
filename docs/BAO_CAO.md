@@ -161,9 +161,9 @@ giới hạn 5 lượt tải mỗi người mỗi ngày.
 | Tiêu chí | Mục tiêu | Trạng thái |
 |---|---|---|
 | Chi phí | 0 đồng | Đạt — toàn bộ hạ tầng chạy trên free tier |
-| Token đầu tiên, `p50` | < 10s | Đạt — 8155ms. Ngưỡng đổi từ 3s, xem dưới |
-| Token đầu tiên, `p90` | < 15s | Đạt — 12069ms |
-| Request chạm trần 60s | = 0 | **Chưa đạt** — 2/26 ở lần chạy 19/08 |
+| Token đầu tiên, `p50` | < 10s | Đạt — 8594ms. Ngưỡng đổi từ 3s, xem dưới |
+| Token đầu tiên, `p90` | < 15s | **Chưa đạt** — 18368ms. Xem §4.6 |
+| Request chạm trần 60s | = 0 | Đạt — 0/26 ngày 20/08, sau khi đặt hạn chót 50s |
 | Quota vision | ~20 request/ngày/model | Ràng buộc, không phải mục tiêu |
 | Giới hạn tài liệu | 25 trang | Hệ quả của quota |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn khoảng 4.5MB |
@@ -737,28 +737,32 @@ khẳng định thành một phép đo.
 
 ## 4.3 Kết quả hiện hành
 
-Lần chạy **19/08/2026** trên production, ngay sau khi hạn mức ngày reset —
-`eval/reports/eval-full-20260819-071406.json`. Đây là lần đầu `faithfulness` có số
-đo thật trên production.
+Lần chạy **20/08/2026** trên production —
+`eval/reports/eval-full-20260820-071507.json`. Chạy không kèm `--judge`:
+`faithfulness` đã có số production từ 19/08
+(`eval-full-20260819-071406.json`), và bỏ nó ra vừa đủ ngân sách để chạy thêm
+phép thử từ chối ở §4.7 trong cùng một ngày.
 
 | Chỉ số | Ngưỡng | Đo được | |
 |---|---|---|---|
 | `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
-| `citation_validity` | ≥ 0.95 | **1.000** | Đạt (17/17) |
+| `citation_validity` | ≥ 0.95 | **1.000** | Đạt |
 | `refusal_rate` | ≥ 0.90 | **1.000** | Đạt, `false_refusal_rate` = 0 |
-| `faithfulness` | ≥ 0.90 | **1.000** | Đạt (17/17, không câu nào không chấm được) |
-| `median_ttft_ms` | < 10s | **8155** | Đạt |
-| `p90_ttft_ms` | < 15s | **12069** | Đạt |
-| `n_timeout` | **= 0** | **2** | **Chưa đạt** |
+| `faithfulness` | ≥ 0.90 | **1.000** | Đạt — số đo 19/08 |
+| `n_timeout` | **= 0** | **0** | **Đạt** |
+| `median_ttft_ms` (`p50`) | < 10s | **8594** | Đạt |
+| `p90_ttft_ms` | < 15s | **18368** | **Chưa đạt** |
 
-Chỉ số phụ: `hit_cross_lingual` 1.000 · `retrieval_mrr` 0.883 ·
+Chỉ số phụ: `hit_cross_lingual` 1.000 · `retrieval_mrr` 0.882 ·
 `overview_asked_for_document` 1.000 · `overview_answered_when_named` 1.000 ·
-`median_latency_ms` 7808 · `n_scored` 24/26.
+`median_latency_ms` 7755 · `n_scored` 26/26 · `n_generation_failed` 0 ·
+`n_degraded` 2.
 
-**Điều kiện của lần đo này phải nói ra.** Chạy lúc quota còn đầy nên 13/17 câu trả
-lời do model mạnh phục vụ, chỉ 4 câu do `flash-lite`. Lần chạy hôm trước tỉ lệ
-ngược lại. Hai lần đo **hai chế độ vận hành khác nhau của cùng một hệ thống** —
-§4.6 nói vì sao điều đó quan trọng.
+**Điều kiện của lần đo này phải nói ra.** Toàn bộ 26 câu do model mạnh phục vụ, và
+lần chạy còn **bị tải**: 5 câu chạm giới hạn theo phút phải thử lại, 2 câu chạy ở
+chế độ degraded. `n_timeout = 0` vì thế được xác nhận trong điều kiện khắc nghiệt
+hơn lần chạy đã vi phạm nó — §4.6 nói vì sao chế độ vận hành quyết định cách đọc
+mọi con số ở đây.
 
 ## 4.4 Tiến triển qua mười lần chạy
 
@@ -777,6 +781,7 @@ Giờ ghi theo giờ Việt Nam (`run_at` trong report lưu UTC, +7).
 | 9 | 18/08 15:54 | full | **prod** | 26 | 1.000 | 1.000 | 0.788 | 0.947 | 1.000 | — | **2889** | Chạy lại trên production |
 | 10 | 19/08 14:14 | full | **prod** | 26 | 1.000 | 1.000 | 0.883 | **1.000** | 1.000 | **1.000** | 8155 | Quota vừa reset |
 | 11 | 20/08 08:42 | retrieval | — | 26 | 1.000 | 1.000 | **0.926** | — | 1.000 | — | — | Lặp lại đúng dòng 4 sau **8 ngày** |
+| 12 | 20/08 14:15 | full | **prod** | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | 8594 | Xác nhận `n_timeout` = **0** |
 
 Các lần chạy 3, 5, 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải
 phép đo.
@@ -841,6 +846,29 @@ nhất.** Lần đo 2889ms từng được ghi là "đạt" — nhưng lần đ�
 ngưỡng NFR ban đầu được đặt trước khi chain tồn tại. Ngưỡng đã được thay bằng ba
 ngưỡng mới ở §2.3.
 
+### Rồi một trong ba ngưỡng mới hỏng ngay lần chạy sau
+
+`p90_ttft_ms` đi **12069 → 18368** giữa hai lần chạy production liền nhau, vượt
+ngưỡng 15s vừa đặt hôm trước.
+
+Khi đặt ba ngưỡng ấy, hai trong ba được chọn theo hai cách khác nhau, và điều đó
+đã được ghi lại tại thời điểm chọn:
+
+| Ngưỡng | Chọn thế nào | Kết quả sau một lần chạy |
+|---|---|---|
+| `p50` < 10s | Mốc UX quen thuộc, **độc lập với số đo** | Vẫn đạt (8594) |
+| `p90` < 15s | **Sau khi nhìn phân bố** | **Hỏng** (18368) |
+
+Đây là minh hoạ do chính dự án tự tạo ra cho điều §3.8 đã nói: một ngưỡng khớp
+vào một mẫu là một ngưỡng chưa được kiểm.
+
+Có thêm một lí do kĩ thuật khiến `p90` ở đây yếu: nó tính trên **19 mẫu**. Theo
+nearest-rank, `p90` của 19 giá trị là giá trị **thứ 18**, tức chỉ có **một** câu
+đứng trên nó — gần như "câu chậm nhì". Một câu chậm bất thường đủ để đổi kết quả.
+
+**Ngưỡng giữ nguyên và ghi là chưa đạt.** Dời nó lần thứ hai, ngay sau lần vi
+phạm đầu tiên, thì nó thôi không còn là ngưỡng nữa.
+
 ## 4.7 Đóng góp của từng thành phần
 
 Ba thí nghiệm bóc từng phần ra để xem nó đáng bao nhiêu.
@@ -864,6 +892,21 @@ dưới một thuật ngữ có tên riêng.
 
 **Quy tắc trích dẫn trong prompt.** Bỏ đi: `citation_validity` 1.000 → **0.333**
 (§3.7). Đây là hiệu ứng lớn nhất đo được trong dự án.
+
+**Tầng phòng thủ thứ hai, trên đúng nhóm câu tầng thứ nhất không bắt được.** Năm
+câu ngoài phạm vi nhưng cùng lĩnh vực vượt được ngưỡng cosine (§3.8) đã được gửi
+qua `/api/chat` thật ngày 20/08. **Cả năm đều bị từ chối**, và tất cả đều do
+`gemini-3.5-flash-lite` phục vụ — mắt xích yếu nhất chain.
+
+Hai trong năm câu **tìm ra bằng chứng một phần rồi giải thích vì sao nó không đủ**,
+thay vì từ chối trống:
+
+> *"Tài liệu chỉ nhắc đến LoRA như một tài liệu tham khảo […] nhưng không giải
+> thích về phương pháp này hay đưa ra sự khác biệt với full fine-tuning."*
+
+Đó là đọc ngữ cảnh, không phải khớp mẫu. Kết luận: kiến trúc hai tầng đúng, và
+tầng thứ hai gánh được phần việc mà tầng thứ nhất **về nguyên tắc** không làm
+được.
 
 **Hai biểu diễn mỗi chunk.** Lí lẽ ban đầu — *"LaTeX thô embed ra vector gần như vô
 nghĩa"* — khi đo thì **sai**: chênh cosine giữa hai biểu diễn chỉ **0.004–0.031**,
@@ -895,11 +938,11 @@ không đo hệ thống có hữu ích với người lạ hay không. Kiểm th
 là việc riêng, chưa làm.
 
 **`refusal_rate` đo trên một tập negative quá dễ.** Cả sáu câu `should_refuse`
-đều hiển nhiên lạc đề, nên 1.000 nói ít hơn nó có vẻ nói. Khi chấm thêm câu ngoài
-phạm vi **cùng lĩnh vực** thì phân bố của chúng chồng lấn với câu trong phạm vi
-(§3.8) — và năm câu ấy hiện **đi qua** được ngưỡng. Chúng có bị model từ chối ở
-tầng grounding prompt hay không thì **chưa đo**; đó là phép thử thật của lời hứa
-trung tâm và là việc còn nợ.
+đều hiển nhiên lạc đề, nên 1.000 **nói ít hơn** hệ thống thật sự làm được. Phép
+thử bổ sung ở §4.7 cho thấy năm câu khó hơn cũng bị từ chối — nhưng đó là **năm
+câu**, do tác giả tự viết, trên một corpus ba tài liệu. Nó nâng mức tin cậy, không
+biến thành một chỉ số. Cách sửa đúng là **đưa nhóm câu này vào bộ eval** để mọi
+lần chạy sau đều đo, chứ không phải một phép thử rời.
 
 **Ngưỡng từ chối xanh với biên rất mỏng.** `refusal_rate` 1.000 và
 `false_refusal_rate` 0.000 đều đạt, nhưng câu trong phạm vi có điểm thấp nhất

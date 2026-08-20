@@ -1,0 +1,47 @@
+{
+  "run_at": "2026-08-20T07:33:11+00:00",
+  "api": "https://docubo.vercel.app/api/chat",
+  "min_cosine": 0.6,
+  "results": [
+    {
+      "question": "Sự khác nhau giữa LoRA và full fine-tuning là gì?",
+      "top_cosine": 0.644,
+      "type": "answer",
+      "model": "gemini-3.5-flash-lite",
+      "looks_like_refusal": true,
+      "answer": "Ngữ cảnh hiện tại không chứa thông tin để so sánh giữa LoRA và full fine-tuning. Tài liệu chỉ nhắc đến LoRA như một tài liệu tham khảo (Low-rank adaptation of large language models) [1], nhưng không giải thích về phương pháp này hay đưa ra sự khác biệt với full fine-tuning. \n\nBạn có thể hỏi các nội dung khác có trong ngữ cảnh, chẳng hạn như sự khác biệt giữa Machine Learning và Deep learning [3][5], các phương pháp học trong Machine Learning (Active learning, online learning) [6], hay phân loại Generative và Discriminative classifiers [7]."
+    },
+    {
+      "question": "Cách chọn learning rate schedule cho quá trình huấn luyện?",
+      "top_cosine": 0.644,
+      "type": "answer",
+      "model": "gemini-3.5-flash-lite",
+      "looks_like_refusal": true,
+      "answer": "Dữ liệu hiện tại không chứa thông tin về cách chọn learning rate schedule cho quá trình huấn luyện. \n\nBạn có thể hỏi về các chủ đề khác có trong tài liệu như: định nghĩa và các khái niệm cơ bản về machine learning/deep learning, các phương pháp học (active learning, online learning, ensemble learning, learning to rank, học tăng cường), sự khác biệt giữa machine learning và deep learning, hoặc các yếu tố ảnh hưởng đến độ chính xác của machine learning."
+    },
+    {
+      "question": "Giải thích thuật toán k-means và cách chọn số cụm k",
+      "top_cosine": 0.654,
+      "type": "answer",
+      "model": "gemini-3.5-flash-lite",
+      "looks_like_refusal": true,
+      "answer": "Tài liệu cung cấp không chứa thông tin để giải thích thuật toán k-means cũng như cách chọn số cụm k. \n\nDo phạm vi của các đoạn ngữ cảnh chỉ tập trung vào định nghĩa chung về học máy, Deep Learning, một số phương pháp học (như học tăng cường, semi-supervised, active, online, ensemble learning), giảm chiều dữ liệu, và kernel methods, bạn có thể hỏi về các chủ đề này hoặc các khái niệm khác được đề cập trong tài liệu [1][2][3][4][5][6][7][8]."
+    },
+    {
+      "question": "Batch normalization giúp gì cho quá trình huấn luyện?",
+      "top_cosine": 0.623,
+      "type": "answer",
+      "model": "gemini-3.5-flash-lite",
+      "looks_like_refusal": true,
+      "answer": "Tài liệu cung cấp không chứa thông tin về Batch normalization. Do đó, tôi không thể trả lời câu hỏi này dựa trên các ngữ cảnh hiện có. \n\nBạn có thể hỏi về các chủ đề khác có trong tài liệu như: sự khác biệt giữa Machine Learning và Deep Learning, các phương pháp Ensemble learning (Boosting, Bagging), Semi-supervised learning, hoặc các chương trình học thuật về Statistical Machine Learning."
+    },
+    {
+      "question": "What is the difference between L1 and L2 regularisation?",
+      "top_cosine": 0.613,
+      "type": "answer",
+      "model": "gemini-3.5-flash-lite",
+      "looks_like_refusal": true,
+      "answer": "The provided context mentions that \"[L1 regularization](#) may allow some coefficients to be zore\" [4], but it does not contain information about L2 regularisation or the difference between L1 and L2 regularisation. \n\nThe corpus does not cover the comparison between L1 and L2 regularisation. You could instead ask about other challenges in kernel methods, such as the choice of kernel function, the complexity of kernel algorithms, or multiple kernel learning [4]."
+    }
+  ]
+}

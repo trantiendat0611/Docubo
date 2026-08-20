@@ -174,8 +174,8 @@ trong bất kì câu trả lời nào.
 |---|---|---|
 | Chi phí | 0 đồng | Ràng buộc cứng của đề bài |
 | Token đầu tiên (`p50`) | < 10s | **Đổi từ < 3s ngày 19/08.** Ngưỡng cũ được neo vào một request **không gọi model nào** (~0.34s sau khi đặt region Singapore). Đường thật trước token đầu có **hai lượt gọi model tuần tự** — guardrail rồi mới tới sinh — cộng năm vòng gọi database, nên 3s không đạt được bằng kiến trúc này. 10s là mốc UX quen thuộc về giới hạn giữ được sự chú ý của người dùng, chọn độc lập với số đo. Đo được: 2889ms (18/08) · 8155ms (19/08) |
-| Token đầu tiên (`p90`) | < 15s | Thêm mới 19/08. Chỉ có trung vị thì **giấu mất đuôi phân phối** — ngày 13/08 đã có câu mất 44.2s, tức 74% trần hàm, mà không chỉ số nào cho thấy. Đo được: 7747ms (18/08) · 12069ms (19/08) |
-| Request chạm trần 60s | **= 0** | Thêm mới 19/08, và là ngưỡng đúng/sai chứ không phải ngưỡng thoải mái: câu chạm trần **không có câu trả lời**, khác hẳn câu trả lời chậm. **Đang vi phạm: 2/26 ở lần chạy 19/08.** Đo bằng `n_timeout` |
+| Token đầu tiên (`p90`) | < 15s | Thêm mới 19/08. Chỉ có trung vị thì **giấu mất đuôi phân phối** — ngày 13/08 đã có câu mất 44.2s, tức 74% trần hàm, mà không chỉ số nào cho thấy. Đo được: 7747 (18/08) · 12069 (19/08) · **18368 (20/08) — chưa đạt**. Ngưỡng này chọn sau khi nhìn phân bố, và hỏng sau đúng một lần chạy; giữ nguyên và ghi là chưa đạt thay vì dời lần thứ hai. Xem §7 |
+| Request chạm trần 60s | **= 0** | Ngưỡng đúng/sai chứ không phải ngưỡng thoải mái: câu chạm trần **không có câu trả lời**, khác hẳn câu trả lời chậm. 19/08 vi phạm 2/26; sau khi đặt hạn chót 50s cho cả request thì **20/08 đạt 0/26**, xác nhận trong một lần chạy còn bị tải nặng hơn. Đo bằng `n_timeout` |
 | **Quota vision** | **~20 request/ngày mỗi model** | Ràng buộc thật của cả hệ thống. Chain 4 model, gộp 8 trang/request ≈ **640 trang/ngày cho toàn bộ người dùng** |
 | Giới hạn tài liệu | 25 trang | Không phải giới hạn dung lượng — là hệ quả của quota trên. 25 trang ≈ 4 request |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn ~4.5MB. Ảnh trang 200dpi trung bình 480KB, đỉnh 2MB |
@@ -185,42 +185,94 @@ trong bất kì câu trả lời nào.
 
 Hệ thống coi là đạt khi trên `eval/eval_dataset.json`:
 
-Lần đo mới nhất: **19/08/2026** trên production, ngay sau khi quota reset —
-`eval/reports/eval-full-20260819-071406.json`. Đây là lần đầu `faithfulness` có
-số đo thật trên production. Lần đo đầy đủ đầu tiên là 13/08
-(`eval-full-20260813-100813.json`); bảng tiến triển đủ 10 lần chạy ở
-`SKILL_MY_PROJECT.md` §4.
+Lần đo mới nhất: **20/08/2026** trên production —
+`eval/reports/eval-full-20260820-071507.json`. Chạy không kèm `--judge`:
+`faithfulness` đã có số production 1.000 từ 19/08, và bỏ nó ra tiết kiệm 17
+request, vừa đủ ngân sách để chạy thêm phép thử từ chối ở dưới trong cùng ngày.
 
-**Điều kiện của lần đo này khác hẳn 18/08, và điều đó quan trọng.** Chạy lúc
-quota còn đầy nên chain phục vụ chủ yếu bằng model mạnh: 13/17 câu do
-`gemini-3.5-flash` hoặc `gemini-2.5-flash`, chỉ 4 câu do `flash-lite`. Ngày
-18/08 tỉ lệ ngược lại (17/19 câu `flash-lite`). Hai lần chạy vì thế đo **hai chế
-độ vận hành khác nhau của cùng một hệ thống**, và so trực tiếp từng số giữa
-chúng sẽ dẫn tới kết luận sai.
+Toàn bộ 26 câu do model mạnh phục vụ (`gemini-3.5-flash` 10, `gemini-2.5-flash`
+9). Lần chạy này còn **bị tải**: 5 câu chạm giới hạn theo phút và phải thử lại,
+2 câu chạy ở chế độ degraded.
 
-| Chỉ số | Ngưỡng | Đo được | Ghi chú |
+| Chỉ số | Ngưỡng | Đo được | |
 |---|---|---|---|
 | `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
-| `citation_validity` | ≥ 0.95 | **1.000** | Đạt, 17/17. Cả ba model đều đủ trích dẫn ở lần này (`flash` 6/6, `2.5-flash` 7/7, `flash-lite` 4/4). Con số 0.947 ngày 18/08 đến từ `flash-lite`, model duy nhất từng bỏ trích dẫn — cộng dồn bốn lần chạy đầy đủ: model mạnh **41/41**, `flash-lite` **31/33**. Xem bẫy #18 |
-| `refusal_rate` | ≥ 0.90 | **1.000** | Đạt. Trên nhóm `should_refuse`, `false_refusal_rate` = 0. Gồm 4 câu từ chối theo ngưỡng và 2 câu chặn ở guardrail |
-| `faithfulness` | ≥ 0.90 | **1.000** | **Đạt — số đo thật đầu tiên trên production.** 17/17 câu chấm được, `n_faithfulness_unscored` = 0, không câu nào có khẳng định thiếu chỗ dựa |
-| `latex_exact_match` | Chưa chốt | — | Cần nguồn có `.tex` gốc để so |
+| `citation_validity` | ≥ 0.95 | **1.000** | Đạt |
+| `refusal_rate` | ≥ 0.90 | **1.000** | Đạt, `false_refusal_rate` = 0 |
+| `faithfulness` | ≥ 0.90 | **1.000** | Đạt — số đo 19/08, lần này không chấm lại |
+| `n_timeout` | **= 0** | **0** | **Đạt — bản vá trần 60s đã xác nhận** |
+| `median_ttft_ms` (`p50`) | < 10s | **8594** | Đạt |
+| `p90_ttft_ms` | < 15s | **18368** | **Không đạt** |
 
-Chỉ số phụ trong cùng lần chạy:
+Chỉ số phụ: `hit_cross_lingual` 1.000 · `retrieval_mrr` 0.882 ·
+`overview_asked_for_document` 1.000 · `overview_answered_when_named` 1.000 ·
+`median_latency_ms` 7755 · `n_generation_failed` 0 · `n_degraded` 2.
 
-| Chỉ số | Đo được | Nghĩa |
+### `n_timeout = 0` — bản vá trần 60 giây đã xác nhận
+
+Ngày 19/08 có 2/26 câu chết ở 62.4s và 62.6s vì Vercel giết hàm ở
+`maxDuration = 60`. Sau khi đặt hạn chót 50s cho cả request, lần chạy này
+**không câu nào chạm trần** — và nó xác nhận trong điều kiện khắc nghiệt hơn
+lần trước, với 5 lần chạm rate limit và câu chậm nhất mất 22.6s.
+
+### `p90` vừa hỏng, và tôi tự gây ra
+
+Ngưỡng `p90 < 15s` được đặt hôm 19/08. Lúc đặt tôi đã ghi rõ nó **"thừa nhận có
+nhìn vào phân bố"** — khác với `p50 < 10s` vốn lấy từ mốc UX bên ngoài. Đúng một
+lần chạy sau, con số đó bị vượt: 12069 → **18368**.
+
+Hai điều rút ra, và điều thứ hai quan trọng hơn:
+
+**Một, `p90` trên 19 mẫu không phải một thống kê ổn định.** Theo nearest-rank,
+`p90` của 19 giá trị là **giá trị thứ 18**, tức chỉ có đúng **một** câu đứng trên
+nó — nó gần như là "câu chậm nhì". Một câu chậm bất thường là đủ để đổi kết quả.
+
+| n | `p90` là giá trị thứ | Số giá trị đứng trên |
 |---|---|---|
-| `hit_cross_lingual` | 1.000 | Hỏi tiếng Việt trên tài liệu tiếng Anh. 6 câu tính điểm — xem `SKILL_MY_PROJECT.md` §1.3 |
-| `retrieval_mrr` | 0.883 | Thứ hạng của đoạn đúng (13/08: 0.882 · 18/08: 0.788). Ở chế độ full, biến thể truy vấn sinh trực tiếp mỗi lần gọi nên MRR dao động giữa các lần chạy; muốn so truy hồi phải dùng `--retrieval-only` (0.926, biến thể lưu sẵn). Xem bẫy #18b |
-| `overview_asked_for_document` | 1.000 | Câu tóm tắt không nêu tài liệu thì hỏi lại (1/1) |
-| `overview_answered_when_named` | 1.000 | Câu có nêu tài liệu thì trả lời thẳng (2/2) |
-| `median_ttft_ms` | **8155** | **Đạt** ngưỡng `p50` < 10s (đã đổi từ < 3s, xem §6 và phân tích dưới) |
-| `p90_ttft_ms` | **12069** | **Đạt** ngưỡng `p90` < 15s |
-| `n_timeout` | **2** | **Không đạt** — ngưỡng là 0. Xem "Hai lỗi mới" dưới |
-| `median_latency_ms` | 7808 | Thời gian đọc xong **toàn bộ** câu trả lời |
-| `n_generation_failed` | **2** | `t-001` và `f-003` chết ở 62.4s và 62.6s — chạm giới hạn 60s của hàm Vercel. Xem "Hai lỗi mới" bên dưới |
+| 19 | 18 | **1** |
+| 26 | 24 | 2 |
+| 50 | 45 | 5 |
 
-### Ngưỡng TTFT đã được đổi, và đây là lí do
+**Hai, ngưỡng lấy từ dữ liệu thì hỏng, ngưỡng lấy từ bên ngoài thì không.**
+`p50 < 10s` chọn từ mốc UX quen thuộc, độc lập với số đo — vẫn đạt (8594).
+`p90 < 15s` chọn sau khi nhìn phân bố — hỏng sau một lần chạy. Đây là minh hoạ
+do chính dự án tự tạo ra cho điều đã viết ở §3.8: một ngưỡng khớp vào một mẫu là
+một ngưỡng chưa được kiểm.
+
+**Ngưỡng giữ nguyên 15s và ghi là chưa đạt.** Dời nó lần thứ hai, ngay sau lần
+vi phạm đầu tiên, thì nó thôi không còn là ngưỡng nữa. Cần thêm vài lần chạy để
+biết 18368 là mức thật hay là một buổi API bận.
+
+### Model có từ chối câu ngoài phạm vi cùng lĩnh vực không — **có, 5/5**
+
+Câu hỏi mở quan trọng nhất còn lại, và câu trả lời rõ ràng
+(`eval/reports/probe-refusal-20260820-073311.json`).
+
+Năm câu ở §3.8 vượt được ngưỡng cosine — cùng lĩnh vực với tài liệu nhưng tài
+liệu không trả lời được — đã được gửi qua `/api/chat` thật. **Cả năm đều bị từ
+chối**, và tất cả đều do **`gemini-3.5-flash-lite`** phục vụ, tức mắt xích yếu
+nhất chain.
+
+Chất lượng từ chối còn cao hơn mong đợi. Hai trong năm câu **tìm ra bằng chứng
+một phần rồi giải thích vì sao nó không đủ**:
+
+> *"Tài liệu chỉ nhắc đến LoRA như một tài liệu tham khảo (Low-rank adaptation
+> of large language models) [1], nhưng không giải thích về phương pháp này hay
+> đưa ra sự khác biệt với full fine-tuning."*
+
+> *"The provided context mentions that 'L1 regularization may allow some
+> coefficients to be zore' [4], but it does not contain information about L2
+> regularisation or the difference between L1 and L2."*
+
+Đó là đọc ngữ cảnh, không phải khớp mẫu. Ba câu còn lại từ chối gọn và gợi ý
+đúng những chủ đề tài liệu **có** nói.
+
+**Hệ quả cho cách đọc `refusal_rate`.** Chỉ số 1.000 được đo trên sáu câu lạc đề
+hiển nhiên, nên nó **nói ít hơn** hệ thống thật sự làm được. Phép thử này cho
+thấy tầng phòng thủ thứ hai — grounding prompt — giữ được đúng nhóm câu mà ngưỡng
+cosine **không thể** phân biệt, ngay cả trên model yếu nhất.
+
+### *(Lịch sử 19/08)* Ngưỡng TTFT đã được đổi, và đây là lí do
 
 Ngày 18/08 chỉ số này là 2889ms và được ghi là "đạt" ngưỡng < 3s. Số đó **không
 sai, nhưng nó không phải số của hệ thống ở chế độ bình thường.** Tách TTFT theo
@@ -270,7 +322,7 @@ chạy song song được. Cộng với gộp các vòng gọi database, ước 
 khoảng 1s. Không đủ để về 3s — đó chính là lí do ngưỡng phải đổi chứ không phải
 chờ tối ưu.
 
-### Hai lỗi mới lộ ra ở lần chạy này
+### *(Lịch sử 19/08)* Hai lỗi mới lộ ra ở lần chạy đó — cả hai nay đã xử lí
 
 **Hàm chat chạm trần 60 giây.** `t-001` và `f-003` trả về sau 62.4s và 62.6s với
 thân rỗng và không có `reason` — đúng dấu hiệu Vercel giết hàm ở `maxDuration =
@@ -302,10 +354,13 @@ của model.
       **Storage** — bucket không có khoá ngoại để cascade theo. `deleteDocument()`
       đọc `storage_path` **trước** khi xoá hàng (job cascade mất thì không lấy
       lại được), xoá hàng rồi mới xoá file
-- [ ] **Model có từ chối 5 câu vùng chồng lấn không?** Chúng đi qua được ngưỡng
-      cosine, nên thứ duy nhất còn chặn chúng là grounding prompt. Đây là phép
-      thử thật của lời hứa trung tâm, và chưa đo. Cần chạy 5 câu qua
-      `/api/chat` thật, khoảng 10 request sinh
+- [x] **Model có từ chối 5 câu vùng chồng lấn không?** — **có, 5/5**, đo
+      20/08 (`probe-refusal-20260820-073311.json`). Cả năm đều do
+      `gemini-3.5-flash-lite` phục vụ, tức mắt xích yếu nhất chain, và hai câu
+      còn **tìm ra bằng chứng một phần rồi giải thích vì sao nó không đủ** thay
+      vì từ chối trống. Nghĩa là tầng phòng thủ thứ hai giữ được đúng nhóm câu
+      mà ngưỡng cosine không phân biệt được, và `refusal_rate = 1.000` **nói ít
+      hơn** hệ thống thật sự làm được. Chi tiết ở §7
 - [ ] Có nên giới hạn kích thước file, ngoài giới hạn số trang
 - [x] **Biên của `MIN_COSINE` có đủ rộng không?** — **câu hỏi sai, đã trả lời
       20/08 bằng một câu khác.** Chấm thêm 16 câu dò (`eval/threshold.py`) thì

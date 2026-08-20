@@ -607,10 +607,29 @@ lời được. Prompt đọc được nội dung, cosine thì không.
 điểm tối ưu — mà vì nó là điểm duy nhất trong dữ liệu hiện có không chặn nhầm câu
 hợp lệ nào trong khi vẫn chặn sạch nhiễu rõ ràng.
 
-**Việc còn nợ, và nó mới là phép thử thật.** Năm câu vùng chồng lấn cần chạy qua
-`/api/chat` thật để xem model có từ chối không. Nếu có, hệ thống an toàn hơn con
-số `refusal_rate` hiện tại thể hiện. Nếu không, có một lỗ hổng thật — và lúc đó
-biết cần sửa ở **prompt**, không phải ở ngưỡng. Tốn khoảng 10 request sinh.
+**Phép thử thật, chạy 20/08: cả năm câu đều bị từ chối**
+(`eval/reports/probe-refusal-20260820-073311.json`). Và tất cả đều do
+`gemini-3.5-flash-lite` phục vụ — mắt xích yếu nhất chain, model duy nhất từng bỏ
+marker trích dẫn.
+
+Chất lượng từ chối cao hơn mong đợi. Hai trong năm câu **tìm ra bằng chứng một
+phần rồi giải thích vì sao nó không đủ**, thay vì trả lời trống "không có":
+
+> *"Tài liệu chỉ nhắc đến LoRA như một tài liệu tham khảo (Low-rank adaptation of
+> large language models) [1], nhưng không giải thích về phương pháp này hay đưa ra
+> sự khác biệt với full fine-tuning."*
+
+> *"The provided context mentions that 'L1 regularization may allow some
+> coefficients to be zore' [4], but it does not contain information about L2
+> regularisation or the difference between L1 and L2."*
+
+Đó là đọc ngữ cảnh, không phải khớp mẫu. Ba câu còn lại từ chối gọn và gợi ý đúng
+những chủ đề tài liệu **có** nói.
+
+**Kết luận cho cả Bước 7:** kiến trúc hai tầng đúng, và tầng thứ hai gánh phần
+việc tầng thứ nhất về nguyên tắc không làm được. `refusal_rate = 1.000` đo trên
+sáu câu lạc đề hiển nhiên vì thế **nói ít hơn** hệ thống thật sự làm được — nhưng
+bây giờ có số cho phần nó không nói tới.
 
 **Bài học rộng hơn con số:** một ngưỡng chỉ đáng tin bằng tập negative dùng để đo
 nó. Sáu câu lạc đề hiển nhiên chứng minh được rất ít, và chúng làm chỉ số trông
@@ -698,7 +717,7 @@ Ghi ngay lúc vừa gỡ xong, đừng để đến tuần 8 mới nhớ lại.)
 | 20 | Ngưỡng NFR "token đầu tiên < 3s" được ghi **Đạt** buổi sáng, và **Chưa đạt** buổi chiều cùng ngày — không sửa dòng code nào ở giữa | Số buổi sáng là 2889ms, đo ở lần chạy 18/08. Số buổi chiều là 8155ms, đo ở lần chạy 19/08 ngay sau khi quota reset. Tách TTFT theo model thì lộ nguyên nhân: `flash-lite` 2860–4225ms, model mạnh (`flash`, `2.5-flash`) **8444ms**. Lần chạy 18/08 diễn ra khi hạn mức ngày đã cạn nên 17/19 câu rơi xuống `flash-lite` — mắt xích cuối chain. Nghĩa là **ngưỡng 3 giây chỉ đạt khi hệ thống đang chạy ở chế độ chất lượng thấp nhất**, và `flash-lite` cũng chính là model duy nhất từng bỏ marker trích dẫn (cộng dồn 4 lần chạy đầy đủ: model mạnh 41/41, `flash-lite` 31/33) | **Đã chốt 19/08: đổi ngưỡng, và lí do phải độc lập với số đo** — nếu không thì chỉ là dời cột gôn sau khi trượt. Lí do độc lập: ngưỡng 3s được neo vào một request **không gọi model nào** (0.34s), trong khi đường thật có **hai lượt gọi model tuần tự** cộng năm vòng gọi database; kiến trúc này không về được 3s bất kể hôm nay đo ra bao nhiêu. Thay bằng ba ngưỡng: `p50` < 10s (mốc UX về giới hạn giữ sự chú ý, chọn độc lập với dữ liệu), `p90` < 15s (thừa nhận có nhìn phân phối — nhưng lí do tồn tại thì không), và **request chạm trần 60s = 0** (ngưỡng đúng/sai). *Bản đề xuất đầu là `p50 < 5s` và bị chính phép đối chiếu bác bỏ: đường tốt của sản phẩm nằm ở 8.4s, nên 5s sẽ chỉ đạt khi chain rơi xuống model yếu — đúng cái bẫy này tồn tại để chỉ ra, suýt lặp lại ngay trong bản sửa nó.* Harness đã được bổ sung `p90_ttft_ms` và `n_timeout` trong cùng thay đổi, vì **một ngưỡng không có code nào đo là một ngưỡng chưa tồn tại** — xem chuyện `faithfulness` được hứa ở 4 chỗ mà không chỗ nào gọi. Bài học thì đã rõ và là bài học tệ nhất trong bảng này: **một ngưỡng chấp nhận được kiểm bằng một lần chạy là một ngưỡng chưa được kiểm.** Tệ hơn nữa, ở đây tốc độ và độ tin cậy **đánh đổi nhau dọc theo chain model**, nên lần chạy trông đẹp nhất về tốc độ lại là lần chạy tệ nhất về chất lượng. Bất kì chỉ số nào đo trên một hệ có fallback đều phải ghi kèm **nhánh fallback nào đã phục vụ** |
 | 21 | Hai câu trong 26 trả về sau **62.4s và 62.6s** với thân rỗng và không kèm lí do | Không phải quota — `f-001` cùng lần chạy mất 27s và thành công. 62s là `maxDuration = 60` của Vercel cộng thời gian mạng: hàm bị giết giữa chừng, và thứ client nhận được là một 504 không mang thông tin. Đường sinh câu trả lời **không có timeout riêng**, nên khi Gemini chậm bất thường thì giới hạn duy nhất là trần của nền tảng. Rà lại 11 lần chạy trước: không lần nào vượt 55s, nhưng ngày 13/08 đã có một câu mất **44.2s — 74% của trần**. Rủi ro tích sẵn từ lâu, chỉ chưa nổ, và không chỉ số nào trong summary hiển thị điều đó | Đã sửa 19/08: hạn chót **cho cả request** (`REQUEST_BUDGET_MS = 50_000`, đo từ `started` chứ không phải từ lúc gọi model — guardrail và truy hồi đã tiêu thời gian trước đó rồi), và nhánh `reason: "timeout"` riêng vì "thử lại sau một phút" là lời khuyên **sai** khi không có gì bị bóp băng thông. **Bản vá đầu tiên của tôi sai, và test bắt được:** tôi truyền `abortSignal` cho `streamText` rồi cho rằng thế là xong. Đo bằng model không bao giờ resolve, signal đặt 120ms — test treo đủ 10 giây. `abortSignal` chỉ đi xuống tầng fetch; **provider không đọc nó thì chỗ `await` vẫn treo y như cũ.** Hạn chót phải nằm đúng chỗ đang đợi, tức trong `openTextStream`. Giữ lại `abortSignal` làm lớp thứ hai vì nó **huỷ thật** lượt gọi khi provider có đọc, đỡ tốn quota cho câu trả lời không ai đọc. Đây đúng là bẫy #14 lặp lại ở nguyên nhân khác: **client không suy ra được vì sao im lặng** — lần trước là hết quota, lần này là hết giờ |
 | 22 | Tải tài liệu vào một khung chat thì nó chỉ nằm ở khung đó — **đúng yêu cầu**. Nhưng xoá khung đang mở thì hiện ra một khung trông y hệt "chat mới", **chứa toàn bộ tài liệu của tài khoản** | `null` mang **hai nghĩa** cùng lúc: với sidebar nó là "chưa chọn khung nào", với truy hồi nó là "tìm trong mọi tài liệu". `remove()` thả người dùng vào đó, còn nút "+ Chat mới" thì tạo hàng thật — hai lối đi tới hai trạng thái nhìn giống hệt nhau, khác nhau ở đúng một dòng tiêu đề. Câu hỏi hỏi tiếp theo vì thế **âm thầm mở rộng phạm vi** ra cả tài khoản. Không phải lỗi bảo mật (RLS vẫn chặn theo chủ sở hữu), nhưng phá đúng tính chất trung tâm của sản phẩm | Cho `null` **một nghĩa duy nhất**: khung chat mới chưa lưu — không tài liệu, không lịch sử, không hàng trong database. Hàng chỉ được tạo khi người dùng hỏi câu đầu hoặc tải tài liệu đầu, nên mở app và bấm "+ Chat mới" không sinh rác. Bài học: **một giá trị mang hai nghĩa sẽ trở thành lỗi ở đúng chỗ hai nghĩa đó tách ra.** Ở đây chúng tách ra khi xoá khung đang mở — một đường đi mà không test nào và không lần eval nào từng chạy qua, vì harness gọi thẳng API và không bao giờ đụng giao diện. *(Chú thích trong code còn viện dẫn "and what the eval harness measures" để biện minh cho trạng thái này — sai: harness cần **API** chấp nhận conversation rỗng, không cần **UI** mặc định vào đó.)* |
-| 23 | `refusal_rate = 1.000` qua mười lần chạy. Nhưng bộ đo **chưa từng thử ca khó** | Sáu câu `should_refuse` trong bộ eval đều hiển nhiên lạc đề: phở bò, thủ đô nước Pháp, giá cổ phiếu, thay lốp xe máy. Không câu nào hỏi một thứ **nằm trong đúng lĩnh vực của tài liệu mà tài liệu không trả lời được** — tức đúng ca một ngưỡng từ chối phải xử lí đúng. Chấm thêm 10 câu cùng lĩnh vực (`eval/threshold.py`, chỉ tốn embedding quota) thì **hai phân bố chồng lấn**: câu ngoài phạm vi cao nhất **0.654** (hỏi về k-means, khớp vào một trang nói về ca dao dự báo thời tiết), câu trong phạm vi thấp nhất **0.612**, và `o-001` ghi nhận **cùng 0.654** ở ba chữ số. Đã mở từng đoạn khớp ra đọc để chắc không phải gán nhãn sai | **Không có ngưỡng tối ưu, và đó là kết luận chứ không phải thất bại.** Cosine đo **độ liên quan chủ đề**, không đo **khả năng trả lời được** — một câu hỏi về k-means gần với giáo trình ML về mặt chủ đề bất kể giáo trình có nói về k-means hay không. Giữ 0.60 và phát biểu lại vai trò của nó: **bộ lọc thô, không phải bảo chứng.** Nó chặn sạch nhiễu rõ ràng (≤ 0.562, biên 0.038), không chặn nhầm câu hợp lệ nào, và đẩy vùng mờ sang **grounding prompt** — tầng đã được đo là có tác dụng ở bẫy #17. Bài học: **một ngưỡng chỉ đáng tin bằng tập negative dùng để đo nó**, và sáu câu lạc đề hiển nhiên làm chỉ số trông đẹp hơn hệ thống thật sự đang làm được |
+| 23 | `refusal_rate = 1.000` qua mười lần chạy. Nhưng bộ đo **chưa từng thử ca khó** | Sáu câu `should_refuse` trong bộ eval đều hiển nhiên lạc đề: phở bò, thủ đô nước Pháp, giá cổ phiếu, thay lốp xe máy. Không câu nào hỏi một thứ **nằm trong đúng lĩnh vực của tài liệu mà tài liệu không trả lời được** — tức đúng ca một ngưỡng từ chối phải xử lí đúng. Chấm thêm 10 câu cùng lĩnh vực (`eval/threshold.py`, chỉ tốn embedding quota) thì **hai phân bố chồng lấn**: câu ngoài phạm vi cao nhất **0.654** (hỏi về k-means, khớp vào một trang nói về ca dao dự báo thời tiết), câu trong phạm vi thấp nhất **0.612**, và `o-001` ghi nhận **cùng 0.654** ở ba chữ số. Đã mở từng đoạn khớp ra đọc để chắc không phải gán nhãn sai | **Không có ngưỡng tối ưu, và đó là kết luận chứ không phải thất bại.** Cosine đo **độ liên quan chủ đề**, không đo **khả năng trả lời được** — một câu hỏi về k-means gần với giáo trình ML về mặt chủ đề bất kể giáo trình có nói về k-means hay không. Giữ 0.60 và phát biểu lại vai trò của nó: **bộ lọc thô, không phải bảo chứng.** Nó chặn sạch nhiễu rõ ràng (≤ 0.562, biên 0.038), không chặn nhầm câu hợp lệ nào, và đẩy vùng mờ sang **grounding prompt** — tầng đã được đo là có tác dụng ở bẫy #17. **Đo tiếp 20/08 và kết quả đảo chiều theo hướng tốt:** gửi cả 5 câu vượt ngưỡng qua `/api/chat` thật thì **cả 5 đều bị từ chối**, toàn bộ do `gemini-3.5-flash-lite` — model yếu nhất chain — phục vụ, và hai câu còn tìm ra bằng chứng một phần rồi giải thích vì sao nó không đủ. Nên ở đây `refusal_rate = 1.000` **nói ít hơn** hệ thống thật sự làm được, chứ không phải nói quá. Bài học vẫn giữ nguyên và không đổi chiều: **một ngưỡng chỉ đáng tin bằng tập negative dùng để đo nó** — sáu câu lạc đề hiển nhiên không chứng minh được điều gì về ca khó, dù kết quả cuối cùng hoá ra là tốt. Biết là tốt và **đo được** là tốt là hai chuyện khác nhau |
 
 **Bài học của bẫy 14, đắt hơn bản thân cái bug:** một chỉ số sai **theo hướng bi quan** cũng nguy hiểm ngang chỉ số sai theo hướng lạc quan. Nếu tin `0.15` mà đi sửa prompt trích dẫn thì sẽ mất nhiều ngày chỉnh một thứ vốn đã đạt 1.000. Quy tắc rút ra: **trước khi tin một chỉ số tụt, mở dữ liệu thô của vài ca hỏng ra xem đã.** Ở đây chỉ cần nhìn cột latency — 950ms cho một câu trả lời có sinh văn bản là bất khả thi — là lộ ngay.
 
@@ -741,6 +760,7 @@ Giờ ghi ở dưới là **giờ Việt Nam** (`run_at` trong report lưu UTC, 
 | 9 | 18/08 15:54 | full | **prod** | 26 | 1.000 | 1.000 | 0.788 | 0.947 | 1.000 | — | **2889** | Chạy lại đúng trên production |
 | 10 | 19/08 14:14 | full | **prod** | 26 | 1.000 | 1.000 | 0.883 | **1.000** | 1.000 | **1.000** | 8155 | Chạy ngay sau khi quota reset — lần đầu `faithfulness` có số thật trên production |
 | 11 | 20/08 08:42 | retrieval | — | 26 | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Chạy lại đúng dòng 4 sau **8 ngày**: trùng khít cả ba chữ số |
+| 12 | 20/08 14:15 | full | **prod** | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | 8594 | Xác nhận `n_timeout` = **0** sau khi sửa trần 60s. Không chạy `--judge` |
 
 Dòng 10 là bảng nghiệm thu hiện hành (`REQUIREMENTS.md` §7). Các lần chạy 3, 5,
 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải phép đo.
@@ -820,7 +840,20 @@ chết ở 62 giây — chạm trần `maxDuration = 60` của Vercel. Mười m
 tức 74% của trần** — và không chỉ số nào trong summary cho thấy, vì summary chỉ
 có trung vị. Đó là lí do `p90_ttft_ms` và `n_timeout` được thêm vào harness cùng
 lúc với ngưỡng mới: **một ngưỡng không có code nào đo là một ngưỡng chưa tồn
-tại.** Bẫy #21.
+tại.** Bẫy #21 — **đã đóng ở dòng 12**: `n_timeout` = 0, xác nhận trong một lần
+chạy còn bị tải nặng hơn dòng 10 (5 lần chạm rate limit, câu chậm nhất 22.6s).
+
+**Và đúng lúc đó một ngưỡng khác hỏng — ngưỡng tôi tự đặt một ngày trước.**
+`p90_ttft_ms` đi 12069 (dòng 10) → **18368** (dòng 12), vượt ngưỡng 15s. Lúc đặt
+ngưỡng ấy tôi đã ghi rõ nó "thừa nhận có nhìn vào phân bố", khác với `p50 < 10s`
+lấy từ mốc UX bên ngoài. Một lần chạy sau: **ngưỡng lấy từ dữ liệu hỏng, ngưỡng
+lấy từ bên ngoài vẫn đạt** (8594). Đây là minh hoạ do chính dự án tự tạo cho điều
+Bước 7 đã nói.
+
+Thêm một lí do kĩ thuật: `p90` trên **19 mẫu** không phải thống kê ổn định. Theo
+nearest-rank nó là giá trị **thứ 18 của 19**, tức chỉ có **một** câu đứng trên nó
+— gần như "câu chậm nhì". Giữ nguyên 15s và ghi là chưa đạt; dời ngưỡng lần thứ
+hai ngay sau lần vi phạm đầu tiên thì nó thôi không còn là ngưỡng.
 
 ### Còn thiếu gì
 

@@ -91,9 +91,9 @@ giữa hai lần mà không nói điều này sẽ dẫn tới kết luận sai.
 | `faithfulness` | — | **1.000** | ≥ 0.90 | **Đạt — số đo thật đầu tiên trên production.** 17/17 câu chấm được, không câu nào có khẳng định thiếu chỗ dựa |
 | `hit_cross_lingual` | 1.000 | **1.000** | — | Hỏi tiếng Việt trên tài liệu tiếng Anh |
 | `retrieval_mrr` | 0.882 | 0.883 | — | Thứ hạng của đoạn đúng (18/08: 0.788) |
-| `median_ttft_ms` | — | **8155** | < 10s | Đạt. **Ngưỡng đổi từ 3s ngày 19/08** — ngưỡng cũ neo vào một request không gọi model nào |
-| `p90_ttft_ms` | — | **12069** | < 15s | Đạt. Thêm mới, vì trung vị đã giấu một câu 44.2s suốt một tuần |
-| `n_timeout` | 0 | **2** | **0** | **Chưa đạt.** Hai câu chết ở 62s — chạm trần 60s của hàm Vercel |
+| `median_ttft_ms` | — | **8594** | < 10s | Đạt. **Ngưỡng đổi từ 3s ngày 19/08** — ngưỡng cũ neo vào một request không gọi model nào |
+| `p90_ttft_ms` | — | **18368** | < 15s | **Chưa đạt.** Ngưỡng này chọn sau khi nhìn phân bố và hỏng sau đúng một lần chạy — trong khi `p50` chọn từ mốc UX bên ngoài thì vẫn đạt |
+| `n_timeout` | 0 | **0** | **0** | **Đạt.** Sau khi đặt hạn chót 50s cho cả request, không câu nào chạm trần — xác nhận trong lần chạy còn bị tải nặng hơn |
 
 Hai điều đáng nói hơn các con số:
 
@@ -264,7 +264,7 @@ Bảng đầy đủ **26 dòng** ở `SKILL_MY_PROJECT.md` §3 — 23 bẫy đá
 | ~~`document_pages` và file Storage không được dọn khi xoá tài liệu~~ | Kiểm 19/08: `document_pages` **vẫn luôn được dọn** qua cascade hai tầng `documents → ingest_jobs → document_pages`. Chỉ Storage là rò rỉ thật, đã sửa | Xong 19/08 |
 | Chưa nạp được TXT và DOCX | Task 2.1 ghi rõ cả ba định dạng | Tuần 4 |
 | ~~Biên `MIN_COSINE` chỉ +0.012~~ | Đo rộng hơn 20/08: hai phân bố **chồng lấn**, nên **không có ngưỡng tối ưu**. Giữ 0.60, phát biểu lại là bộ lọc thô chứ không phải bảo chứng. Xem bẫy #23 | Đã chốt 20/08 |
-| **`refusal_rate` đo trên tập negative quá dễ** | Cả 6 câu `should_refuse` đều hiển nhiên lạc đề. Câu ngoài phạm vi **cùng lĩnh vực** thì đi qua được ngưỡng, và chưa đo model có từ chối chúng không | Chạy 5 câu qua `/api/chat` khi có quota |
+| ~~`refusal_rate` đo trên tập negative quá dễ~~ | Đã đo 20/08: **5/5 câu khó đều bị từ chối**, toàn bộ do model yếu nhất chain phục vụ. Nên 1.000 **nói ít hơn** hệ thống làm được. Cách sửa đúng còn lại: đưa nhóm câu này vào bộ eval | Xong 20/08 |
 | ~~App có thể ngủ giữa hai buổi demo~~ | `/api/health` + Action `Keep-alive` chạy thứ Hai và thứ Năm, không tốn quota model | Xong 19/08 |
 | Đường hội thoại chưa kiểm chứng khi chạy thật | Mới qua trình biên dịch và test | Đã chạy thật, xong |
 

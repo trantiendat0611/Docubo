@@ -333,6 +333,24 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       đều hiển nhiên lạc đề, nên `refusal_rate = 1.000` nói ít hơn nó có vẻ nói.
       Việc còn nợ: chạy 5 câu vùng chồng lấn qua `/api/chat` thật xem model có
       từ chối không (~10 request). Ghi thành bẫy #23
+- [x] **20/08 chiều** Hai lần chạy, hai kết quả ngược chiều.
+      **(1) `n_timeout` = 0 — bẫy #21 đóng.** Bản vá hạn chót 50s xác nhận
+      được, và xác nhận trong điều kiện *khắc nghiệt hơn* lần vi phạm: 5 câu
+      chạm rate limit phải thử lại, câu chậm nhất 22.6s, mà không câu nào chạm
+      trần 60s.
+      **(2) `p90_ttft_ms` 12069 → 18368, hỏng ngưỡng tôi tự đặt hôm qua.** Đáng
+      ghi vì lí do: lúc đặt tôi ghi rõ `p90 < 15s` "thừa nhận có nhìn vào phân
+      bố", còn `p50 < 10s` lấy từ mốc UX bên ngoài. Đúng một lần chạy sau,
+      **ngưỡng lấy từ dữ liệu hỏng, ngưỡng lấy từ bên ngoài vẫn đạt**. Thêm lí
+      do kĩ thuật: `p90` trên 19 mẫu là giá trị thứ 18/19 — chỉ một câu đứng
+      trên nó, gần như "câu chậm nhì". **Giữ nguyên 15s và ghi là chưa đạt**;
+      dời lần thứ hai ngay sau vi phạm đầu tiên thì nó thôi là ngưỡng.
+      **(3) Phép thử từ chối: 5/5 câu khó đều bị từ chối** — và tất cả do
+      `gemini-3.5-flash-lite`, model yếu nhất chain. Hai câu còn tìm ra bằng
+      chứng một phần rồi giải thích vì sao không đủ (LoRA chỉ có trong mục tham
+      khảo; L1 có nhắc nhưng không có L2). Nghĩa là `refusal_rate = 1.000`
+      **nói ít hơn** hệ thống làm được, và kiến trúc hai tầng đúng: tầng thứ
+      hai gánh được phần tầng thứ nhất về nguyên tắc không làm được
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production
