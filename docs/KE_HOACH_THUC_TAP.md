@@ -441,10 +441,17 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       Ghi thành bẫy #25 — **lần đầu một giả định sai bị bắt trước khi ship**.
       11 test mới (72 test JS). Đã cập nhật `REQUIREMENTS` §3 và 3 ngoại lệ mới
       (E28–E30), sơ đồ 1, chương 2 báo cáo, README
-- [ ] **Còn nợ:** thêm 2–3 câu hỏi về ảnh vào `eval_dataset.json`. Cần nạp một
-      ảnh vào corpus đánh giá trước (tốn quota vision), rồi mới viết được câu
-      hỏi dựa trên nội dung thật của nó — viết câu hỏi trước khi biết ảnh chứa
-      gì thì đúng là kiểu đoán mà §2 Bước 8 nói không nên làm
+- [ ] **Còn nợ:** thêm 2–3 câu hỏi về ảnh vào `eval_dataset.json`. Điều kiện
+      cụ thể hơn sau khi thử 21/08 — **ảnh phải chứa nội dung KHÔNG có sẵn
+      trong corpus**. Ảnh người dùng dán khi test là ảnh chụp trang 1 của
+      `2608.18058v1.pdf`, mà PDF đó đã nằm trong corpus từ 19/08, nên hai tài
+      liệu chứa nguyên văn cùng một đoạn. Câu hỏi viết trên đó sẽ không đo
+      đường ảnh mà đo **bản nào trong hai bản thắng** — đo được đúng 0 điều về
+      tính năng. Cần một ảnh chọn có chủ ý, khai vào `corpus` của dataset, và
+      xếp riêng một nhóm để không làm đứt mạch so sánh của bảng §4 (bẫy #24).
+      Đo sơ bộ trên ảnh hiện có, chỉ tốn embedding: câu tiếng Anh truy hồi ảnh
+      ở **hạng 1, cosine 0.726** — đường ảnh hoạt động, chỉ là chưa đo được
+      bằng bộ eval
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production
