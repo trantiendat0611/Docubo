@@ -136,7 +136,8 @@ python -m venv .venv
 npm run dev
 ```
 
-Đăng ký tài khoản, tải lên một PDF ≤ 25 trang, đợi xử lí xong rồi hỏi.
+Đăng ký tài khoản, tải lên một PDF ≤ 25 trang — hoặc **dán thẳng một ảnh vào ô
+chat** — đợi xử lí xong rồi hỏi.
 **Giữ tab hiển thị** trong lúc xử lí — trình duyệt đình chỉ việc vẽ trang ở tab
 nền, và pdfjs sẽ dừng theo.
 
@@ -253,7 +254,8 @@ không có SMTP để xác nhận email, nên link công khai là link ai có c�
 Postgres một lần và trả `{ ok, database, ms }` — không gọi model. GitHub Action
 `Keep-alive` gọi nó thứ Hai và thứ Năm, nên khoảng lặng dài nhất là 4 ngày.
 
-- Chỉ hỗ trợ PDF. DOCX/TXT nằm ở P1.
+- Nhận PDF và ảnh (PNG/JPEG/WebP). DOCX/TXT **không nằm trong phạm vi** — xem
+  mục *Nguồn tài liệu* và `REQUIREMENTS.md` §3.
 - Không OCR tài liệu scan.
 - Full-text tiếng Việt dùng config `simple`, không stem được.
 - Ngưỡng từ chối `MIN_COSINE` là **bộ lọc thô, không phải bảo chứng**. Câu hỏi

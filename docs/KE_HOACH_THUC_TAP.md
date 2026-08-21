@@ -424,6 +424,27 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       hai lần độc lập). Mục 5.2 ghi thẳng `p90` chưa đạt và **giữ nguyên ngưỡng**
       chứ không dời lần thứ hai. Mục 5.4 xếp ba ưu tiên phát triển theo đúng gốc
       rễ: làm ingest ổn định trước, vì nó là nguyên nhân của hai trong ba hạn chế
+- [x] **21/08** Thêm đường **dán ảnh vào ô chat**. Chọn cách nạp ảnh thành tài
+      liệu một trang thay vì gửi thẳng ảnh cho model, vì cách sau bỏ qua truy
+      hồi, trích dẫn và ngưỡng từ chối — tức phá ba trong bốn lời hứa ở chương 1.
+      Rẻ hơn nhiều so với vẻ ngoài: `/api/ingest/step` vốn **không biết gì về
+      PDF**, nó chỉ nhận ảnh trang, nên một ảnh dán chính là thứ nó đang chờ.
+      Ràng buộc PDF chỉ nằm ở 3 chỗ và đều đã gỡ.
+      **Hai lỗi bắt được khi kiểm, cả hai trước khi ship:**
+      **(a)** comment tôi viết ghi *"thu nhỏ 2000px rồi PNG là lọt 3MB"* —
+      đo thật trong trình duyệt: ảnh nhiễu 2000×1500 ra **10.32MB**, vượt hơn ba
+      lần; JPEG q0.85 chỉ 2.14MB. Ảnh tổng hợp thử lúc đầu (0.39MB) đã **xác
+      nhận nhầm** giả định. Sửa: PNG trước, không lọt mới lùi JPEG.
+      **(b)** kéo theo — `/api/ingest/step` dựng `PageImage` không kèm
+      `mimeType`, mà `extractBatch` mặc định `image/png`, nên byte JPEG sẽ bị
+      khai là PNG. Đã truyền type thật xuyên suốt.
+      Ghi thành bẫy #25 — **lần đầu một giả định sai bị bắt trước khi ship**.
+      11 test mới (72 test JS). Đã cập nhật `REQUIREMENTS` §3 và 3 ngoại lệ mới
+      (E28–E30), sơ đồ 1, chương 2 báo cáo, README
+- [ ] **Còn nợ:** thêm 2–3 câu hỏi về ảnh vào `eval_dataset.json`. Cần nạp một
+      ảnh vào corpus đánh giá trước (tốn quota vision), rồi mới viết được câu
+      hỏi dựa trên nội dung thật của nó — viết câu hỏi trước khi biết ảnh chứa
+      gì thì đúng là kiểu đoán mà §2 Bước 8 nói không nên làm
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

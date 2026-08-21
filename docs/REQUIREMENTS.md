@@ -42,6 +42,9 @@ trong bất kì câu trả lời nào.
 **Tải lên và xử lí**
 - [x] Đăng nhập bằng email/mật khẩu
 - [x] Tải lên PDF, giới hạn 25 trang mỗi tài liệu
+- [x] **Dán hoặc kéo một ảnh** (PNG/JPEG/WebP) — nạp thành tài liệu một trang,
+      đi đúng đường vision đang có nên vẫn có trích dẫn và vẫn bị ngưỡng từ
+      chối chặn như mọi tài liệu khác
 - [x] Trình duyệt render từng trang, gửi theo lô lên server
 - [x] Trích xuất bằng vision: văn bản, công thức LaTeX, mô tả biểu đồ
 - [x] Hiện tiến độ thật theo số trang server đã xử lí
@@ -167,6 +170,9 @@ trong bất kì câu trả lời nào.
 | **E24** | **Gửi `conversationId` của người khác** | RLS trả rỗng → route trả 404, không lộ sự tồn tại | `conversation.ts` |
 | **E25** | **Xoá khung chat** | Lịch sử mất theo, tài liệu vẫn còn ở các khung khác | `007_conversations.sql` |
 | **E27** | **Xoá đúng khung chat đang mở** | Rơi về khung mới trống, không phải chế độ toàn corpus | `ConversationList.tsx` |
+| **E28** | **Dán ảnh lớn hơn ngân sách request** | Thu nhỏ cạnh dài về 2000px; PNG không lọt thì lùi sang JPEG. Đo thật: ảnh nhiễu 2000×1500 ra **10.3MB** dạng PNG, **2.1MB** dạng JPEG | `image.ts` |
+| **E29** | **Dán ảnh định dạng trình duyệt không giải mã được** (HEIC) | Từ chối ngay ở bước phân loại, kèm hướng dẫn lưu lại thành PNG/JPEG | `kinds.ts` |
+| **E30** | **Dán văn bản, không phải ảnh** | Bỏ qua hoàn toàn, dán chữ vào ô hỏi vẫn chạy bình thường | `Workspace.tsx` |
 | **E26** | **Người thứ hai tải lên đúng file người thứ nhất đã có** | `content_hash` unique theo từng chủ sở hữu, không toàn cục | `007_conversations.sql` |
 
 ## 6. Ràng buộc phi chức năng

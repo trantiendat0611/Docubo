@@ -1,4 +1,5 @@
 import { MAX_UPLOAD_PAGES, MAX_UPLOADS_PER_DAY } from "@/lib/ingest/config";
+import { fileKind } from "@/lib/ingest/kinds";
 import { createJob } from "@/lib/ingest/store";
 import { admin } from "@/lib/supabase/admin";
 import { currentUser } from "@/lib/supabase/server";
@@ -44,8 +45,21 @@ export async function POST(req: Request) {
       { status: 413 },
     );
   }
-  if (!file.name.toLowerCase().endsWith(".pdf")) {
-    return Response.json({ error: "chỉ hỗ trợ file PDF" }, { status: 415 });
+  const kind = fileKind(file.name, file.type);
+  if (!kind) {
+    return Response.json(
+      { error: "chỉ hỗ trợ PDF, hoặc ảnh PNG / JPEG / WebP" },
+      { status: 415 },
+    );
+  }
+  // An image is one page by definition. Trusting a client-supplied count here
+  // would let a caller reserve a 25-page job for a single picture and spend
+  // someone else's share of the daily vision budget.
+  if (kind === "image" && nPages !== 1) {
+    return Response.json(
+      { error: "ảnh chỉ được tính là một trang", reason: "bad_page_count" },
+      { status: 400 },
+    );
   }
 
   const client = admin();
@@ -76,7 +90,13 @@ export async function POST(req: Request) {
 
   const { error: uploadError } = await client.storage
     .from("documents")
-    .upload(storagePath, file, { contentType: "application/pdf", upsert: false });
+    // The real type, not a hard-coded one. Storing a PNG labelled
+    // application/pdf makes the signed URL undisplayable later, and the citation
+    // panel showing the original page is exactly what this bucket is for.
+    .upload(storagePath, file, {
+      contentType: file.type || (kind === "pdf" ? "application/pdf" : "image/png"),
+      upsert: false,
+    });
 
   if (uploadError) {
     return Response.json(

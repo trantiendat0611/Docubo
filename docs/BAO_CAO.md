@@ -139,8 +139,9 @@ lại bằng đo đạc ở chương 4 chứ không để nguyên là giả đ�
 Yêu cầu chia thành P0 (bắt buộc) và P1 (làm nếu còn thời gian). Toàn bộ P0 đã
 hoàn thành. Danh sách đầy đủ ở `docs/REQUIREMENTS.md` §3; dưới đây là các nhóm.
 
-**Tải lên và xử lí** — đăng nhập email/mật khẩu; tải PDF tối đa 25 trang; trình
-duyệt render từng trang và gửi theo lô; trích xuất bằng vision (văn bản + LaTeX
+**Tải lên và xử lí** — đăng nhập email/mật khẩu; tải PDF tối đa 25 trang; **dán
+hoặc kéo một ảnh**, nạp thành tài liệu một trang qua đúng đường vision đang có;
+trình duyệt render từng trang và gửi theo lô; trích xuất bằng vision (văn bản + LaTeX
 + mô tả biểu đồ); hiện tiến độ thật theo số trang server đã xử lí; xem và xoá
 tài liệu của mình.
 
@@ -240,7 +241,10 @@ graph TB
         ST[("Storage — PDF gốc")]
     end
 
+    PASTE["Dán ảnh<br/>thu nhỏ qua canvas"]
     USER --> UI --> PDFJS
+    UI --> PASTE
+    PASTE -->|"một ảnh = một trang"| STEP
     PDFJS -->|file PDF| UP --> ST
     PDFJS -->|"ảnh trang, gom theo 3MB"| STEP --> VIS
     UI --> FIN --> EMB

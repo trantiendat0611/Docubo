@@ -54,7 +54,16 @@ export async function POST(req: Request) {
     const page = Number(entry.name.replace(/\D+/g, ""));
     if (!Number.isInteger(page) || page < 1 || page > job.n_pages) continue;
     if (already.has(page)) continue;
-    images.push({ page, bytes: new Uint8Array(await entry.arrayBuffer()) });
+    // Carry the type the client actually encoded. A pasted photograph falls
+    // back to JPEG when PNG will not fit the request budget, and extractBatch
+    // defaults to image/png when told nothing — which would hand Gemini JPEG
+    // bytes labelled as PNG and produce exactly the unhelpful model error the
+    // comment there warns about.
+    images.push({
+      page,
+      bytes: new Uint8Array(await entry.arrayBuffer()),
+      mimeType: entry.type || undefined,
+    });
   }
 
   if (images.length === 0) {

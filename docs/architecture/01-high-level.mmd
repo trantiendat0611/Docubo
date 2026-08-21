@@ -1,5 +1,5 @@
 %% Sơ đồ 1 — Tổng quan hệ thống (Task 1.4)
-%% Cập nhật 19/08: thêm nhiều khung hội thoại (migration 007) và /api/health.
+%% Cập nhật 21/08: thêm đường dán ảnh — ảnh đi cùng đường lô ảnh trang của PDF.
 %% Xem trước: dán vào https://mermaid.live hoặc extension Mermaid của VS Code
 
 graph TB
@@ -8,6 +8,7 @@ graph TB
     subgraph browser["Trình duyệt"]
         UI["Next.js UI<br/>chat · upload · danh sách tài liệu"]
         PDFJS["pdfjs-dist<br/>render trang thành PNG"]
+        PASTE["Dán ảnh<br/>thu nhỏ + mã hoá lại qua canvas"]
     end
 
     subgraph vercel["Vercel — Hobby, mỗi hàm 60s"]
@@ -33,10 +34,13 @@ graph TB
 
     USER --> UI
     UI --> PDFJS
+    UI --> PASTE
     UI -.->|session cookie| MW
 
     PDFJS -->|file PDF| UP
     PDFJS -->|"ảnh trang, gom theo 3MB"| STEP
+    PASTE -->|"một ảnh = một trang"| STEP
+    PASTE -->|"file ảnh"| UP
     UI --> FIN
     UI --> CHAT
 

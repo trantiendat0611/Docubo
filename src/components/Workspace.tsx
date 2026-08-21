@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChatPanel } from "./ChatPanel";
 import { ConversationList } from "./ConversationList";
 import { DocumentList } from "./DocumentList";
 import { UploadPanel } from "./UploadPanel";
 import { createConversation } from "@/lib/conversations";
+import { fileKind } from "@/lib/ingest/kinds";
 import { browserClient } from "@/lib/supabase/client";
 
 /**
@@ -32,6 +33,34 @@ export function Workspace() {
   const pending = useRef<Promise<string | null> | null>(null);
 
   const bump = () => setReloadKey((n) => n + 1);
+
+  const [pastedFile, setPastedFile] = useState<File | null>(null);
+
+  /**
+   * An image pasted anywhere becomes a one-page document in this chat.
+   *
+   * Listening on the window rather than on the chat box: paste events fire at
+   * the focused element and bubble, so one listener here catches a paste into
+   * the question field, the transcript, or nowhere in particular. Binding it to
+   * the textarea alone would work only while that textarea had focus, which is
+   * not where people's attention is when they hit paste.
+   *
+   * Text pastes are left completely alone — clipboardData carries an image only
+   * when there is one, and typing over a copied paragraph must keep working.
+   */
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const items = Array.from(event.clipboardData?.files ?? []);
+      const image = items.find((f) => fileKind(f.name, f.type) === "image");
+      if (!image) return;
+
+      event.preventDefault();
+      setPastedFile(image);
+    };
+
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
 
   /** The open conversation, creating it first if this chat is still unsaved. */
   const ensureConversation = async (): Promise<string | null> => {
@@ -90,6 +119,8 @@ export function Workspace() {
           <UploadPanel
             conversationId={conversationId}
             ensureConversation={ensureConversation}
+            pastedFile={pastedFile}
+            onPastedHandled={() => setPastedFile(null)}
             onDone={bump}
           />
         </section>

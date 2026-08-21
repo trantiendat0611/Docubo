@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { shouldFlushBefore } from "@/lib/ingest/batching";
 import { MAX_UPLOAD_PAGES } from "@/lib/ingest/config";
+import { toPageImage } from "@/lib/ingest/image";
+import { IMAGE_TYPES, fileKind } from "@/lib/ingest/kinds";
 import { openPdf, renderPage } from "@/lib/ingest/pdf";
 import { browserClient } from "@/lib/supabase/client";
 
@@ -21,12 +23,27 @@ interface Props {
   conversationId: string | null;
   /** Creates the chat if it is unsaved, so the document has somewhere to go. */
   ensureConversation: () => Promise<string | null>;
+  /**
+   * An image pasted anywhere in the workspace, usually into the chat box.
+   *
+   * Routed here rather than ingested where it was pasted, so there is one
+   * ingest loop and one progress bar. Two would be able to disagree about how
+   * far along the same job is.
+   */
+  pastedFile: File | null;
+  onPastedHandled: () => void;
   onDone: () => void;
 }
 
 type Phase = "idle" | "reading" | "uploading" | "extracting" | "indexing" | "error";
 
-export function UploadPanel({ conversationId, ensureConversation, onDone }: Props) {
+export function UploadPanel({
+  conversationId,
+  ensureConversation,
+  pastedFile,
+  onPastedHandled,
+  onDone,
+}: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [done, setDone] = useState(0);
@@ -35,6 +52,19 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
   const [dragging, setDragging] = useState(false);
 
   const busy = phase !== "idle" && phase !== "error";
+  const [kindRunning, setKindRunning] = useState<"pdf" | "image" | null>(null);
+
+  // Clearing the file before ingest rather than after: leaving it set until the
+  // job finished re-fired this effect on every progress render, and the guard
+  // that stopped it doing damage was the busy check rather than the logic.
+  useEffect(() => {
+    if (!pastedFile || busy) return;
+    onPastedHandled();
+    void start(pastedFile);
+    // start and onPastedHandled are stable enough for this component's
+    // lifetime; adding them re-runs the effect on every render instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pastedFile, busy]);
 
   /**
    * Wrapper so nothing fails silently.
@@ -61,16 +91,30 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
     setDone(0);
     setPhase("reading");
 
-    let doc;
-    try {
-      doc = await openPdf(file);
-    } catch {
+    const kind = fileKind(file.name, file.type);
+    setKindRunning(kind);
+    if (!kind) {
       setPhase("error");
-      setMessage("Không đọc được file. Kiểm tra xem đây có phải PDF hợp lệ không.");
+      setMessage("Chỉ nhận PDF, hoặc ảnh PNG / JPEG / WebP.");
       return;
     }
 
-    const nPages = doc.numPages;
+    // An image is a one-page document. Everything after this point is the path
+    // a PDF already takes — the extraction route only ever wanted page images,
+    // so citations, the refusal threshold and the rest apply unchanged.
+    let doc: Awaited<ReturnType<typeof openPdf>> | null = null;
+
+    if (kind === "pdf") {
+      try {
+        doc = await openPdf(file);
+      } catch {
+        setPhase("error");
+        setMessage("Không đọc được file. Kiểm tra xem đây có phải PDF hợp lệ không.");
+        return;
+      }
+    }
+
+    const nPages = doc ? doc.numPages : 1;
     setTotal(nPages);
 
     // Checked here as well as on the server so an oversized document costs no
@@ -109,7 +153,14 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
       const step = new FormData();
       step.set("jobId", jobId);
       for (const { page, blob } of batch) {
-        step.append("pages", new File([blob], `p${page}.png`, { type: "image/png" }));
+        // Name and type both follow the blob. toPageImage may hand back JPEG
+        // when a photograph will not fit as PNG, and the server reads the type
+        // off this File to tell the vision model what it is being given.
+        const ext = blob.type === "image/jpeg" ? "jpg" : "png";
+        step.append(
+          "pages",
+          new File([blob], `p${page}.${ext}`, { type: blob.type || "image/png" }),
+        );
       }
 
       const res = await fetch("/api/ingest/step", { method: "POST", body: step });
@@ -128,7 +179,16 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
     };
 
     for (let page = 1; page <= nPages; page += 1) {
-      const blob = await renderPage(doc, page);
+      let blob: Blob;
+      try {
+        blob = doc ? await renderPage(doc, page) : await toPageImage(file);
+      } catch (error) {
+        setPhase("error");
+        setMessage(
+          error instanceof Error ? error.message : "Không xử lí được trang này.",
+        );
+        return;
+      }
 
       if (
         shouldFlushBefore({ count: batch.length, bytes: batchBytes }, blob.size) &&
@@ -187,7 +247,11 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
     }
 
     setPhase("idle");
-    setMessage(`Đã nạp xong ${nPages} trang thành ${chunks} đoạn. Hỏi được rồi.`);
+    setMessage(
+      kind === "image"
+        ? `Đã đọc xong ảnh thành ${chunks} đoạn. Hỏi được rồi.`
+        : `Đã nạp xong ${nPages} trang thành ${chunks} đoạn. Hỏi được rồi.`,
+    );
     if (input.current) input.current.value = "";
     onDone();
   }
@@ -196,7 +260,10 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
     idle: "",
     reading: "Đang đọc file…",
     uploading: "Đang tải lên…",
-    extracting: `Đang đọc nội dung ${done}/${total} trang…`,
+    extracting:
+      kindRunning === "image"
+        ? "Đang đọc nội dung ảnh…"
+        : `Đang đọc nội dung ${done}/${total} trang…`,
     indexing: "Đang lập chỉ mục…",
     error: "",
   };
@@ -235,7 +302,7 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
         <input
           ref={input}
           type="file"
-          accept="application/pdf,.pdf"
+          accept={`application/pdf,.pdf,${IMAGE_TYPES.join(",")}`}
           disabled={busy}
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -243,9 +310,11 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
           }}
         />
         <span className="headline">
-          {busy ? label[phase] : "Kéo PDF vào đây, hoặc bấm để chọn"}
+          {busy ? label[phase] : "Kéo PDF hoặc ảnh vào đây, hoặc bấm để chọn"}
         </span>
-        <small>Tối đa {MAX_UPLOAD_PAGES} trang · tiếng Việt hoặc tiếng Anh</small>
+        <small>
+          PDF tối đa {MAX_UPLOAD_PAGES} trang, hoặc một ảnh · tiếng Việt hoặc tiếng Anh
+        </small>
       </label>
 
       {phase === "extracting" && total > 0 && (
@@ -260,11 +329,14 @@ export function UploadPanel({ conversationId, ensureConversation, onDone }: Prop
         </div>
       )}
 
-      {phase === "extracting" && (
+      {phase === "extracting" && kindRunning === "pdf" && (
         // Pages are rendered by this tab. Browsers suspend the animation frame
         // loop in a background tab, which stalls pdfjs rather than failing it,
         // so the honest thing is to say so before the progress bar appears to
         // freeze for no reason.
+        //
+        // Only for a PDF. An image never touches pdfjs, so the warning would be
+        // both untrue and a reason to keep watching a tab that does not need it.
         <p className="note">Giữ tab này hiển thị — chuyển tab sẽ tạm dừng việc đọc trang.</p>
       )}
 
