@@ -6,7 +6,8 @@
 > Mã nguồn: https://github.com/trantiendat0611/Docubo
 > Bản chạy thật: https://docubo.vercel.app
 >
-> *Chương 1–4 viết ngày 19/08. Trạng thái chương 5 ở cuối tài liệu.*
+> *Chương 1–2 viết 19/08, chương 3–4 cùng ngày, chương 5 ngày 21/08.
+> Số liệu cập nhật tới lần chạy production 21/08.*
 
 ---
 
@@ -997,6 +998,122 @@ cho thấy điều đó.
 bao giờ đụng giao diện — và lỗi phạm vi tài liệu ở §3.10 nằm đúng chỗ đó. Bốn chỉ
 số xanh không nói gì về những đường mà bốn chỉ số ấy không đi qua.
 
+# Chương 5 — Kết luận
+
+## 5.1 Bốn lời hứa, và bằng chứng cho từng cái
+
+Chương 1 đặt ra bốn tính chất bắt buộc. Chương này trả lời từng cái bằng số đo,
+không bằng mô tả.
+
+**1. Đọc được công thức và biểu đồ.** Đường parse lớp text làm toán tử ∏ biến mất
+hoàn toàn và trả về 0 kí tự cho 2 trong 3 biểu đồ ở trang thử nghiệm (§1.1). Với
+ingest bằng vision, hai câu hỏi thuộc nhóm `figure` — hỏi về nội dung **chỉ** nằm
+trong hình — đều được truy hồi đúng, và `retrieval_hit_at_8` đạt **1.000** trên cả
+bộ. Đây là tính chất khó nhất và cũng là lí do tồn tại của toàn bộ kiến trúc.
+
+**2. Song ngữ Việt – Anh.** `hit_cross_lingual` **1.000** trên 6 câu tính điểm.
+Đóng góp của từng nhánh cũng đo được: bỏ hai nhánh full-text thì chỉ số rơi xuống
+0.833, và §4.7 truy ra đúng **một câu duy nhất** tạo nên khoảng cách ấy.
+
+**3. Trích dẫn số trang.** `citation_validity` **1.000**. Quy tắc trích dẫn trong
+grounding prompt là thứ đắt giá nhất trong prompt: bỏ nó đi, chỉ số rơi xuống
+**0.333** (§3.7). Nó là một quy tắc chịu lực, không phải một dòng trang trí.
+
+**4. Từ chối khi tài liệu không chứa câu trả lời.** `refusal_rate` **1.000** và
+`false_refusal_rate` **0.000**. Nhưng con số ấy đo trên tập negative dễ, nên nó
+được kiểm thêm bằng năm câu **cùng lĩnh vực với corpus mà corpus không trả lời
+được** — những câu vượt qua được ngưỡng cosine. Cả năm bị từ chối, **hai lần độc
+lập**, và cả hai lần đều do model **yếu nhất** trong chain phục vụ (§4.7).
+
+Tính chất thứ tư là tính chất chương 1 gọi là đáng bảo vệ nhất. Nó cũng là tính
+chất được kiểm kĩ nhất, và kết quả nói rằng chỉ số chính thức **nói ít hơn** hệ
+thống thật sự làm được.
+
+## 5.2 Mục chưa đạt
+
+**`p90_ttft_ms` = 15879, ngưỡng 15s.** Không đạt, và ngưỡng được **giữ nguyên**
+chứ không dời. Lịch sử của nó đáng đọc hơn con số: ngưỡng gốc là 3 giây, neo vào
+một request **không gọi model nào**; đường thật có hai lượt gọi model tuần tự nên
+3 giây là bất khả thi về mặt kiến trúc. Khi thay bằng ba ngưỡng mới, `p50 < 10s`
+lấy từ mốc UX bên ngoài còn `p90 < 15s` lấy sau khi nhìn phân bố — và đúng một lần
+chạy sau, **cái lấy từ dữ liệu thì hỏng, cái lấy từ bên ngoài thì không** (§4.6).
+
+Dời ngưỡng lần thứ hai ngay sau lần vi phạm đầu tiên thì nó thôi không còn là
+ngưỡng. Nên nó ở lại, và được báo cáo là chưa đạt.
+
+**Ba hạn chế đã biết, không phải lỗi:**
+
+| Hạn chế | Hệ quả |
+|---|---|
+| Ingest bằng vision **không tất định** | Cùng một PDF nạp hai lần có thể cho chunk khác nhau; `hit@8 = 1.000` đo trên một lần nạp cụ thể |
+| Biên `MIN_COSINE` phía trên chỉ **+0.012** | Câu sát ngưỡng là câu hỏi về biểu đồ — cộng hưởng với hạn chế trên |
+| Chất lượng phụ thuộc **thời điểm trong ngày** | Khi model mạnh cạn hạn mức, chain rơi xuống `flash-lite`, model duy nhất từng bỏ marker trích dẫn |
+
+Cả ba đều là hệ quả trực tiếp của ràng buộc 0 đồng, và cả ba đều được ghi ra thay
+vì giấu.
+
+## 5.3 Bài học kĩ thuật
+
+Ba bài học tôi cho là chuyển giao được sang dự án khác. Bản đầy đủ ở
+`SKILL_MY_PROJECT.md` §5 và §6.
+
+**Chỉ số sai theo hướng bi quan nguy hiểm hơn sai theo hướng lạc quan.** Sáu lần
+trong dự án này, một con số hiện ra trông như phán quyết trong khi nó đang đo thứ
+khác — `citation_validity = 0.15` trên 17 thân response rỗng, `refusal_rate = 0.0`
+trên token hết hạn, và gần nhất là `p90` tự "đạt" vì mẫu đổi chứ không vì hệ thống
+nhanh lên. Cái lạc quan làm mình tưởng đã xong; cái bi quan **dụ mình đi sửa thứ
+đang chạy tốt**. Quy tắc: trước khi tin một chỉ số tụt, mở dữ liệu thô của vài ca
+hỏng ra xem.
+
+**Tài liệu của thư viện cũng là một giả định cần đo.** Type doc của Vercel AI SDK
+ghi rằng stream sẽ ném lỗi; đo bằng model giả thì nó **không ném** mà kết thúc êm.
+Bản vá đầu tiên compile sạch, test xanh, và không bao giờ kích hoạt. Cùng kiểu sai
+lặp lại ở `abortSignal`: truyền signal cho `streamText` không đủ, vì provider
+không đọc nó thì chỗ `await` vẫn treo.
+
+**Một giá trị mang hai nghĩa sẽ thành lỗi ở đúng chỗ hai nghĩa tách ra.**
+`conversationId = null` nghĩa là "chưa chọn khung" với sidebar và "tìm trong mọi
+tài liệu" với truy hồi. Hai nghĩa sống chung yên ổn cho tới đường đi mà không bộ
+đo nào chạy qua — xoá khung chat đang mở.
+
+## 5.4 Hướng phát triển
+
+**Ưu tiên một — làm ingest ổn định.** Đây là gốc rễ của hai trong ba hạn chế ở
+§5.2. Hướng khả thi: sau khi nạp, kiểm mô tả biểu đồ có thật sự vào chỉ mục không,
+và nạp lại trang nào thiếu. Không sửa được tính bất định của model, nhưng phát
+hiện được hậu quả của nó.
+
+**Ưu tiên hai — mở rộng bộ đánh giá.** 31 câu trên 3 tài liệu, do chính tác giả
+viết. Nhóm xuyên ngôn ngữ chỉ có 6 câu tính điểm, nên một câu bằng 16.7 điểm phần
+trăm. Bộ đo lớn hơn và có người thứ hai viết câu hỏi sẽ đổi độ tin cậy của mọi con
+số ở chương 4.
+
+**Ưu tiên ba — kiểm thử với người dùng thật.** Bộ eval đo hệ thống có làm được thứ
+nó hứa hay không; nó không đo hệ thống có hữu ích với người lạ hay không. Và lỗi
+phạm vi tài liệu ở §3.10 cho thấy đường đi mà bộ đo không chạm tới vẫn có lỗi thật.
+
+**Các mục P1 đã ghi từ đầu:** rerank top-20 xuống top-5, trích dẫn mở ra ảnh trang
+gốc, đính tài liệu có sẵn vào khung chat từ giao diện. Chúng đều là cải thiện trải
+nghiệm, không phải sửa lỗi.
+
+**Không nằm trong hướng phát triển:** nạp DOCX/TXT. Quyết định 20/08, có lí do kĩ
+thuật ở §1.3 — chúng không có số trang nên buộc phải đổi đơn vị trích dẫn, và
+không đi qua đường vision nên không dùng tới phần lõi của đồ án.
+
+## 5.5 Kết luận
+
+Sản phẩm hoàn thành toàn bộ phạm vi P0 và chạy trên hạ tầng free tier với chi phí
+0 đồng. Bốn chỉ số nghiệm thu chính đều đạt ngưỡng, đo trên bản production. Một
+ngưỡng phi chức năng chưa đạt và được báo cáo là chưa đạt.
+
+Nhưng phần tôi học được nhiều nhất không phải kiến trúc RAG. Phần đó có sẵn thư
+viện cho mọi bước. Phần khó là **biết khi nào một con số đang nói dối** — và trong
+tám tuần, dự án này tạo ra sáu con số như vậy, trong đó cái gần nhất do chính việc
+cải tiến phép đo sinh ra.
+
+Một hệ thống RAG dễ dựng. Một hệ thống RAG **mà bạn biết chính xác nó đúng tới
+đâu** thì khó hơn nhiều, và đó mới là thứ đáng gọi là kết quả.
+
 ---
 
 ## Trạng thái tài liệu
@@ -1005,9 +1122,14 @@ số xanh không nói gì về những đường mà bốn chỉ số ấy khôn
 |---|---|---|
 | 1. Tổng quan | **Xong** 19/08 | `REQUIREMENTS.md` §1–2, `SKILL_MY_PROJECT.md` §1.1 |
 | 2. Phân tích & Thiết kế | **Xong** 19/08 | `REQUIREMENTS.md` §3–6, 2 sơ đồ, `SKILL` §1.2–1.3 |
-| 3. Triển khai kĩ thuật | **Xong** 19/08 | `SKILL` §2 (8 bước), §3 (22 bẫy) |
+| 3. Triển khai kĩ thuật | **Xong** 19/08 | `SKILL` §2 (8 bước), §3 (24 bẫy) |
 | 4. Kết quả đánh giá | **Xong** 19/08 | `SKILL` §4, `eval/reports/*.json` |
-| 5. Kết luận | Tuần 7 | `SKILL` §5 |
+| 5. Kết luận | **Xong** 21/08 | `SKILL` §5, chương 4 |
 
-**Việc còn lại của chương 1–2:** hai sơ đồ mermaid cần xuất ra PNG trước khi
-chuyển báo cáo sang `.docx` — pandoc không render mermaid. Đã ghi vào việc tuần 8.
+**Đủ 5/5 chương.** Việc còn lại trước khi nộp:
+
+- Hai sơ đồ mermaid cần **xuất ra PNG** — pandoc không render mermaid, nên bản
+  `.docx` sẽ mất cả hai hình nếu không thay trước.
+- Số liệu chương 4 và 5 sẽ **cập nhật lần cuối** sau lần chạy eval cuối kì.
+- Giấy phép hai file slide bài giảng ở mục *Nguồn tài liệu* của `README.md` còn
+  **chưa xác định** — cần xác nhận trước khi công bố rộng hơn.

@@ -416,6 +416,14 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       cho bên thứ ba, nên PDF gốc nằm ngoài repo là bắt buộc chứ không phải tuỳ
       chọn. Hai file slide bài giảng thì ghi rõ là **chưa xác định giấy phép**,
       không bịa
+- [x] **21/08** Viết chương 5 — Kết luận. Báo cáo **đủ 5/5 chương**, 11.225 từ.
+      Chương trả lời từng lời hứa ở chương 1 bằng số đo: công thức và biểu đồ
+      (2/2 câu `figure` truy hồi đúng), song ngữ (`hit_cross_lingual` 1.000 trên
+      6 câu), trích dẫn (1.000, và ablation cho thấy bỏ quy tắc thì rơi xuống
+      0.333), từ chối (1.000 trên negative dễ **cộng** 5/5 trên negative khó,
+      hai lần độc lập). Mục 5.2 ghi thẳng `p90` chưa đạt và **giữ nguyên ngưỡng**
+      chứ không dời lần thứ hai. Mục 5.4 xếp ba ưu tiên phát triển theo đúng gốc
+      rễ: làm ingest ổn định trước, vì nó là nguyên nhân của hai trong ba hạn chế
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

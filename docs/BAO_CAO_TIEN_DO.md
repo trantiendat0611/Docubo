@@ -276,6 +276,7 @@ Bảng đầy đủ **27 dòng** ở `SKILL_MY_PROJECT.md` §3 — 24 bẫy đá
 | Tuần | Trọng tâm |
 |---|---|
 | ~~T2 · 10–16/08~~ | **Xong.** Full eval 26 câu trên production, 3/4 chỉ số đạt ngưỡng |
+| ~~T3 · 17–23/08~~ | **Xong sớm.** `faithfulness` có số production, sửa trần 60s, đổi ngưỡng TTFT, thêm nhóm `hard_negative`, **báo cáo đủ 5/5 chương** |
 | T3 · 17–23/08 | Nối `faithfulness`, đo TTFT, viết mục lí lẽ trong tài liệu đúc kết |
 | T4 · 24–30/08 | Dọn Storage khi xoá, nạp TXT/DOCX, chống Supabase ngủ sau 7 ngày |
 | T5 · 31/08–06/09 | Báo cáo chương 1–2: Tổng quan; Phân tích & Thiết kế |
