@@ -529,7 +529,20 @@ def summarise(results: list[dict]) -> dict:
         # never streamed anything to time, and mean()/sorted() below only see
         # the ones that did, the same None-is-not-a-failure handling as
         # faithfulness above.
-        ttft_values = sorted(r["ttft_ms"] for r in scored if r.get("ttft_ms") is not None)
+        #
+        # Hard negatives are excluded, for a reason that only showed up after
+        # they were added. Their answers are refusals: short, and decided
+        # quickly — 2749 to 3190ms against a median of 8592 for the rest. Five
+        # of them joining the sample dropped the reported p90 from 15879 to
+        # 13358 and turned an unmet threshold into a met one, while nothing
+        # about the system's speed had changed. Timing them alongside real
+        # answers also breaks comparison with runs 1-12, which had no such
+        # group.
+        ttft_values = sorted(
+            r["ttft_ms"]
+            for r in scored
+            if r.get("ttft_ms") is not None and r["category"] != "hard_negative"
+        )
         summary["median_ttft_ms"] = (
             ttft_values[len(ttft_values) // 2] if ttft_values else None
         )

@@ -326,3 +326,17 @@ def test_select_items_refuses_a_typo_instead_of_running_nothing():
         run_eval.select_items(items, "hard_negatives")
 
     assert "hard_negative" in str(excinfo.value)
+
+
+def test_hard_negatives_are_kept_out_of_the_ttft_statistics():
+    """Their answers are refusals — short, and decided quickly. Timing them
+    beside real answers pulled a reported p90 from 15879 to 13358 and turned an
+    unmet threshold into a met one, with nothing about the system changed."""
+    real = [_record(ttft_ms=ms) for ms in (8000, 9000, 10000, 11000, 20000)]
+    fast = [_record(category="hard_negative", ttft_ms=ms) for ms in (2800, 2900, 3000)]
+
+    summary = run_eval.summarise(real + fast)
+
+    # p90 over the five real answers is the maximum at that sample size.
+    assert summary["p90_ttft_ms"] == 20000
+    assert summary["n_ttft_measured"] == 5

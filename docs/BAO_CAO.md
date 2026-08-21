@@ -161,9 +161,9 @@ giới hạn 5 lượt tải mỗi người mỗi ngày.
 | Tiêu chí | Mục tiêu | Trạng thái |
 |---|---|---|
 | Chi phí | 0 đồng | Đạt — toàn bộ hạ tầng chạy trên free tier |
-| Token đầu tiên, `p50` | < 10s | Đạt — 8594ms. Ngưỡng đổi từ 3s, xem dưới |
-| Token đầu tiên, `p90` | < 15s | **Chưa đạt** — 18368ms. Xem §4.6 |
-| Request chạm trần 60s | = 0 | Đạt — 0/26 ngày 20/08, sau khi đặt hạn chót 50s |
+| Token đầu tiên, `p50` | < 10s | Đạt — 8592ms. Ngưỡng đổi từ 3s, xem dưới |
+| Token đầu tiên, `p90` | < 15s | **Chưa đạt** — 15879ms. Xem §4.6 |
+| Request chạm trần 60s | = 0 | Đạt — 0/31 ngày 21/08, xác nhận lần thứ hai |
 | Quota vision | ~20 request/ngày/model | Ràng buộc, không phải mục tiêu |
 | Giới hạn tài liệu | 25 trang | Hệ quả của quota |
 | Body mỗi request | ≤ 3MB | Vercel Hobby chặn khoảng 4.5MB |
@@ -739,8 +739,9 @@ khẳng định thành một phép đo.
 
 ## 4.3 Kết quả hiện hành
 
-Lần chạy **20/08/2026** trên production —
-`eval/reports/eval-full-20260820-071507.json`. Chạy không kèm `--judge`:
+Lần chạy **21/08/2026** trên production —
+`eval/reports/eval-full-20260821-071023.json`. **Lần đầu chạy đủ 31 câu**, tức lần
+đầu nhóm `hard_negative` chạy cùng mọi nhóm khác. Không kèm `--judge`:
 `faithfulness` đã có số production từ 19/08
 (`eval-full-20260819-071406.json`), và bỏ nó ra vừa đủ ngân sách để chạy thêm
 phép thử từ chối ở §4.7 trong cùng một ngày.
@@ -751,20 +752,24 @@ phép thử từ chối ở §4.7 trong cùng một ngày.
 | `citation_validity` | ≥ 0.95 | **1.000** | Đạt |
 | `refusal_rate` | ≥ 0.90 | **1.000** | Đạt, `false_refusal_rate` = 0 |
 | `faithfulness` | ≥ 0.90 | **1.000** | Đạt — số đo 19/08 |
-| `n_timeout` | **= 0** | **0** | **Đạt** |
-| `median_ttft_ms` (`p50`) | < 10s | **8594** | Đạt |
-| `p90_ttft_ms` | < 15s | **18368** | **Chưa đạt** |
+| `n_timeout` | **= 0** | **0** | **Đạt**, lần xác nhận thứ hai |
+| `median_ttft_ms` (`p50`) | < 10s | **8592** | Đạt |
+| `p90_ttft_ms` | < 15s | **15879** | **Chưa đạt** — xem §4.6 |
 
 Chỉ số phụ: `hit_cross_lingual` 1.000 · `retrieval_mrr` 0.882 ·
 `overview_asked_for_document` 1.000 · `overview_answered_when_named` 1.000 ·
-`median_latency_ms` 7755 · `n_scored` 26/26 · `n_generation_failed` 0 ·
-`n_degraded` 2.
+`n_hard_negative` 5 · `median_latency_ms` 5634 · `n_scored` 31/31 ·
+`n_generation_failed` 0 · `n_degraded` 3.
 
-**Điều kiện của lần đo này phải nói ra.** Toàn bộ 26 câu do model mạnh phục vụ, và
-lần chạy còn **bị tải**: 5 câu chạm giới hạn theo phút phải thử lại, 2 câu chạy ở
-chế độ degraded. `n_timeout = 0` vì thế được xác nhận trong điều kiện khắc nghiệt
-hơn lần chạy đã vi phạm nó — §4.6 nói vì sao chế độ vận hành quyết định cách đọc
-mọi con số ở đây.
+**Đây là lần chạy duy nhất kiểm được ba phép tách của nhóm `hard_negative`**, vì
+nó là lần đầu có mọi nhóm cùng lúc. Năm câu ấy vượt ngưỡng cosine nên đi đường
+sinh câu trả lời: xếp nhầm chúng vào `should_refuse` thì `refusal_rate` rơi xuống
+**0.545**, để chúng trong `citation_validity` thì mỗi lời từ chối bị chấm như một
+lỗi trích dẫn. Cả hai giữ nguyên **1.000** — đúng thiết kế.
+
+Lần chạy cũng **bị tải**: 4 câu chạm giới hạn theo phút phải thử lại, 3 câu chạy ở
+chế độ degraded. `n_timeout = 0` vì thế được xác nhận lần thứ hai, trong điều kiện
+không dễ dàng.
 
 ## 4.4 Tiến triển qua mười lần chạy
 
@@ -786,6 +791,7 @@ Giờ ghi theo giờ Việt Nam (`run_at` trong report lưu UTC, +7).
 | 12 | 20/08 14:15 | full | **prod** | 26 | 1.000 | 1.000 | 0.882 | 1.000 | 1.000 | — | 8594 | Xác nhận `n_timeout` = **0** |
 | 13 | 20/08 14:56 | retrieval | — | **31** | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Thêm nhóm `hard_negative` 5 câu. Mọi chỉ số cũ **không đổi** — đúng ý đồ |
 | 14 | 20/08 15:19 | full | **prod** | 5 | — | — | — | — | — | — | 3565 | Chỉ nhóm `hard_negative`. **5/5 từ chối**, lặp lại kết quả trước đó |
+| 15 | 21/08 14:10 | full | **prod** | **31** | 1.000 | 1.000 | 0.882 | **1.000** | **1.000** | — | 8592 | Lần đầu chạy đủ 31 câu. Ba phép tách xác nhận; `n_timeout` = 0 lần thứ hai |
 
 Các lần chạy 3, 5, 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải
 phép đo.
@@ -854,6 +860,22 @@ ngưỡng mới ở §2.3.
 
 `p90_ttft_ms` đi **12069 → 18368** giữa hai lần chạy production liền nhau, vượt
 ngưỡng 15s vừa đặt hôm trước.
+
+**Và lần chạy kế tiếp, nó suýt tự "sửa" mình bằng một cách không có thật.** Harness
+báo 13358 — đạt. Nhưng đó là lần đầu 5 câu `hard_negative` được tính vào thống kê
+TTFT, mà câu trả lời cho chúng là **lời từ chối**: ngắn, quyết định nhanh, TTFT
+2749–3190ms so với trung vị 8592 của phần còn lại. Năm giá trị nhanh gia nhập mẫu
+(19 → 24) đủ để kéo `p90` xuống dưới ngưỡng.
+
+Tính lại chỉ trên 26 câu gốc, cùng cơ sở với mọi lần chạy trước: **15879 — vẫn chưa
+đạt.** Hệ thống có nhanh lên thật (18368 → 15879) nhưng không nhiều như 13358 gợi
+ý, và `p50` thì gần như đứng yên (8594 → 8592).
+
+Bài học, và nó là bài học đắt nhất về bộ đo trong cả dự án: **thêm câu vào bộ đo là
+đổi mẫu**, nên mọi chỉ số tính trên mẫu đó đứt mạch so sánh với các lần chạy trước.
+Đây cũng là lần thứ sáu một con số trông như kết quả mà không phải — và là lần đầu
+**do chính việc cải tiến phép đo tạo ra**. Cải tiến bộ đo cũng phải được kiểm như
+cải tiến sản phẩm.
 
 Khi đặt ba ngưỡng ấy, hai trong ba được chọn theo hai cách khác nhau, và điều đó
 đã được ghi lại tại thời điểm chọn:

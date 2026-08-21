@@ -92,8 +92,8 @@ giữa hai lần mà không nói điều này sẽ dẫn tới kết luận sai.
 | `faithfulness` | — | **1.000** | ≥ 0.90 | **Đạt — số đo thật đầu tiên trên production.** 17/17 câu chấm được, không câu nào có khẳng định thiếu chỗ dựa |
 | `hit_cross_lingual` | 1.000 | **1.000** | — | Hỏi tiếng Việt trên tài liệu tiếng Anh |
 | `retrieval_mrr` | 0.882 | 0.883 | — | Thứ hạng của đoạn đúng (18/08: 0.788) |
-| `median_ttft_ms` | — | **8594** | < 10s | Đạt. **Ngưỡng đổi từ 3s ngày 19/08** — ngưỡng cũ neo vào một request không gọi model nào |
-| `p90_ttft_ms` | — | **18368** | < 15s | **Chưa đạt.** Ngưỡng này chọn sau khi nhìn phân bố và hỏng sau đúng một lần chạy — trong khi `p50` chọn từ mốc UX bên ngoài thì vẫn đạt |
+| `median_ttft_ms` | — | **8592** | < 10s | Đạt. **Ngưỡng đổi từ 3s ngày 19/08** — ngưỡng cũ neo vào một request không gọi model nào |
+| `p90_ttft_ms` | — | **15879** | < 15s | **Chưa đạt.** Ngưỡng chọn sau khi nhìn phân bố, hỏng sau đúng một lần chạy — trong khi `p50` chọn từ mốc UX bên ngoài thì vẫn đạt. Số này tính trên 26 câu gốc; nhóm `hard_negative` bị loại vì câu trả lời của chúng là lời từ chối, nhanh bất thường (bẫy #24) |
 | `n_timeout` | 0 | **0** | **0** | **Đạt.** Sau khi đặt hạn chót 50s cho cả request, không câu nào chạm trần — xác nhận trong lần chạy còn bị tải nặng hơn |
 
 Hai điều đáng nói hơn các con số:
@@ -242,7 +242,7 @@ Supabase thật, nên toàn bộ nhánh này chưa từng được chạy trư�
 
 ## 7. Bốn cái bẫy đáng kể nhất
 
-Bảng đầy đủ **26 dòng** ở `SKILL_MY_PROJECT.md` §3 — 23 bẫy đánh số, cộng 3 dòng
+Bảng đầy đủ **27 dòng** ở `SKILL_MY_PROJECT.md` §3 — 24 bẫy đánh số, cộng 3 dòng
 đính chính lại kết luận cũ của chính tôi (`3b`, `14b`, `18b`).
 
 | Triệu chứng | Nguyên nhân thật |

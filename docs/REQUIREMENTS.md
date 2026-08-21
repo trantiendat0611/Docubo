@@ -175,7 +175,7 @@ trong bất kì câu trả lời nào.
 |---|---|---|
 | Chi phí | 0 đồng | Ràng buộc cứng của đề bài |
 | Token đầu tiên (`p50`) | < 10s | **Đổi từ < 3s ngày 19/08.** Ngưỡng cũ được neo vào một request **không gọi model nào** (~0.34s sau khi đặt region Singapore). Đường thật trước token đầu có **hai lượt gọi model tuần tự** — guardrail rồi mới tới sinh — cộng năm vòng gọi database, nên 3s không đạt được bằng kiến trúc này. 10s là mốc UX quen thuộc về giới hạn giữ được sự chú ý của người dùng, chọn độc lập với số đo. Đo được: 2889ms (18/08) · 8155ms (19/08) |
-| Token đầu tiên (`p90`) | < 15s | Thêm mới 19/08. Chỉ có trung vị thì **giấu mất đuôi phân phối** — ngày 13/08 đã có câu mất 44.2s, tức 74% trần hàm, mà không chỉ số nào cho thấy. Đo được: 7747 (18/08) · 12069 (19/08) · **18368 (20/08) — chưa đạt**. Ngưỡng này chọn sau khi nhìn phân bố, và hỏng sau đúng một lần chạy; giữ nguyên và ghi là chưa đạt thay vì dời lần thứ hai. Xem §7 |
+| Token đầu tiên (`p90`) | < 15s | Thêm mới 19/08. Chỉ có trung vị thì **giấu mất đuôi phân phối** — ngày 13/08 đã có câu mất 44.2s, tức 74% trần hàm, mà không chỉ số nào cho thấy. Đo được: 7747 (18/08) · 12069 (19/08) · **18368 (20/08)** · **15879 (21/08)** — chưa đạt. Ba con số cuối tính trên cùng 26 câu gốc; nhóm `hard_negative` bị loại khỏi thống kê TTFT vì câu trả lời của chúng là lời từ chối, ngắn và nhanh bất thường (bẫy #24). Ngưỡng này chọn sau khi nhìn phân bố, và hỏng sau đúng một lần chạy; giữ nguyên và ghi là chưa đạt thay vì dời lần thứ hai. Xem §7 |
 | Request chạm trần 60s | **= 0** | Ngưỡng đúng/sai chứ không phải ngưỡng thoải mái: câu chạm trần **không có câu trả lời**, khác hẳn câu trả lời chậm. 19/08 vi phạm 2/26; sau khi đặt hạn chót 50s cho cả request thì **20/08 đạt 0/26**, xác nhận trong một lần chạy còn bị tải nặng hơn. Đo bằng `n_timeout` |
 | **Quota vision** | **~20 request/ngày mỗi model** | Ràng buộc thật của cả hệ thống. Chain 4 model, gộp 8 trang/request ≈ **640 trang/ngày cho toàn bộ người dùng** |
 | Giới hạn tài liệu | 25 trang | Không phải giới hạn dung lượng — là hệ quả của quota trên. 25 trang ≈ 4 request |
@@ -186,41 +186,67 @@ trong bất kì câu trả lời nào.
 
 Hệ thống coi là đạt khi trên `eval/eval_dataset.json`:
 
-Lần đo mới nhất: **20/08/2026** trên production —
-`eval/reports/eval-full-20260820-071507.json`. Chạy không kèm `--judge`:
-`faithfulness` đã có số production 1.000 từ 19/08, và bỏ nó ra tiết kiệm 17
-request, vừa đủ ngân sách để chạy thêm phép thử từ chối ở dưới trong cùng ngày.
-
-Toàn bộ 26 câu do model mạnh phục vụ (`gemini-3.5-flash` 10, `gemini-2.5-flash`
-9). Lần chạy này còn **bị tải**: 5 câu chạm giới hạn theo phút và phải thử lại,
-2 câu chạy ở chế độ degraded.
+Lần đo mới nhất: **21/08/2026** trên production —
+`eval/reports/eval-full-20260821-071023.json`. **Lần đầu chạy đủ 31 câu**, tức
+lần đầu nhóm `hard_negative` chạy cùng mọi nhóm khác. Không kèm `--judge`:
+`faithfulness` có số production 1.000 từ 19/08, và 62 + 24 request vượt trần một
+ngày.
 
 | Chỉ số | Ngưỡng | Đo được | |
 |---|---|---|---|
 | `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
-| `citation_validity` | ≥ 0.95 | **1.000** | Đạt |
-| `refusal_rate` | ≥ 0.90 | **1.000** | Đạt, `false_refusal_rate` = 0 |
-| `faithfulness` | ≥ 0.90 | **1.000** | Đạt — số đo 19/08, lần này không chấm lại |
-| `n_timeout` | **= 0** | **0** | **Đạt — bản vá trần 60s đã xác nhận** |
-| `median_ttft_ms` (`p50`) | < 10s | **8594** | Đạt |
-| `p90_ttft_ms` | < 15s | **18368** | **Không đạt** |
-
-**Ngân sách sau khi thêm nhóm `hard_negative`:** full eval giờ 31 câu = **62
-request sinh**, nên full + `--judge` (~86) không còn vừa một ngày. Chạy `--judge`
-vào ngày riêng.
+| `citation_validity` | ≥ 0.95 | **1.000** | Đạt — nhóm mới **không** pha loãng |
+| `refusal_rate` | ≥ 0.90 | **1.000** | Đạt — nhóm mới **không** kéo xuống 0.545 |
+| `faithfulness` | ≥ 0.90 | **1.000** | Đạt — số đo 19/08 |
+| `n_timeout` | **= 0** | **0** | Đạt, lần xác nhận thứ hai |
+| `median_ttft_ms` (`p50`) | < 10s | **8592** | Đạt |
+| `p90_ttft_ms` | < 15s | **15879** | **Không đạt** — xem dưới |
 
 Chỉ số phụ: `hit_cross_lingual` 1.000 · `retrieval_mrr` 0.882 ·
 `overview_asked_for_document` 1.000 · `overview_answered_when_named` 1.000 ·
-`median_latency_ms` 7755 · `n_generation_failed` 0 · `n_degraded` 2.
+`n_hard_negative` 5 · `n_generation_failed` 0 · `n_degraded` 3 ·
+`median_latency_ms` 5634. Lần chạy có 4 lần chạm giới hạn theo phút phải thử lại.
 
-### `n_timeout = 0` — bản vá trần 60 giây đã xác nhận
+### Ba phép tách của nhóm `hard_negative` đã được xác nhận
+
+Đây là lần chạy duy nhất kiểm được điều đó, vì nó là lần đầu có **mọi nhóm cùng
+lúc**. Năm câu `hard_negative` vượt ngưỡng cosine nên chúng đi đường sinh câu trả
+lời; xếp nhầm chúng vào `should_refuse` thì `refusal_rate` rơi xuống 0.545, và để
+chúng trong `citation_validity` thì mỗi lời từ chối bị chấm như một lỗi trích dẫn.
+Cả hai chỉ số **giữ nguyên 1.000**, đúng thiết kế.
+
+### `p90` — con số harness báo, và con số đúng
+
+Harness báo `p90_ttft_ms` = **13358**, tức đạt. Con số đó **gây hiểu nhầm**.
+
+Đây là lần đầu 5 câu `hard_negative` được tính vào thống kê TTFT. Câu trả lời cho
+chúng là **lời từ chối**: ngắn, model quyết định sớm.
+
+| | TTFT |
+|---|---|
+| 5 câu `hard_negative` | 2749 – 3190ms |
+| Trung vị 26 câu còn lại | 8592ms |
+
+Năm giá trị nhanh gia nhập mẫu (19 → 24) đủ để kéo `p90` xuống dưới ngưỡng — **mà
+không có gì về tốc độ hệ thống thay đổi**. Tính lại chỉ trên 26 câu gốc, cùng cơ
+sở với mọi lần chạy trước: **15879, vẫn chưa đạt**.
+
+Hệ thống có nhanh lên thật — 18368 (20/08) → 15879 (21/08) trên cùng cơ sở — nhưng
+không nhiều như 13358 gợi ý. Còn `p50` thì gần như đứng yên: 8594 → 8592.
+
+`hard_negative` vì thế đã bị loại khỏi thống kê TTFT, cùng lí do đã loại khỏi
+`citation_validity`. Bảng trên ghi số đã tính lại; file report giữ nguyên con số
+lúc chạy, vì nó là bằng chứng của **lần chạy** chứ không phải của luật tính.
+Bẫy #24.
+*(Lịch sử 20/08)*
+### *(20/08)* `n_timeout = 0` — bản vá trần 60 giây đã xác nhận
 
 Ngày 19/08 có 2/26 câu chết ở 62.4s và 62.6s vì Vercel giết hàm ở
 `maxDuration = 60`. Sau khi đặt hạn chót 50s cho cả request, lần chạy này
 **không câu nào chạm trần** — và nó xác nhận trong điều kiện khắc nghiệt hơn
 lần trước, với 5 lần chạm rate limit và câu chậm nhất mất 22.6s.
 
-### `p90` vừa hỏng, và tôi tự gây ra
+### *(20/08)* `p90` vừa hỏng, và tôi tự gây ra
 
 Ngưỡng `p90 < 15s` được đặt hôm 19/08. Lúc đặt tôi đã ghi rõ nó **"thừa nhận có
 nhìn vào phân bố"** — khác với `p50 < 10s` vốn lấy từ mốc UX bên ngoài. Đúng một
@@ -248,7 +274,7 @@ một ngưỡng chưa được kiểm.
 vi phạm đầu tiên, thì nó thôi không còn là ngưỡng nữa. Cần thêm vài lần chạy để
 biết 18368 là mức thật hay là một buổi API bận.
 
-### Model có từ chối câu ngoài phạm vi cùng lĩnh vực không — **có, 5/5**
+### *(20/08)* Model có từ chối câu ngoài phạm vi cùng lĩnh vực không — **có, 5/5**
 
 Câu hỏi mở quan trọng nhất còn lại, và câu trả lời rõ ràng
 (`eval/reports/probe-refusal-20260820-073311.json`).

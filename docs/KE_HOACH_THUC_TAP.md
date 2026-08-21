@@ -389,6 +389,21 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       một đường code khác. Câu chữ khác đi nhưng nội dung trùng, kể cả hai ca
       tìm ra bằng chứng một phần — `h-005` độc lập tìm lại câu về L1 và độc lập
       chỉ ra không có gì về L2. Một lần 5/5 có thể là may; hai lần thì không
+- [x] **21/08** Chạy full **31 câu** lần đầu — lần duy nhất kiểm được ba phép
+      tách của nhóm `hard_negative`, vì là lần đầu mọi nhóm chạy cùng lúc.
+      **Cả ba đúng:** `refusal_rate` giữ **1.000** (không rơi xuống 0.545),
+      `citation_validity` giữ **1.000** (không bị pha loãng), `n_hard_negative`
+      = 5. `n_timeout` = 0 lần xác nhận thứ hai, trong lần chạy có 4 lần chạm
+      rate limit và 3 câu degraded.
+      **Nhưng `p90` suýt tự "sửa" mình bằng một cách không có thật.** Harness
+      báo 13358 — đạt. Thật ra đó là lần đầu 5 câu `hard_negative` được tính
+      vào thống kê TTFT, mà chúng là **câu từ chối**: ngắn, quyết định nhanh,
+      2749–3190ms so với trung vị 8592 của phần còn lại. Năm giá trị nhanh gia
+      nhập mẫu (19 → 24) đủ kéo `p90` xuống dưới ngưỡng **mà không có gì về
+      tốc độ thay đổi**. Tính lại trên 26 câu gốc: **15879, vẫn chưa đạt**.
+      Đã loại `hard_negative` khỏi thống kê TTFT, thêm test, ghi thành bẫy #24.
+      Đây là **lần thứ sáu** một con số trông như kết quả mà không phải — và
+      lần đầu do chính việc cải tiến phép đo tạo ra
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production
