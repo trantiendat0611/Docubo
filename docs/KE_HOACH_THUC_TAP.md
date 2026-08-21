@@ -452,6 +452,14 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       Đo sơ bộ trên ảnh hiện có, chỉ tốn embedding: câu tiếng Anh truy hồi ảnh
       ở **hạng 1, cosine 0.726** — đường ảnh hoạt động, chỉ là chưa đo được
       bằng bộ eval
+- [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
+      Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
+      sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh
+      dựng lại khi sơ đồ đổi.
+      Làm xong mới thấy **sơ đồ 2 cũng đang lệch**: Pha 1 vẫn bắt đầu bằng
+      "File PDF" trong khi đường dán ảnh đã có từ sáng. Đã thêm nhánh ảnh và
+      đổi tên node cho đúng (`PNG, hoặc JPEG nếu quá 3MB`). Xác minh bằng cách
+      render ra SVG rồi tìm chuỗi — không tin mỗi mã thoát 0
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production

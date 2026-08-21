@@ -255,7 +255,10 @@ graph TB
     UP --> DB
 ```
 
-*(Sơ đồ đầy đủ, có middleware và toàn bộ bảng: `docs/architecture/01-high-level.mmd`)*
+![Sơ đồ tổng quan hệ thống](architecture/01-high-level.png)
+
+*(Nguồn: `docs/architecture/01-high-level.mmd`. Khối mermaid ở trên để đọc trên
+GitHub; ảnh PNG là bản dùng khi xuất `.docx`, vì pandoc không render mermaid.)*
 
 **Quyết định đáng giải thích nhất: trình duyệt render PDF, không phải server.**
 Render phía server cần native canvas binding — thứ hạ tầng serverless xử lí tệ
@@ -291,7 +294,9 @@ flowchart TB
     X --> Y["Câu trả lời + trích dẫn"]
 ```
 
-*(Sơ đồ đầy đủ: `docs/architecture/02-rag-pipeline.mmd`)*
+![Sơ đồ luồng RAG pipeline](architecture/02-rag-pipeline.png)
+
+*(Nguồn: `docs/architecture/02-rag-pipeline.mmd`)*
 
 ### 2.5.1 Mỗi chunk mang hai biểu diễn
 
@@ -1132,8 +1137,9 @@ Một hệ thống RAG dễ dựng. Một hệ thống RAG **mà bạn biết ch
 
 **Đủ 5/5 chương.** Việc còn lại trước khi nộp:
 
-- Hai sơ đồ mermaid cần **xuất ra PNG** — pandoc không render mermaid, nên bản
-  `.docx` sẽ mất cả hai hình nếu không thay trước.
+- ~~Xuất PNG hai sơ đồ~~ — **xong 21/08**, xem `docs/architecture/*.png`. Cách
+  tái tạo khi sơ đồ đổi:
+  `npx @mermaid-js/mermaid-cli@11 -i <file>.mmd -o <file>.png -b white -w 1600`
 - Số liệu chương 4 và 5 sẽ **cập nhật lần cuối** sau lần chạy eval cuối kì.
 - Giấy phép hai file slide bài giảng ở mục *Nguồn tài liệu* của `README.md` còn
   **chưa xác định** — cần xác nhận trước khi công bố rộng hơn.

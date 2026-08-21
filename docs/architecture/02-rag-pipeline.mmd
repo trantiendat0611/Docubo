@@ -1,5 +1,5 @@
 %% Sơ đồ 2 — Luồng RAG Pipeline (Task 1.4)
-%% Cập nhật 19/08. Ba ý chính:
+%% Cập nhật 21/08. Ba ý chính:
 %%   1. Mỗi chunk mang hai biểu diễn — embed_text để máy tìm, display_text để người đọc
 %%   2. Câu hỏi mức tài liệu KHÔNG đi qua tìm kiếm tương đồng
 %%   3. Phạm vi mặc định là tài liệu của khung chat đang mở, không phải cả corpus
@@ -7,7 +7,8 @@
 flowchart TB
     subgraph ingest["Pha 1 — Ingest (trình duyệt lái, từng lô)"]
         direction TB
-        A["File PDF<br/>tối đa 25 trang"] -->|pdfjs, 200 dpi| B["Ảnh PNG từng trang"]
+        A["File PDF<br/>tối đa 25 trang"] -->|pdfjs, 200 dpi| B["Ảnh từng trang<br/>PNG, hoặc JPEG nếu quá 3MB"]
+        A2["Ảnh dán hoặc kéo vào<br/>PNG · JPEG · WebP"] -->|"canvas, thu nhỏ cạnh dài về 2000px"| B
         B --> BB{"Gom theo<br/>ngân sách 3MB"}
         BB -->|"8 trang nhẹ<br/>hoặc 3 trang nặng"| C["Gemini vision<br/>1 request mỗi lô"]
         C --> D[("document_pages<br/>cache, không gọi lại")]

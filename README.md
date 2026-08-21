@@ -64,7 +64,13 @@ nhập đều thấy 0 dòng ở cả bốn bảng.
 ## Kiến trúc
 
 - [Sơ đồ tổng quan hệ thống](docs/architecture/01-high-level.mmd)
+  ([PNG](docs/architecture/01-high-level.png))
 - [Sơ đồ luồng RAG pipeline](docs/architecture/02-rag-pipeline.mmd)
+  ([PNG](docs/architecture/02-rag-pipeline.png))
+
+Bản `.mmd` là nguồn; bản PNG dựng lại bằng
+`npx @mermaid-js/mermaid-cli@11 -i <file>.mmd -o <file>.png -b white -w 1600`,
+và tồn tại vì pandoc không render mermaid khi xuất `.docx`.
 
 | Thành phần | Công nghệ |
 |---|---|
