@@ -295,7 +295,7 @@ export function ChatPanel({
             {/* A heading, not styled-up <strong>: below 900px the rail moves
                 above the chat, and without this the main column contributes
                 nothing to the heading outline at all. */}
-            <h2>Hỏi gì cũng được, miễn là tài liệu có câu trả lời</h2>
+            <h2>Bạn muốn hỏi gì?</h2>
             <p>
               Tải một PDF lên ở khu vực tải tài liệu, rồi hỏi bằng tiếng Việt
               hoặc tiếng Anh. Nếu tài liệu không chứa câu trả lời, Docubo sẽ

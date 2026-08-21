@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { browserClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup";
@@ -58,6 +59,9 @@ export default function LoginPage() {
   return (
     <main className="auth">
       <div className="auth-card">
+        <span className="brand-mark">
+          <BrandMark size={26} />
+        </span>
         <h1>Docubo</h1>
         <p className="lead">
           {mode === "signin"
@@ -106,17 +110,18 @@ export default function LoginPage() {
         )}
 
         <p className="auth-alt">
+          <span className="auth-alt-prompt">
+            {mode === "signin" ? "Chưa có tài khoản?" : "Đã có tài khoản?"}
+          </span>
           <button
             type="button"
-            className="link"
+            className="auth-switch"
             onClick={() => {
               setMode(mode === "signin" ? "signup" : "signin");
               setMessage(null);
             }}
           >
-            {mode === "signin"
-              ? "Chưa có tài khoản? Đăng ký"
-              : "Đã có tài khoản? Đăng nhập"}
+            {mode === "signin" ? "Đăng ký" : "Đăng nhập"}
           </button>
         </p>
       </div>

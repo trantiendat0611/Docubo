@@ -1,46 +1,73 @@
 /* =========================================================================
    Docubo — design tokens
 
-   One scale per dimension. Reach for a token first — the eleven ad-hoc spacing
-   values the previous sheet accumulated are what made the layout feel
-   unresolved. A handful of literals remain on purpose, where the scale has no
-   opinion: the 6px indicator dots, a 1.65em line box, and the ch-based widths
-   that key off text rather than off the grid. Those aside, a raw length in a
-   rule below means a token was missed.
+   The identity is built around evidence-marking, because that is the one
+   thing this product does that a generic chat UI does not: every answer
+   traces back to an exact page. Two accents, two jobs — `accent` (indigo)
+   means "you can act here", `evidence` (amber) means "this is proof", and
+   the amber never appears for anything that isn't a citation.
+
+   One scale per dimension. Reach for a token first — the eleven ad-hoc
+   spacing values an earlier sheet accumulated are what made the layout feel
+   unresolved. A handful of literals remain on purpose, where the scale has
+   no opinion: the 6px indicator dots, a 1.65em line box, and the ch-based
+   widths that key off text rather than off the grid. Those aside, a raw
+   length in a rule below means a token was missed.
    ========================================================================= */
 
 :root {
   /* Surfaces, back to front. `raised` is for anything that sits on top of the
      page rather than in it — cards, the composer, the source panel. */
-  --bg: #ffffff;
-  --surface: #f7f8f9;
+  --bg: #f2f0ea;
+  --surface: #e7e3d7;
   --raised: #ffffff;
 
-  --border: #e4e6e9;
+  --border: #ddd8ca;
   /* Field and control outlines. A field's fill matches the card behind it, so
      this border is the only thing that says "you can type here" — which makes
      it a UI component boundary under WCAG 1.4.11 and puts a 3:1 floor on it.
-     The comfortable-looking #cfd3d8 measured 1.50 and had to go. */
-  --border-strong: #8c93a0;
+     Measured 4.29:1 against --raised, 3.35:1 against --surface. */
+  --border-strong: #82796a;
 
   /* Text, strongest to weakest. `subtle` is the floor: it still clears 4.5:1
-     on --bg, so nothing here is decorative-only. */
-  --fg: #16181d;
-  --fg-muted: #5b6270;
-  --fg-subtle: #6b7280;
+     on --bg (5.09:1), so nothing here is decorative-only. */
+  --fg: #1c1a16;
+  --fg-muted: #524c40;
+  --fg-subtle: #6b6555;
 
-  --accent: #2f5fd8;
-  --accent-hover: #2650bb;
-  --accent-border: #2450bd;
+  --accent: #3450c9;
+  --accent-hover: #2a41ac;
+  --accent-border: #2a41ac;
   --accent-fg: #ffffff;
-  --accent-weak: #eaf0ff;
+  --accent-weak: #e8ecfb;
+
+  /* Reserved for citations. Nothing decorative wears this color — if it's
+     amber, it's a claim you can check against a page. Text on -weak measures
+     5.09:1; the border measures 3.95:1 against white. */
+  --evidence: #8a5c09;
+  --evidence-weak: #fbefd6;
+  --evidence-border: #a67815;
 
   --danger: #b42318;
   --danger-weak: #fef3f2;
   --success: #067647;
   --success-weak: #ecfdf3;
 
-  --focus: #2563eb;
+  --focus: #2a41ac;
+
+  /* Type. Be Vietnam Pro carries the brand and section display moments —
+     used sparingly, never for body copy. Plex Sans runs the interface. Plex Mono
+     sets anything that is a measurement someone might check: page numbers,
+     relevance scores, citation digits.
+
+     --font-display/--font-sans/--font-mono themselves come from next/font,
+     applied as classes on <html> in layout.tsx — they are not declared here.
+     Every font-family below falls back inline (var(--font-sans, "IBM Plex
+     Sans", ...)) rather than through a same-named custom property, because a
+     custom property that references its own name — even only as a fallback —
+     is guaranteed-invalid per spec and silently drops every font in the app
+     back to the browser default serif. That shipped once; this comment is
+     the trap. */
 
   /* Type scale, 1.2-ish. Sizes are rem so browser zoom and user font settings
      keep working. */
@@ -50,10 +77,10 @@
   --text-base: 0.9375rem;/* 15px — body */
   --text-md: 1rem;       /* 16px — composer, never smaller: iOS zooms below 16 */
   --text-lg: 1.125rem;
-  --text-xl: 1.375rem;
-  --text-2xl: 1.75rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
 
-  --leading-tight: 1.25;
+  --leading-tight: 1.2;
   --leading-snug: 1.4;
   --leading-normal: 1.65;
 
@@ -72,10 +99,10 @@
   --radius-lg: 14px;
   --radius-full: 999px;
 
-  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
-  --shadow: 0 4px 12px -2px rgb(16 24 40 / 0.08), 0 2px 4px -2px rgb(16 24 40 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(28 26 22 / 0.06);
+  --shadow: 0 8px 20px -4px rgb(28 26 22 / 0.12), 0 2px 6px -2px rgb(28 26 22 / 0.06);
 
-  /* Minimum comfortable hit area. The previous sheet produced 21px controls. */
+  /* Minimum comfortable hit area. */
   --tap: 2.75rem; /* 44px */
 
   --measure: 68ch; /* prose line length */
@@ -86,33 +113,37 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0d0f12;
-    --surface: #14171c;
-    --raised: #171a20;
+    --bg: #14161d;
+    --surface: #1b1e27;
+    --raised: #20232d;
 
-    --border: #262b33;
-    /* Same 3:1 floor, measured against --raised rather than white. */
-    --border-strong: #606876;
+    --border: #2b2e38;
+    /* Same 3:1 floor, measured against --raised rather than white (3.27:1). */
+    --border-strong: #6e7280;
 
-    --fg: #e9ecf1;
-    --fg-muted: #a2abba;
-    --fg-subtle: #8b94a3;
+    --fg: #eceae2;
+    --fg-muted: #b6b2a4;
+    --fg-subtle: #948f7f;
 
-    --accent: #5b93f5;
-    --accent-hover: #7aa9fa;
-    --accent-border: #7fb0ff;
-    --accent-fg: #0a0d15;
-    --accent-weak: #17233c;
+    --accent: #7c93f5;
+    --accent-hover: #93a6ff;
+    --accent-border: #93a6ff;
+    --accent-fg: #0d1220;
+    --accent-weak: #1e2740;
+
+    --evidence: #e4b54b;
+    --evidence-weak: #2b2107;
+    --evidence-border: #9c7420;
 
     --danger: #ff9086;
     --danger-weak: #2a1512;
     --success: #63d19a;
     --success-weak: #10241a;
 
-    --focus: #6aa5ff;
+    --focus: #93a6ff;
 
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow: 0 4px 14px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow: 0 10px 24px -4px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.35);
   }
 }
 
@@ -133,11 +164,23 @@ html {
 body {
   margin: 0;
   background: var(--bg);
+  /* A near-imperceptible dot grid — the one nod to "notebook" in the whole
+     sheet. 3% opacity so it reads as paper tooth, not decoration, and never
+     competes with dense math or Vietnamese diacritics sitting on top of it. */
+  background-image: radial-gradient(var(--border-strong) 0.6px, transparent 0.6px);
+  background-size: 22px 22px;
+  background-attachment: fixed;
   color: var(--fg);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-image: radial-gradient(rgb(255 255 255 / 0.05) 0.6px, transparent 0.6px);
+  }
 }
 
 h1,
@@ -195,8 +238,9 @@ p {
   color: var(--accent-fg);
   box-shadow: var(--shadow-sm);
   font: inherit;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
   font-size: var(--text-base);
-  font-weight: 550;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.06s ease;
 }
@@ -249,6 +293,7 @@ p {
   background: var(--raised);
   color: var(--fg);
   font: inherit;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
   font-size: var(--text-md);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -293,6 +338,7 @@ button.link {
   background: none;
   color: var(--accent);
   font: inherit;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
   font-size: var(--text-sm);
   cursor: pointer;
   text-decoration: underline;
@@ -320,8 +366,6 @@ button.link-danger:hover {
 
 /* =========================================================================
    App shell — chat is the main column, documents sit in a rail beside it.
-   Before this everything stacked in one column with the chat last, which put
-   the thing users do constantly below two things they do once.
    ========================================================================= */
 
 .shell {
@@ -329,8 +373,7 @@ button.link-danger:hover {
   margin: 0 auto;
   padding: var(--s5) var(--s4) var(--s6);
   /* Full height so the composer can anchor to the bottom of the viewport
-     instead of floating wherever the transcript happens to end. At a fixed
-     60vh the empty state left 243px of dead space beneath it. */
+     instead of floating wherever the transcript happens to end. */
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -347,18 +390,27 @@ button.link-danger:hover {
 
 .brand {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.brand .mark {
+  flex: none;
+  color: var(--accent);
 }
 
 .brand h1 {
+  font-family: var(--font-display, "Be Vietnam Pro", system-ui, sans-serif);
   font-size: var(--text-xl);
-  font-weight: 650;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .who {
   display: flex;
   align-items: center;
-  /* Wide enough that the address never crowds the button. At --s3 the two sat
-     close enough that a truncated address read as running into it. */
+  /* Wide enough that the address never crowds the button. */
   gap: var(--s5);
   min-width: 0;
 }
@@ -396,10 +448,11 @@ button.link-danger:hover {
 }
 
 .rail h2 {
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-family: var(--font-mono, "IBM Plex Mono", "SFMono-Regular", Consolas, monospace);
+  font-size: var(--text-2xs);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--fg-subtle);
   margin-bottom: var(--s3);
 }
@@ -437,6 +490,8 @@ button.link-danger:hover {
   gap: var(--s1);
   border-radius: var(--radius-sm);
   padding-right: var(--s1);
+  border-left: 2px solid transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .convo-list li:hover {
@@ -445,6 +500,7 @@ button.link-danger:hover {
 
 .convo-list li.is-current {
   background: var(--accent-weak);
+  border-left-color: var(--accent);
 }
 
 .convo-open {
@@ -456,6 +512,7 @@ button.link-danger:hover {
   background: none;
   color: var(--fg);
   font: inherit;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
   font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
@@ -466,7 +523,7 @@ button.link-danger:hover {
 
 .convo-list li.is-current .convo-open {
   color: var(--accent);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 /* Held back until the row is wanted, so a column of chats does not read as a
@@ -546,7 +603,7 @@ button.link-danger:hover {
 
 .upload-drop .headline {
   font-size: var(--text-base);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .upload-drop small {
@@ -593,7 +650,9 @@ button.link-danger:hover {
 }
 
 /* =========================================================================
-   Documents
+   Documents — each row gets a spine tab, cycling through a small, quiet set
+   of hues so a rail of several documents reads the way a shelf of folders
+   does, not as an undifferentiated list.
    ========================================================================= */
 
 .doclist {
@@ -612,12 +671,22 @@ button.link-danger:hover {
   gap: var(--s3);
   padding: var(--s2) var(--s3);
   border: 1px solid transparent;
+  border-left: 3px solid var(--accent-border);
   border-radius: var(--radius-sm);
+}
+
+.doclist li:nth-child(3n+2) {
+  border-left-color: var(--evidence-border);
+}
+
+.doclist li:nth-child(3n) {
+  border-left-color: var(--success);
 }
 
 .doclist li:hover {
   background: var(--surface);
   border-color: var(--border);
+  border-left-width: 3px;
 }
 
 .doc-main {
@@ -634,15 +703,13 @@ button.link-danger:hover {
 }
 
 .doc-meta {
+  font-family: var(--font-mono, "IBM Plex Mono", "SFMono-Regular", Consolas, monospace);
   font-size: var(--text-xs);
   color: var(--fg-subtle);
 }
 
 /* The delete control only resolves on hover, so a rail of documents does not
    read as a row of buttons. It stays reachable by keyboard. */
-/* Keeps button.link's --tap height rather than overriding it to auto, which
-   collapsed a destructive control to about 20px — on touch, where the rule
-   below keeps it permanently visible, that is exactly where the floor matters. */
 .doclist .remove {
   opacity: 0;
   flex: none;
@@ -701,10 +768,22 @@ button.link-danger:hover {
   display: flex;
   flex-direction: column;
   gap: var(--s3);
+  animation: turn-in 0.32s ease-out;
+}
+
+@keyframes turn-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* The question reads as something the user said, not as a heading of the
-   answer. Before, the only difference between the two was font-weight 500. */
+   answer. */
 .turn .question {
   align-self: flex-start;
   max-width: 90%;
@@ -749,7 +828,8 @@ button.link-danger:hover {
   border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px solid var(--border);
-  font-size: 0.9em;
+  font-family: var(--font-mono, "IBM Plex Mono", "SFMono-Regular", Consolas, monospace);
+  font-size: 0.85em;
 }
 
 .turn-refusal .prose,
@@ -797,14 +877,13 @@ button.link-danger:hover {
 }
 
 /* =========================================================================
-   Citations — the product's central claim, so it is styled as evidence
-   rather than as a footnote.
+   Citations — the product's central claim, so each one is drawn as a proof
+   tag rather than a footnote: a torn-tab marker in the evidence colour,
+   pointing at the file and page it backs, with a highlighter sweep on hover.
    ========================================================================= */
 
 .citations {
-  /* Aligned to the prose it supports. Left to fill the column it ran 816px
-     wide under a 550px paragraph, which read as a separate panel rather than
-     as the evidence for that answer. */
+  /* Aligned to the prose it supports. */
   max-width: var(--measure);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -816,10 +895,11 @@ button.link-danger:hover {
   padding: var(--s2) var(--s3);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-family: var(--font-mono, "IBM Plex Mono", "SFMono-Regular", Consolas, monospace);
+  font-size: var(--text-2xs);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--fg-subtle);
 }
 
@@ -833,24 +913,55 @@ button.link-danger:hover {
 
 .citations li {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--s2);
-  padding: var(--s2) var(--s2);
+  padding: var(--s2);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
+  /* Highlighter-sweep on hover/focus: a flat fill that grows in from the
+     left, like a pen dragged across the row. */
+  background-image: linear-gradient(var(--evidence-weak), var(--evidence-weak));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition: background-size 0.2s ease;
+}
+
+.citations li:hover,
+.citations li:focus-within {
+  background-size: 100% 100%;
 }
 
 .citations .marker {
+  position: relative;
   flex: none;
-  min-width: 1.5rem;
-  padding: 0 0.3rem;
-  border-radius: var(--radius-sm);
-  background: var(--accent-weak);
-  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  min-width: 2.25rem;
+  height: 1.5rem;
+  padding: 0 0.7rem 0 0.6rem;
+  border: 1.5px solid var(--evidence-border);
+  background: var(--evidence-weak);
+  color: var(--evidence);
+  /* A tag shape — flat on three sides, a point on the fourth — so the marker
+     reads as something clipped onto the page it cites. */
+  clip-path: polygon(0 0, 72% 0, 100% 50%, 72% 100%, 0 100%);
+  font-family: var(--font-mono, "IBM Plex Mono", "SFMono-Regular", Consolas, monospace);
   font-size: var(--text-xs);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: center;
+}
+
+.citations .marker::before {
+  content: "";
+  position: absolute;
+  left: 0.42rem;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--evidence-border);
+  transform: translateY(-50%);
 }
 
 .citations .file {
@@ -862,12 +973,15 @@ button.link-danger:hover {
 
 .citations .pages {
   flex: none;
+  font-family: var(--font-mono, "IBM Plex Mono", "SFMono-Regular", Consolas, monospace);
+  font-size: var(--text-xs);
   color: var(--fg-muted);
 }
 
 .citations .score {
   flex: none;
   margin-left: auto;
+  font-family: var(--font-mono, "IBM Plex Mono", "SFMono-Regular", Consolas, monospace);
   color: var(--fg-subtle);
   font-size: var(--text-2xs);
   font-variant-numeric: tabular-nums;
@@ -905,8 +1019,7 @@ button.link-danger:hover {
   margin-bottom: var(--s2);
 }
 
-/* Keeps the row from collapsing when the scope picker is absent, so Dừng and
-   Sinh lại do not jump position between one document and several. */
+/* Keeps the row from collapsing when the scope picker is absent. */
 .composer-tools > *:only-child {
   margin-left: auto;
 }
@@ -928,11 +1041,14 @@ button.link-danger:hover {
   background: var(--raised);
   color: var(--fg);
   font: inherit;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
   font-size: var(--text-sm);
 }
 
 /* =========================================================================
-   Empty state
+   Empty state — the one editorial moment in the working app: a serif
+   headline instead of the interface's own type, set with the same measure
+   as an answer so the two read as belonging to the same page.
    ========================================================================= */
 
 .empty {
@@ -940,20 +1056,19 @@ button.link-danger:hover {
   flex-direction: column;
   align-items: center;
   gap: var(--s2);
-  /* Held to the same measure as an answer. Left to fill the column the
-     paragraph ran nearly 1000px wide while the prose beneath it was capped at
-     550, so the two read as belonging to different pages. */
   max-width: var(--measure);
   margin: 0 auto;
-  padding: var(--s7) 0;
+  padding: var(--s8) 0 var(--s7);
   text-align: center;
   color: var(--fg-muted);
 }
 
 .empty h2 {
   color: var(--fg);
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font-family: var(--font-display, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .empty p {
@@ -962,7 +1077,7 @@ button.link-danger:hover {
 
 .suggestions {
   list-style: none;
-  margin: var(--s4) 0 0;
+  margin: var(--s5) 0 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
@@ -976,9 +1091,10 @@ button.link-danger:hover {
   padding: 0 var(--s4);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
-  background: var(--surface);
+  background: var(--raised);
   color: var(--fg);
   font: inherit;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
   font-size: var(--text-sm);
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -1011,9 +1127,18 @@ button.link-danger:hover {
   box-shadow: var(--shadow);
 }
 
+.auth-card .brand-mark {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--accent);
+}
+
 .auth-card h1 {
+  font-family: var(--font-display, "Be Vietnam Pro", system-ui, sans-serif);
   font-size: var(--text-2xl);
-  font-weight: 650;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .auth-card .lead {
@@ -1042,8 +1167,41 @@ button.link-danger:hover {
 }
 
 .auth-alt {
-  margin-top: var(--s4);
-  text-align: center;
+  margin-top: var(--s5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.auth-alt-prompt {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+/* The toggle used to be a sentence-length text link — easy to mistake for
+   part of the copy above it. Framing just the verb in a border makes it read
+   as the one thing on this screen you can press to change what happens. */
+.auth-switch {
+  min-height: var(--tap);
+  padding: 0 var(--s5);
+  border: 1.5px solid var(--accent-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.auth-switch:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
 }
 
 /* Long display formulas scroll rather than widening the page. */
@@ -1054,8 +1212,7 @@ button.link-danger:hover {
 }
 
 /* =========================================================================
-   Responsive — the previous sheet had no media queries at all, so the chat
-   form stayed a horizontal flex row down to 320px.
+   Responsive
    ========================================================================= */
 
 /* Three columns need roughly 1200px. Below that the document rail folds under
