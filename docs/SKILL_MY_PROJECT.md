@@ -897,13 +897,155 @@ Cần **một lần chạy `--judge` trên production ngay sau khi quota reset**
 
 *(Viết ở tuần 8. Cái gì giữ, cái gì làm khác, cái gì bỏ hẳn.)*
 
+### Giữ nguyên
+
+**Spike sáu trang khó nhất trước khi viết dòng code nào.** Bốn lỗi mà đọc code
+bao nhiêu lần cũng không thấy đều lộ ra ở đó, và hai trong bốn cái là loại **âm
+thầm mất dữ liệu** chứ không báo lỗi. Chạy thẳng `all` trên tài liệu lớn thì lỗi
+`RECITATION` sẽ nuốt trang mà không ai biết.
+
+**Cache trước lần gọi API thứ hai.** Không phải khi thấy chậm. Với ngân sách 20
+request/ngày/model, một lần chỉnh prompt không cache tốn quá nửa ngày.
+
+**Cô lập dữ liệu ở tầng database, không ở tầng ứng dụng.** `SECURITY INVOKER` +
+RLS biến lỗi nghiêm trọng nhất có thể xảy ra — trả tài liệu người khác — thành
+lỗi vô hại nhất: trả rỗng. Đây là quyết định tôi hài lòng nhất trong cả dự án.
+
+**Hai pipeline ingest kèm parity test so từng byte.** Nghe thừa cho tới lần đầu
+chúng lệch nhau.
+
+**Ghi lại cả những kết luận đã sai.** Mục §1.2, bẫy #3b, #14b, #18b, #24 đều là
+đính chính của chính tôi. Chúng là phần đáng đọc nhất của file này — và nếu xoá
+đi để trông gọn hơn thì mất luôn thứ duy nhất không tra Google được.
+
+### Làm khác
+
+**Viết bộ eval ở tuần 1, không phải tuần 2.** Nó là công cụ chẩn đoán, không phải
+báo cáo cuối kì. Mọi quyết định giữa tuần 1 và lúc có bộ eval đều là đoán, và ít
+nhất một quyết định (`MIN_COSINE = 0.35`) sai suốt nhiều ngày mà không ai thấy.
+
+**Commit prompt theo từng lần chỉnh.** Bước 3 phải **đo lại** thay vì tra cứu, vì
+lí do từng quy tắc ra đời chỉ còn trong trí nhớ. Một dòng trong commit message mỗi
+lần sửa prompt sẽ tiết kiệm cả buổi và một loạt thí nghiệm không kết luận được gì.
+
+**Đo baseline trước khi đo tác dụng, ngay từ thí nghiệm đầu tiên.** Bốn ablation ở
+Bước 3 vô nghĩa vì tôi chưa biết ingest **không tất định**. Một lần chạy baseline
+3 lần trước đó sẽ tiết kiệm cả bốn.
+
+**Ghi kèm chế độ chạy và cỡ mẫu vào chỉ số ngay từ đầu.** Không phải sau khi phát
+hiện một bộ số ghép từ hai lần chạy khác nhau.
+
+**Thiết kế `null` có đúng một nghĩa.** Bẫy #22 tồn tại vì `conversationId = null`
+mang hai nghĩa cho hai người đọc khác nhau. Chỗ hai nghĩa đó tách ra chính là chỗ
+sinh lỗi, và nó nằm trên đường đi mà không bộ đo nào chạy qua.
+
+**Đặt ngưỡng NFR từ nguồn độc lập với số đo.** `p50 < 10s` lấy từ mốc UX bên ngoài
+và vẫn đứng vững; `p90 < 15s` lấy sau khi nhìn phân bố và hỏng sau đúng một lần
+chạy. Bài học rẻ nhất trong file này.
+
+### Bỏ hẳn
+
+**Ngưỡng "token đầu tiên < 3s".** Nó được neo vào một request **không gọi model
+nào**. Bất kì ngưỡng nào đặt trước khi biết đường đi thật của request đều là con
+số trang trí.
+
+**Ý định tìm một `MIN_COSINE` tối ưu.** Không tồn tại: câu hỏi ngoài phạm vi
+nhưng cùng lĩnh vực ghi điểm chồng lấn với câu trong phạm vi, vì cosine đo **độ
+liên quan chủ đề** chứ không đo **khả năng trả lời được**. Thời gian dành cho việc
+dò con số ấy đáng lẽ nên dành cho tầng phòng thủ thứ hai.
+
+**Tin vào một chỉ số mà không mở dữ liệu thô.** Sáu lần một con số trông như kết
+quả mà không phải, và lần thứ sáu do **chính việc cải tiến phép đo** tạo ra.
+
+### Điều tôi không lường trước
+
+**Phần lớn công sức không nằm ở RAG.** Nó nằm ở chịu lỗi dưới ràng buộc 0 đồng:
+xoay chain model, phân biệt hết-quota-ngày với giới hạn-theo-phút, kéo token đầu
+ra khỏi stream trước khi cam kết header, đặt hạn chót dưới trần nền tảng. Phần
+"tìm đoạn văn rồi hỏi model" là phần dễ nhất.
+
+**Model không tất định theo cách không ai cảnh báo.** Cùng trang, cùng prompt,
+ra 1 hình hoặc 9 hình — và hai lần sau trùng khít từng byte. Đó không phải nhiễu
+rải quanh trung bình mà là **hai chế độ hành vi**, nên trung bình hoá là vô nghĩa.
+
+**Chỉ số sai theo hướng bi quan nguy hiểm hơn sai theo hướng lạc quan.** Cái lạc
+quan làm mình tưởng đã xong; cái bi quan **dụ mình đi sửa thứ đang chạy tốt**. Ba
+trong sáu ca ở đây sai theo hướng bi quan.
+
 ---
 
 ## 6. Checklist tái sử dụng
 
 *(Rút gọn toàn bộ file thành một checklist người khác làm theo được.)*
 
-- [ ] Spike model trên 3 trang khó nhất trước khi viết dòng code nào
-- [ ] Cache mọi response tốn tiền ra đĩa, khoá theo đơn vị nhỏ nhất
-- [ ] Viết bộ eval trước khi tối ưu
-- [ ] …
+Thứ tự có chủ ý: mỗi mục phải đo được trước khi mục sau bắt đầu.
+
+**Trước khi viết dòng code nào**
+
+- [ ] Spike model trên **3–6 trang khó nhất** của corpus thật, không phải trang
+      trung bình — trang dày công thức, trang toàn biểu đồ, trang trộn ngôn ngữ
+- [ ] Liệt kê model nào **thật sự có quota free**; một model bị rút khỏi free
+      tier trả 429 với `limit: 0`, trông y hệt cạn quota
+- [ ] Chạy cùng một trang **3 lần** với prompt y hệt. Nếu kết quả khác nhau thì
+      mọi phép so sau này phải chạy lặp lại, và biết điều đó ngay bây giờ rẻ hơn
+      biết sau bốn thí nghiệm
+
+**Trước lần gọi API thứ hai**
+
+- [ ] Cache mọi response tốn quota ra đĩa, khoá theo **đơn vị nhỏ nhất** có thể
+      xử lí lại độc lập (ở đây là từng trang)
+- [ ] Tính ra bằng số: một lần chỉnh prompt tốn bao nhiêu phần ngân sách ngày
+
+**Trước khi tối ưu bất cứ thứ gì**
+
+- [ ] Viết bộ eval. Nó là **công cụ chẩn đoán**, không phải báo cáo cuối kì
+- [ ] Chia chỉ số theo **tầng**: truy hồi hỏng và sinh câu trả lời hỏng cần cách
+      sửa ngược nhau, một con số gộp che mất nửa nào đang hỏng
+- [ ] Cho mỗi chỉ số một tập negative **khó**, không chỉ negative hiển nhiên
+- [ ] Ghi **chế độ chạy + cỡ mẫu + nơi chạy** vào mọi con số, ngay từ lần đầu
+- [ ] **Loại request hỏng khỏi mẫu**, đừng chấm chúng 0 điểm
+
+**Khi đặt ngưỡng**
+
+- [ ] Đo phân bố thật của cả hai nhóm trước, đừng chọn theo cảm tính
+- [ ] Lấy ngưỡng từ **nguồn độc lập với số đo** nếu có thể. Ngưỡng khớp vào một
+      mẫu là ngưỡng chưa được kiểm
+- [ ] Kiểm ngưỡng có đạt được bằng kiến trúc hiện tại không — đếm số lượt gọi
+      model **tuần tự** trên đường đi thật
+- [ ] Nếu hai nhóm chồng lấn thì **không có ngưỡng tối ưu**; cần một tầng thứ hai
+      biết đọc nội dung
+
+**Khi đọc một con số**
+
+- [ ] Trước khi tin một chỉ số **tụt**, mở dữ liệu thô của vài ca hỏng ra xem
+- [ ] Đối chiếu với một cột khác: latency 950ms cho một câu trả lời có sinh văn
+      bản là bất khả thi, và đó là dấu hiệu lộ ra nhanh nhất
+- [ ] Cùng một con số ở hai lần chạy vẫn có thể là **hai câu khác nhau**
+- [ ] Thêm câu vào bộ đo là **đổi mẫu** — mọi chỉ số tính trên nó đứt mạch so
+      sánh với các lần chạy trước
+
+**Khi viết code chạm tới model**
+
+- [ ] Kiểm tài liệu thư viện **bằng phép đo**, không bằng cách đọc. Doc của thư
+      viện cũng là một giả định
+- [ ] Test đường lỗi bằng **model thật giả lập**, không bằng generator tự bịa —
+      generator tự bịa ném lỗi đúng như mình tưởng, nên test xanh mà vá vô dụng
+- [ ] Đặt hạn chót **dưới** trần của nền tảng, tính từ lúc nhận request chứ không
+      từ lúc gọi model
+- [ ] Kéo token đầu tiên ra **trước khi cam kết HTTP header**, để lỗi còn đổi
+      được status
+- [ ] Tham số nào quên là hỏng âm thầm thì để **bắt buộc, không default**
+
+**Về dữ liệu và trạng thái**
+
+- [ ] Cô lập người dùng ở **tầng database**, không ở tầng ứng dụng
+- [ ] Mỗi giá trị **một nghĩa**. Một giá trị mang hai nghĩa sẽ thành lỗi ở đúng
+      chỗ hai nghĩa tách ra
+- [ ] Ngân sách token đo trên **đúng chuỗi được embed**, không phải chuỗi hiển thị
+- [ ] Kiểm nợ kĩ thuật **trước khi trả nó** — nó cũng là một khẳng định chưa đo
+
+**Về ghi chép**
+
+- [ ] Commit prompt theo từng lần chỉnh, kèm lí do
+- [ ] Ghi lại cả những kết luận **đã sai của chính mình**. Đó là phần duy nhất
+      của tài liệu này không tra cứu ở đâu khác được

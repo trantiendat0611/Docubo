@@ -275,5 +275,22 @@ Postgres một lần và trả `{ ok, database, ms }` — không gọi model. Gi
 
 ## Nguồn tài liệu
 
-*(Liệt kê tài liệu dùng để thử nghiệm và đánh giá, kèm giấy phép. File PDF gốc
-không được commit.)*
+Ba tài liệu tạo thành corpus đánh giá, tổng **83 trang**. **File PDF gốc không
+được commit** — `data/*` nằm trong `.gitignore` — vì lí do bản quyền chứ không
+phải dung lượng.
+
+| File | Nội dung | Trang | Giấy phép |
+|---|---|---|---|
+| `2402.00253v2.pdf` | *A Survey on Hallucination in Large Vision-Language Models* — Liu và cộng sự, arXiv, nộp 01/02/2024, bản v2 06/05/2024 | 10 | [arXiv.org perpetual non-exclusive license](http://arxiv.org/licenses/nonexclusive-distrib/1.0/) |
+| `testta1.pdf` | Slide bài giảng Machine Learning, tiếng Anh. Trong nội dung có dẫn *"Lecture 5, VIASM-SML and lecture of Prof. Lafferty"* | 68 | Tài liệu giảng dạy — **chưa xác định**, xem ghi chú |
+| `testtv1.pdf` | Ghi chép Machine learning và Deep learning, tiếng Việt | 5 | Tài liệu giảng dạy — **chưa xác định**, xem ghi chú |
+
+Giấy phép của arXiv cho **arXiv** quyền phân phối vĩnh viễn, không cấp quyền phát
+hành lại cho bên thứ ba — nên bản PDF nằm ngoài repo là bắt buộc, không phải tuỳ
+chọn.
+
+Hai tài liệu còn lại là tài liệu giảng dạy dùng cho mục đích học tập. Chúng chỉ
+xuất hiện trong repo dưới dạng **câu trả lời do model sinh ra** trong
+`eval/reports/` — tối đa 800 kí tự mỗi câu, là văn tóm tắt kèm trích dẫn, không
+phải trích nguyên văn. Trước khi công bố rộng hơn, cần xác nhận nguồn và điều
+kiện sử dụng của hai file này.

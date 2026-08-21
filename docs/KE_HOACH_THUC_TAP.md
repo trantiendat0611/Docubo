@@ -404,6 +404,18 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       Đã loại `hard_negative` khỏi thống kê TTFT, thêm test, ghi thành bẫy #24.
       Đây là **lần thứ sáu** một con số trông như kết quả mà không phải — và
       lần đầu do chính việc cải tiến phép đo tạo ra
+- [x] **21/08** Viết `SKILL` §5 (Nếu làm lại) và §6 (Checklist tái sử dụng) —
+      cả hai vốn xếp tuần 8, nhưng nguyên liệu là 24 bẫy đã ghi và chúng không
+      cần số liệu cuối cùng. §5 chia bốn phần: giữ nguyên, làm khác, bỏ hẳn, và
+      điều không lường trước. §6 là 30 mục xếp theo đúng thứ tự làm, mỗi mục
+      truy được về một bẫy cụ thể. Còn **§0 (tóm tắt)** để tuần 8, vì nó phải
+      tóm cả số liệu cuối
+- [x] **21/08** Viết mục *Nguồn tài liệu* trong `README.md`. Tra giấy phép thật
+      của `2402.00253v2` thay vì đoán: **arXiv.org perpetual non-exclusive
+      license** — cho arXiv quyền phân phối, **không** cấp quyền phát hành lại
+      cho bên thứ ba, nên PDF gốc nằm ngoài repo là bắt buộc chứ không phải tuỳ
+      chọn. Hai file slide bài giảng thì ghi rõ là **chưa xác định giấy phép**,
+      không bịa
 - [ ] **23/08** Cập nhật `BAO_CAO_TIEN_DO.md` cuối tuần; gửi 4 câu hỏi mở cho
       mentor nếu chưa gửi
 - [x] **Mốc kiểm:** `faithfulness` có số đo thật lần đầu ✓ (1.000, production
