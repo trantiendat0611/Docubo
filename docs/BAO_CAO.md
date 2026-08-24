@@ -1131,7 +1131,7 @@ Một hệ thống RAG dễ dựng. Một hệ thống RAG **mà bạn biết ch
 |---|---|---|
 | 1. Tổng quan | **Xong** 19/08 | `REQUIREMENTS.md` §1–2, `SKILL_MY_PROJECT.md` §1.1 |
 | 2. Phân tích & Thiết kế | **Xong** 19/08 | `REQUIREMENTS.md` §3–6, 2 sơ đồ, `SKILL` §1.2–1.3 |
-| 3. Triển khai kĩ thuật | **Xong** 19/08 | `SKILL` §2 (8 bước), §3 (24 bẫy) |
+| 3. Triển khai kĩ thuật | **Xong** 19/08 | `SKILL` §2 (8 bước), §3 (26 bẫy) |
 | 4. Kết quả đánh giá | **Xong** 19/08 | `SKILL` §4, `eval/reports/*.json` |
 | 5. Kết luận | **Xong** 21/08 | `SKILL` §5, chương 4 |
 
@@ -1141,5 +1141,8 @@ Một hệ thống RAG dễ dựng. Một hệ thống RAG **mà bạn biết ch
   tái tạo khi sơ đồ đổi:
   `npx @mermaid-js/mermaid-cli@11 -i <file>.mmd -o <file>.png -b white -w 1600`
 - Số liệu chương 4 và 5 sẽ **cập nhật lần cuối** sau lần chạy eval cuối kì.
-- Giấy phép hai file slide bài giảng ở mục *Nguồn tài liệu* của `README.md` còn
-  **chưa xác định** — cần xác nhận trước khi công bố rộng hơn.
+- ~~Giấy phép hai file slide bài giảng~~ — **xác nhận 24/08**: cả hai là tài
+  liệu giảng dạy công khai. Điều bảo vệ được khi phản biện không nằm ở giấy
+  phép mà ở chỗ repo **không phát hành lại** tài liệu nào: `data/*` nằm ngoài
+  repo, và thứ duy nhất lọt vào `eval/reports/` là câu trả lời do model sinh
+  ra, tối đa 800 kí tự, kèm trích dẫn số trang.

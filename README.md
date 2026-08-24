@@ -290,15 +290,16 @@ phải dung lượng.
 | File | Nội dung | Trang | Giấy phép |
 |---|---|---|---|
 | `2402.00253v2.pdf` | *A Survey on Hallucination in Large Vision-Language Models* — Liu và cộng sự, arXiv, nộp 01/02/2024, bản v2 06/05/2024 | 10 | [arXiv.org perpetual non-exclusive license](http://arxiv.org/licenses/nonexclusive-distrib/1.0/) |
-| `testta1.pdf` | Slide bài giảng Machine Learning, tiếng Anh. Trong nội dung có dẫn *"Lecture 5, VIASM-SML and lecture of Prof. Lafferty"* | 68 | Tài liệu giảng dạy — **chưa xác định**, xem ghi chú |
-| `testtv1.pdf` | Ghi chép Machine learning và Deep learning, tiếng Việt | 5 | Tài liệu giảng dạy — **chưa xác định**, xem ghi chú |
+| `testta1.pdf` | Slide bài giảng Machine Learning, tiếng Anh. Trong nội dung có dẫn *"Lecture 5, VIASM-SML and lecture of Prof. Lafferty"* | 68 | Tài liệu giảng dạy công khai — xem ghi chú |
+| `testtv1.pdf` | Ghi chép Machine learning và Deep learning, tiếng Việt | 5 | Tài liệu giảng dạy công khai — xem ghi chú |
 
 Giấy phép của arXiv cho **arXiv** quyền phân phối vĩnh viễn, không cấp quyền phát
 hành lại cho bên thứ ba — nên bản PDF nằm ngoài repo là bắt buộc, không phải tuỳ
 chọn.
 
-Hai tài liệu còn lại là tài liệu giảng dạy dùng cho mục đích học tập. Chúng chỉ
-xuất hiện trong repo dưới dạng **câu trả lời do model sinh ra** trong
-`eval/reports/` — tối đa 800 kí tự mỗi câu, là văn tóm tắt kèm trích dẫn, không
-phải trích nguyên văn. Trước khi công bố rộng hơn, cần xác nhận nguồn và điều
-kiện sử dụng của hai file này.
+Hai tài liệu còn lại là **tài liệu giảng dạy công khai**, dùng ở đây cho mục
+đích học tập. Điều quan trọng hơn giấy phép là repo **không phát hành lại**
+chúng: bản PDF nằm ngoài repo, và thứ duy nhất lọt vào `eval/reports/` là **câu
+trả lời do model sinh ra** — tối đa 800 kí tự mỗi câu, văn tóm tắt kèm trích
+dẫn số trang, không phải trích nguyên văn. Quy tắc "không commit `data/*`" vì
+thế áp cho cả ba file, bất kể điều kiện sử dụng của từng file là gì.
