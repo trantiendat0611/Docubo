@@ -595,7 +595,16 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
 ### Giai đoạn 4 — Đóng gói & Demo (Tuần 8)
 
 **Tuần 8 · 21/09 – 27/09**
-- [ ] Xuất `BAO_CAO.md` sang `.docx` để nộp, canh lại mục lục và hình bảng
+- [ ] Xuất `BAO_CAO.md` sang `.docx` để nộp, canh lại mục lục và hình bảng.
+      **Chặn đã gỡ 24/08** — pandoc 3.10.2 đã cài, chạy thử ra file 308KB:
+      mục lục dựng được, 28 bảng giữ nguyên, cả hai PNG sơ đồ nhúng đúng.
+      **Một việc phải xử lí trước khi nộp:** báo cáo giữ **cả** khối mermaid
+      **lẫn** ảnh PNG — trên GitHub khối mermaid render thành hình, nhưng
+      pandoc chép nguyên mã nguồn mermaid vào `.docx`, nên người đọc thấy hình
+      rồi thấy thêm một mảng code ngay dưới. Cách xử lí: lọc bỏ khối
+      `mermaid` khi xuất (lua filter hoặc một bước tiền xử lí), giữ nguyên file
+      gốc để GitHub vẫn render. Lệnh đã chạy thử:
+      `pandoc BAO_CAO.md -o BAO_CAO.docx --toc --toc-depth=2 --resource-path=.`
 - [x] **(làm sớm 24/08)** Rà `SKILL_MY_PROJECT.md`, xoá các dòng hướng dẫn
       trong ngoặc. Bỏ 4 dòng `*(` nằm **trên phần đã viết đầy đủ** (§1 bước 5,
       §4, §5, §6) cộng đoạn "cách dùng file này" ở đầu. Việc này không chỉ là
