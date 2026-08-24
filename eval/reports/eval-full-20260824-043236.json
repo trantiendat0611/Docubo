@@ -1,0 +1,58 @@
+{
+  "mode": "full",
+  "run_at": "2026-08-24T04:32:36+00:00",
+  "api": "https://docubo.vercel.app/api/chat",
+  "note": "kiem sua loi figure placeholder, lan 1",
+  "min_cosine": 0.6,
+  "summary": {
+    "n_items": 1,
+    "n_scored": 1,
+    "retrieval_hit_at_8": null,
+    "retrieval_mrr": null,
+    "hit_same_language": null,
+    "hit_cross_lingual": null,
+    "refusal_rate": null,
+    "false_refusal_rate": null,
+    "median_latency_ms": 7206,
+    "median_ttft_ms": null,
+    "p90_ttft_ms": null,
+    "n_ttft_measured": 0,
+    "citation_validity": null,
+    "overview_asked_for_document": null,
+    "overview_answered_when_named": null,
+    "n_generation_failed": 0,
+    "n_timeout": 0,
+    "n_degraded": 0,
+    "n_image": 1,
+    "image_hit_at_8": 1.0,
+    "image_mrr": 1.0,
+    "image_citation_validity": 1.0
+  },
+  "results": [
+    {
+      "id": "i-001",
+      "category": "image",
+      "q_lang": "en",
+      "cross_lingual": true,
+      "type": "answer",
+      "refused": false,
+      "needs_document": false,
+      "expect_needs_document": false,
+      "citation_validity": 1.0,
+      "cited_sources": [
+        "2608.18058v1.pdf",
+        "eval-bieu-do-gia-vang.png"
+      ],
+      "model": "gemini-3.5-flash",
+      "degraded": false,
+      "reason": null,
+      "retried": false,
+      "latency_ms": 7206,
+      "ttft_ms": 7205,
+      "http_status": null,
+      "answer": "According to the chart, on 24/07/2026, the SJC gold buying price (\"Mua vào\") was 134.5 million VND/tael (triệu đồng/lượng) [1].",
+      "hit": true,
+      "mrr": 1.0
+    }
+  ]
+}

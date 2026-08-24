@@ -462,8 +462,16 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       (`src/lib/prompt.ts`) dùng lại đúng logic `toEmbedText` đã có, xuất
       `FIGURE_REF` từ `chunk.ts` để không viết lại regex lần hai. 3 test mới,
       dùng chính dữ liệu đo được từ database làm ca kiểm. Ghi thành bẫy #28,
-      cập nhật `REQUIREMENTS.md` §7. **Còn phải làm:** đẩy lên, chờ Vercel
-      deploy, chạy lại đúng 3 câu này trên production để xác nhận sửa đúng
+      cập nhật `REQUIREMENTS.md` §7. **Đã xác nhận trên production cùng
+      ngày:** đẩy lên (`1f4ced4`), đợi Vercel deploy (~45s), chạy lại cả 3
+      câu — không tin mỗi việc câu trả lời hết chứa cụm "không có thông tin",
+      đọc nguyên văn cả ba. `i-001` (en, xuyên ngôn ngữ): *"...was 134.5
+      million VND/tael"* — đúng. `i-002` (vi): *"...là 139.5 triệu
+      đồng/lượng"* — đúng. `i-003` (phải từ chối): *"tài liệu không có thông
+      tin về giá vàng thế giới... biểu đồ chỉ có giá SJC trong nước"* — từ
+      chối đúng, có giải thích, không bịa. `image_hit_at_8`/`image_mrr`/
+      `image_citation_validity` đều 1.0, nhưng con số đó không còn là thứ
+      duy nhất được tin — bẫy #28 chính là bài học vì sao
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh
