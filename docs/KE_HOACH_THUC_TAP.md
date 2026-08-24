@@ -483,6 +483,24 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       `SKILL` §0, GIF demo, kiểm thử với người ngoài, dữ liệu demo, `.docx`,
       slide. Cũng đã sửa hai chỗ bảng còn nói TXT/DOCX là việc sắp làm, trong
       khi nó đã bị bỏ khỏi phạm vi từ 20/08
+- [x] **24/08 Dọn corpus, và tự sửa một kết luận sai của chính mình.** Xoá 2
+      tài liệu mồ côi (bản trùng `2402.00253v2.pdf` và bản trùng NET Roadmap,
+      không khung chat nào trỏ tới) bằng script đọc `storage_path` trước, xoá
+      hàng trước, xoá file sau — đúng thứ tự `deleteDocument` đã dùng. Còn lại
+      **7 tài liệu, 90 chunk** (từ 9/111). Đo trước/sau thật trên cùng thao
+      tác, không suy đoán: `--retrieval-only` lúc 03:36 (9 tài liệu) và 03:39
+      (7 tài liệu, ngay sau khi xoá) — `MRR` đi **0.926 → 0.897**, `hit@8` và
+      `refusal_rate` không đổi. Soi ra đúng 1/31 câu lệch: `t-008` (câu xuyên
+      ngôn ngữ) đổi `mrr` 1.0 → 0.5 vì trang top-1 đổi từ trang 5 (đúng) sang
+      trang 2 (sai) — một trong hai bản trùng vừa xoá tình cờ có ranh giới
+      chunk xếp đúng trang 5 lên hạng 1, tức **may rủi do trùng lặp**, không
+      phải tín hiệu truy hồi thật. Điều này **đảo ngược** kết luận tôi viết
+      hôm qua ở bẫy #26 (*"sáu tài liệu nhiễu không kéo tụt truy hồi"*) — kết
+      luận đó dựa trên so sánh hai lần chạy khác ngày (12/08 vs 20/08), không
+      phải một phép đo trước/sau trên cùng thao tác, và hoá ra sai chiều. Đã
+      thêm bẫy #27 sửa lại, và cập nhật `corpus_note` trong
+      `eval_dataset.json`. Bài học: **so sánh gián tiếp không thay được đo
+      trực tiếp**, kể cả khi cả hai vế đều là số thật
 - [x] **24–25/08 (làm sớm 19/08)** Dọn Storage khi xoá tài liệu. **Kiểm trước
       khi sửa thì mục này sai một nửa:** `document_pages` vẫn luôn được dọn qua
       cascade hai tầng `documents → ingest_jobs → document_pages` — chèn thật
