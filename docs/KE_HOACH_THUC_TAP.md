@@ -472,6 +472,25 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       chối đúng, có giải thích, không bịa. `image_hit_at_8`/`image_mrr`/
       `image_citation_validity` đều 1.0, nhưng con số đó không còn là thứ
       duy nhất được tin — bẫy #28 chính là bài học vì sao
+- [x] **24/08 Chạy `--judge` chốt số trên 26 câu — và tìm ra bẫy nghiêm trọng
+      hơn cả #28.** `hit@8` rớt **1.000 → 0.667**, `false_refusal_rate`
+      **0.000 → 0.824**. Không phải do bản sửa bẫy #28 (kiểm trực tiếp: DB vẫn
+      khoẻ, cosine 0.79 cho `testtv1.pdf`). Gọi thẳng `/api/chat` bằng token
+      thật thì tái hiện y hệt, tra `documents.owner_id` thì lộ ra **corpus 3
+      tài liệu khai báo đang thuộc về hai tài khoản khác nhau**:
+      `testtv1.pdf`/`testta1.pdf`/bản gốc `2402.00253v2.pdf` thuộc
+      `trantiendat.cl@gmail.com` (10/08, ngày đầu), mọi thứ từ 12/08 trở đi
+      thuộc `11a2trantiendat@gmail.com` (token hôm nay). RLS chặn đúng thiết
+      kế — không phải lỗi bảo mật, mà hai tài khoản test sở hữu hai nửa không
+      giao nhau của cùng một corpus. Điều này cũng giải thích sâu hơn bẫy
+      #26/27: 3 bản trùng của `2402.00253v2.pdf` không chỉ vì vision không
+      tất định, mà vì đổi tài khoản giữa chừng rồi tải lại file tưởng chưa có.
+      **Chưa sửa — cần bạn quyết định thời điểm**, vì sửa (nạp lại 2 file dưới
+      tài khoản hiện hành) tốn quota thật dù rẻ (~10 request nhờ batch 8
+      trang/request). Ghi thành bẫy #29. Báo cáo `--judge` hôm nay giữ lại làm
+      bằng chứng nhưng **`faithfulness = 0.986` KHÔNG dùng làm số chốt `SKILL`
+      §0** — đo trên corpus bị thu hẹp bất thường, không phải chất lượng hệ
+      thống thật. Phải chạy lại sau khi sửa quyền sở hữu
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh

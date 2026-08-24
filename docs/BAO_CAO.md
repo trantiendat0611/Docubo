@@ -1131,7 +1131,7 @@ Một hệ thống RAG dễ dựng. Một hệ thống RAG **mà bạn biết ch
 |---|---|---|
 | 1. Tổng quan | **Xong** 19/08 | `REQUIREMENTS.md` §1–2, `SKILL_MY_PROJECT.md` §1.1 |
 | 2. Phân tích & Thiết kế | **Xong** 19/08 | `REQUIREMENTS.md` §3–6, 2 sơ đồ, `SKILL` §1.2–1.3 |
-| 3. Triển khai kĩ thuật | **Xong** 19/08 | `SKILL` §2 (8 bước), §3 (28 bẫy) |
+| 3. Triển khai kĩ thuật | **Xong** 19/08 | `SKILL` §2 (8 bước), §3 (29 bẫy) |
 | 4. Kết quả đánh giá | **Xong** 19/08 | `SKILL` §4, `eval/reports/*.json` |
 | 5. Kết luận | **Xong** 21/08 | `SKILL` §5, chương 4 |
 
