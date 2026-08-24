@@ -466,12 +466,23 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       19/08); TTFT có số đo lần đầu ✓ (8155ms — và số đó **không đạt ngưỡng**,
       xem trên); `SKILL` §1 không còn placeholder ✓
 
-**Tuần 4 · 24/08 – 30/08** — trả nợ kĩ thuật, mở rộng định dạng
+**Tuần 4 · 24/08 – 30/08** — trả nợ kĩ thuật, dồn sang tài liệu
 
-> Nếu mentor trả lời "dừng mở rộng phạm vi" trước tuần này: bỏ mục TXT/DOCX,
-> dồn thời gian dư sang bắt đầu chương 1 báo cáo sớm. Các mục còn lại không
-> phụ thuộc câu trả lời đó.
+> Ghi chú re-baseline 24/08: điều kiện trong ngoặc ở trên đã tự giải quyết. Tôi
+> bỏ TXT/DOCX ngày 20/08 vì lí do kĩ thuật, **không chờ mentor trả lời** — nên
+> tuần này trống phần "mở rộng định dạng", và phần trống đó đã bị việc của tuần
+> 5–7 lấp từ trước.
 
+- [x] **24/08 Re-baseline lộ trình.** Rà lại toàn bộ ô chưa tick và thấy phần
+      lớn mô tả **việc đã làm xong**: chương 3, 4, 5 của báo cáo, `SKILL` §5 và
+      §6, `SKILL` §2, kiểm sơ đồ khớp code, mốc kiểm tuần 4 và tuần 5. Đây là
+      lỗi tự trừ điểm: tiêu chí *"tự lập kế hoạch và hoàn thành đúng cam kết"*
+      chấm trên chính file này, mà một ô chưa tick dưới mắt người chấm là một
+      việc chưa làm. Đã tick kèm bằng chứng, và giữ nguyên **chưa tick** những
+      ô thật sự còn nợ: `CHARS_PER_TOKEN`, eval lần cuối có `--judge` đủ 31 câu,
+      `SKILL` §0, GIF demo, kiểm thử với người ngoài, dữ liệu demo, `.docx`,
+      slide. Cũng đã sửa hai chỗ bảng còn nói TXT/DOCX là việc sắp làm, trong
+      khi nó đã bị bỏ khỏi phạm vi từ 20/08
 - [x] **24–25/08 (làm sớm 19/08)** Dọn Storage khi xoá tài liệu. **Kiểm trước
       khi sửa thì mục này sai một nửa:** `document_pages` vẫn luôn được dọn qua
       cascade hai tầng `documents → ingest_jobs → document_pages` — chèn thật
@@ -486,12 +497,14 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       route xoá tài liệu để cascade xoá `document_pages` và gọi
       `.remove()` trên Storage. Xác minh: xoá 1 tài liệu test, `document_pages`
       rỗng theo `document_id`, file biến mất khỏi Storage dashboard
-- [ ] **26–28/08** Nạp TXT và DOCX (nếu không bị mentor chặn): chốt cách đánh
-      số trang tổng hợp **trước khi viết code** (trang ảo theo ký tự/heading,
-      hay bỏ khái niệm trang và trích theo block — ghi lý do vào
-      `REQUIREMENTS.md` khi chốt), viết parser mới không cần vision, tái dùng
-      `chunk.ts` nếu schema cho phép. Xác minh: upload 1 file mỗi loại, hỏi và
-      nhận trích dẫn hợp lý theo quy ước mới
+- [x] **26–28/08 → giải quyết bằng cách bỏ, ngày 20/08.** Không nạp TXT/DOCX.
+      Đây là một quyết định đã chốt, không phải việc còn treo: cả hai định dạng
+      **không có số trang**, nên nhận chúng là phải đổi đơn vị trích dẫn — chính
+      lời hứa trung tâm của sản phẩm — và chúng **không đi qua đường vision**,
+      tức không chạm phần lõi của đồ án. Lí do đầy đủ ở mục ngày 20/08; đã ghi
+      vào mục "Không làm" của `REQUIREMENTS.md` để bảo vệ khi phản biện.
+      Thay vào đó tuần 3 nhận thêm một đường nạp **có** đi qua vision: dán ảnh
+      vào ô chat (mục ngày 21/08)
 - [ ] **28/08** Hiệu chỉnh `CHARS_PER_TOKEN` tiếng Việt: script gọi
       `countTokens` thật trên mẫu corpus tiếng Việt, so với ước lượng 2.6 hiện
       tại ở `src/lib/ingest/config.ts`. Lệch > 10% thì cập nhật hằng số,
@@ -506,9 +519,12 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       để phát hiện, đội lốt thành công; và tách `checkDatabase()` ra
       `src/lib/health.ts` để **test được nhánh 503**, theo đúng bài học bẫy
       #14b. Đo thật trên dev server: 204–288ms ấm, 1423ms lần đầu
-- [ ] **30/08** `SKILL` §2 — rà lại 8 bước đã có, bổ sung chỗ còn thiếu
-- [ ] **Mốc kiểm:** health check tự chạy hàng tuần; xoá tài liệu không để lại
-      rác trong `document_pages`/Storage; cập nhật `BAO_CAO_TIEN_DO.md`
+- [x] **30/08 (làm sớm)** `SKILL` §2 — đủ 8 bước, không còn chỗ trống. Kiểm
+      lại 24/08: 8 tiêu đề "Bước N" từ *Spike trước, kiến trúc sau* tới *Đo, rồi
+      mới sửa*, và §2 là mục dài nhất file
+- [x] **Mốc kiểm — đạt trước hạn:** health check tự chạy (`.github/workflows/
+      health.yml`, thứ Hai và thứ Năm) ✓; xoá tài liệu không để lại rác ✓
+      (`deleteDocument`, 5 test) ✓; `BAO_CAO_TIEN_DO.md` cập nhật ✓ (24/08)
 
 **Tuần 5 · 31/08 – 06/09** — báo cáo chương 1–2
 - [x] **(làm sớm 19/08)** `docs/BAO_CAO.md` Chương 1 và Chương 2 viết xong.
@@ -517,22 +533,33 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       (`conversations`, `conversation_documents`, `messages`) và route
       `/api/health`; sơ đồ 2 thiếu bước kiểm tra khung chat đã có tài liệu chưa
       (trả `needs_document` **trước khi** gọi model) và thiếu nguồn lịch sử 3
-      lượt. Đã cập nhật cả hai. Việc còn lại: xuất PNG cho 2 sơ đồ trước khi
-      chuyển sang `.docx`, vì pandoc không render mermaid — ghi vào tuần 8.
+      lượt. Đã cập nhật cả hai. ~~Việc còn lại: xuất PNG cho 2 sơ đồ~~ —
+      **xong 21/08**: `mermaid-cli` dựng `01-high-level.png` và
+      `02-rag-pipeline.png`, nhúng vào báo cáo cạnh khối mermaid. Chính lần xuất
+      đó lộ ra sơ đồ 2 **lại lệch lần nữa** — Pha 1 vẫn mở đầu bằng "File PDF"
+      sau khi đường dán ảnh đã lên. Bài học: sơ đồ lệch **hai lần trong ba
+      ngày**, và cả hai lần đều chỉ lộ khi có việc buộc phải nhìn kĩ nó.
       *(Mục gốc giữ lại bên dưới để đối chiếu:)*
 - [ ] ~~`docs/BAO_CAO.md` Chương 1~~ — Tổng quan, dựng từ `README.md` +
       `REQUIREMENTS.md` §1–2
 - [ ] Chương 2 — Phân tích & Thiết kế, dựng từ `REQUIREMENTS.md` §3–6 + 2 sơ đồ
 - [ ] Kiểm tra 2 sơ đồ kiến trúc còn khớp route/bảng thật trong code, sửa nếu
       lệch
-- [ ] Cuối tuần: cập nhật `BAO_CAO_TIEN_DO.md`
-- [ ] **Mốc kiểm: sản phẩm ổn định trên Vercel, đủ 4 chỉ số eval, xong 2/5 chương**
+- [x] Cuối tuần: cập nhật `BAO_CAO_TIEN_DO.md` — làm đều từ 19/08, lần gần
+      nhất 24/08
+- [x] **Mốc kiểm — vượt:** sản phẩm ổn định trên Vercel ✓; đủ 4 chỉ số eval ✓
+      (`faithfulness` 1.000 trên 26 câu, 19/08 — chỉ số cuối cùng còn thiếu);
+      ~~xong 2/5 chương~~ → **5/5 chương**
 
 ### Giai đoạn 3 — Hoàn thiện (Tuần 6–7)
 
 **Tuần 6 · 07/09 – 13/09** — báo cáo chương 3–4, người dùng thật
-- [ ] Chương 3 — Triển khai kỹ thuật (nguyên liệu: `SKILL` §2 và §3)
-- [ ] Chương 4 — Kết quả đánh giá. Một bảng duy nhất, ghi rõ chế độ chạy và cỡ
+- [x] **(làm sớm 20/08)** Chương 3 (11 mục) và chương 4 (8 mục) viết xong.
+      Chương 4 giữ đúng nguyên tắc đã đặt: mỗi con số ghi kèm chế độ chạy và cỡ
+      mẫu, và có hẳn một mục §4.5 *"Ba con số trông như kết quả mà không phải"*.
+      *(Mục gốc giữ lại bên dưới để đối chiếu:)*
+- [ ] ~~Chương 3~~ — Triển khai kỹ thuật (nguyên liệu: `SKILL` §2 và §3)
+- [ ] ~~Chương 4~~ — Kết quả đánh giá. Một bảng duy nhất, ghi rõ chế độ chạy và cỡ
       mẫu cho từng con số — theo nguyên tắc đã dùng ở `BAO_CAO_TIEN_DO.md` §3
 - [ ] Kiểm thử với ít nhất 2 người ngoài: chuẩn bị kịch bản trước, ngồi cạnh
       quan sát, ghi lại chỗ họ vấp trước khi sửa
@@ -542,14 +569,24 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       theo đó; 4/5 chương có bản nháp
 
 **Tuần 7 · 14/09 – 20/09** — chốt số, chốt sản phẩm
-- [ ] Chạy eval lần cuối trên production, đủ 26 câu và đủ 4 chỉ số (kể cả
-      `faithfulness`) — đây là bộ số chốt dùng cho báo cáo và demo
-- [ ] Chương 5 — Kết luận
-- [ ] `SKILL` §0 (tóm tắt), §5 (nếu làm lại), §6 (checklist tái sử dụng) —
-      3 mục cuối cùng chưa viết
+- [ ] Chạy eval lần cuối trên production, đủ **31** câu và đủ 4 chỉ số (kể cả
+      `faithfulness`) — đây là bộ số chốt dùng cho báo cáo và demo.
+      **Cảnh báo ngân sách, tính lại 24/08:** 31 câu × 2 request sinh + tối đa
+      31 lượt chấm = **93 request**, trong khi trần cả chain chỉ ~80/ngày. Chạy
+      thẳng sẽ cạn quota giữa chừng. Cách vừa: bỏ nhóm `hard_negative` khỏi lượt
+      chấm (câu trả lời của chúng là lời từ chối, mà prompt của người chấm cho
+      từ chối điểm tuyệt đối — chấm chúng là phí quota) → 26 câu = 78 request.
+      Ngày đó không ingest và không chạy gì khác
+- [x] **(làm sớm 21/08)** Chương 5 — Kết luận, 5 mục, trả lời từng lời hứa của
+      chương 1 bằng số đo và ghi thẳng mục **chưa đạt**
+- [x] **(làm sớm 21/08)** `SKILL` §5 (nếu làm lại) và §6 (checklist tái sử dụng)
+- [ ] `SKILL` §0 (tóm tắt) — **mục trống duy nhất còn lại của cả file**. Cố ý
+      để cuối: nó phải nêu bộ số chốt, mà bộ số đó chờ lượt `--judge` trên đủ
+      31 câu
 - [ ] GIF demo vào `README.md`, bổ sung danh sách nguồn tài liệu
-- [ ] Kiểm tra ứng dụng chạy 24/7 (đối chiếu log Action hàng tuần), đo latency
-      thật trên nhiều mẫu bằng phép đo TTFT dựng ở tuần 3
+- [ ] Kiểm tra ứng dụng chạy 24/7 (đối chiếu log Action hàng tuần) — *phần đo
+      latency đã xong 19–21/08: `median_ttft_ms` 8592 (đạt < 10s),
+      `p90_ttft_ms` 15879 (**chưa đạt** < 15s), `n_timeout` 0*
 - [ ] Chuẩn bị dữ liệu demo cố định (không ingest live khi demo) + kịch bản
       trình bày
 - [ ] **Mốc kiểm:** số liệu eval là số cuối cùng, không đổi thêm; 5/5 chương
@@ -559,9 +596,17 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
 
 **Tuần 8 · 21/09 – 27/09**
 - [ ] Xuất `BAO_CAO.md` sang `.docx` để nộp, canh lại mục lục và hình bảng
-- [ ] Rà `SKILL_MY_PROJECT.md` lần cuối, xoá các dòng hướng dẫn trong ngoặc
-      (dấu hiệu: dòng bắt đầu bằng `*(`)
-- [ ] Release tag `v1.0.0-mvp`
+- [x] **(làm sớm 24/08)** Rà `SKILL_MY_PROJECT.md`, xoá các dòng hướng dẫn
+      trong ngoặc. Bỏ 4 dòng `*(` nằm **trên phần đã viết đầy đủ** (§1 bước 5,
+      §4, §5, §6) cộng đoạn "cách dùng file này" ở đầu. Việc này không chỉ là
+      hình thức: dòng *"(Viết ở tuần 8...)"* đứng ngay trên §5 và §6 đã hoàn
+      chỉnh khiến người đọc lướt tưởng bốn mục đó còn trống. Giữ lại đúng một
+      dòng — §0, vì §0 trống thật
+- [x] **(làm sớm 24/08)** Tag `v1.0.0-mvp`, tag chú thích, đặt ở commit
+      re-baseline này. Tag đánh dấu **thời điểm phần sản phẩm hoàn chỉnh**:
+      mọi việc còn lại là bằng chứng và trình bày, không phải tính năng
+- [ ] Tạo **Release** trên GitHub từ tag `v1.0.0-mvp` — cần `gh` hoặc làm tay
+      trên web; `gh` chưa cài trên máy này
 - [ ] Slide + tập thuyết trình 15 phút — dùng 4 câu hỏi mentor ở
       `BAO_CAO_TIEN_DO.md` §10 và bảng bẫy ở `SKILL` §3 làm nguồn câu hỏi
       phản biện dự phòng
@@ -594,17 +639,17 @@ chiếm 0% thang điểm. P1 chỉ được đụng tới nếu tuần 7 kết t
 | 1.1 Chọn đề tài | Xong | Trợ lí hỏi đáp tài liệu chuyên ngành |
 | 1.2 `KE_HOACH_THUC_TAP.md` | Xong | File này |
 | 1.3 `REQUIREMENTS.md` | Xong | P0/P1, happy path, 22 edge case |
-| 1.4 Hai sơ đồ kiến trúc | Xong | `docs/architecture/*.mmd` |
-| 1.5 Khung `SKILL_MY_PROJECT.md` | Xong | Đang viết tiếp, hạn tuần 7 |
-| 2.1 Đọc PDF/DOCX/TXT | PDF xong | TXT/DOCX xếp tuần 4 |
+| 1.4 Hai sơ đồ kiến trúc | Xong | `docs/architecture/*.mmd` + `*.png` (xuất 21/08) |
+| 1.5 Khung `SKILL_MY_PROJECT.md` | Gần xong | §1–§6 viết xong; còn **mỗi §0 tóm tắt** |
+| 2.1 Đọc PDF/DOCX/TXT | PDF xong, **DOCX/TXT bỏ có chủ ý** | Lí do kĩ thuật ở mục 20/08. Bù lại: nạp **ảnh dán** qua cùng đường vision (21/08) |
 | 2.2 Vector DB + chunking | Xong | Supabase pgvector, HNSW, 768 chiều |
 | 2.3 Retriever + grounding prompt | Xong | Hybrid 3 nhánh RRF, trích dẫn số trang |
-| 2.4 Guardrail + eval 15–20 câu | Xong | `guardrail.ts`; bộ eval **26 câu** |
+| 2.4 Guardrail + eval 15–20 câu | Xong | `guardrail.ts`; bộ eval **31 câu**, 7 nhóm |
 | 3.1 Web UI có stream + trích dẫn | Xong | Next.js, KaTeX, panel nguồn |
 | 3.2 Deploy Vercel | Xong | docubo.vercel.app, region `sin1` |
 | 3.3 CI/CD | Xong | `.github/workflows/ci.yml`, 2 job, chạy trên mỗi push vào `main` |
-| 4.1 Báo cáo 5 chương | Chưa | Tuần 5–7 |
-| 4.2 README + tag `v1.0.0-mvp` | Một phần | GIF và tag ở tuần 7–8 |
+| 4.1 Báo cáo 5 chương | **5/5 chương có bản đầy đủ** | `docs/BAO_CAO.md`, ~11.3k từ. Còn: xuất `.docx` |
+| 4.2 README + tag `v1.0.0-mvp` | Một phần | Tag `v1.0.0-mvp` xong 24/08. Còn GIF demo và Release |
 | 4.3 Slide demo 15 phút | Chưa | Tuần 8 |
 
 ---

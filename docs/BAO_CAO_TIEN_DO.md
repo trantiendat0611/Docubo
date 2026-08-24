@@ -276,13 +276,17 @@ Bảng đầy đủ **28 dòng** ở `SKILL_MY_PROJECT.md` §3 — 25 bẫy đá
 | Tuần | Trọng tâm |
 |---|---|
 | ~~T2 · 10–16/08~~ | **Xong.** Full eval 26 câu trên production, 3/4 chỉ số đạt ngưỡng |
-| ~~T3 · 17–23/08~~ | **Xong sớm.** `faithfulness` có số production, sửa trần 60s, đổi ngưỡng TTFT, thêm nhóm `hard_negative`, **báo cáo đủ 5/5 chương** |
-| T3 · 17–23/08 | Nối `faithfulness`, đo TTFT, viết mục lí lẽ trong tài liệu đúc kết |
-| T4 · 24–30/08 | Dọn Storage khi xoá, nạp TXT/DOCX, chống Supabase ngủ sau 7 ngày |
-| T5 · 31/08–06/09 | Báo cáo chương 1–2: Tổng quan; Phân tích & Thiết kế |
-| T6 · 07–13/09 | Báo cáo chương 3–4; kiểm thử với người dùng thật |
-| T7 · 14–20/09 | Eval lần cuối, chương 5, GIF demo, đo latency thật |
-| T8 · 21–27/09 | Xuất báo cáo, tag `v1.0.0-mvp`, slide và tập thuyết trình |
+| ~~T3 · 17–23/08~~ | **Xong sớm.** `faithfulness` có số production, sửa trần 60s, đổi ngưỡng TTFT, thêm nhóm `hard_negative`, dán ảnh vào ô chat, **báo cáo đủ 5/5 chương** |
+| ~~T4 · 24–30/08~~ | **Xong sớm (19–21/08).** Dọn Storage khi xoá ✓, chống Supabase ngủ ✓. ~~Nạp TXT/DOCX~~ **bỏ khỏi phạm vi 20/08** — xem §6 |
+| ~~T5 · 31/08–06/09~~ | **Xong sớm (19/08).** Chương 1–2; dựng chương 2 lộ ra cả hai sơ đồ đều lệch code, đã sửa |
+| ~~T6 · 07–13/09~~ | **Chương 3–4 xong sớm (20/08).** Còn nợ: kiểm thử với người dùng thật |
+| T7 · 14–20/09 | **Chương 5 và `SKILL` §5/§6 xong sớm (21/08).** Còn: eval lần cuối đủ 31 câu có `--judge`, `SKILL` §0, GIF demo |
+| T8 · 21–27/09 | Xuất `.docx`, Release `v1.0.0-mvp`, slide và tập thuyết trình |
+
+Đọc bảng này theo một chiều duy nhất: **phần code đi trước lộ trình khoảng 5
+tuần, phần bằng chứng thì không.** Bốn việc còn nợ — eval chốt số, `SKILL` §0,
+người dùng thật, slide — đều không rút ngắn được bằng cách làm nhanh hơn: hai
+việc chờ quota reset theo ngày, một việc chờ người khác, một việc phải tập.
 
 Đây chỉ là bảng tóm tắt. Kế hoạch cấp-việc — file cụ thể, cách xác minh, ngày
 dự kiến trong tuần cho từng mục — nằm ở `KE_HOACH_THUC_TAP.md` mục "Lộ trình",

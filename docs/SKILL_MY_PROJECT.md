@@ -3,12 +3,6 @@
 > Task 1.5 + Task 4.2. Đây là tài liệu **tự đúc kết**, không phải tài liệu mô tả
 > sản phẩm. Người đọc mục tiêu: một bạn thực tập khác, đọc xong phải làm lại
 > được mà không cần hỏi bạn.
->
-> **Cách dùng file này:** viết dần từ tuần 3, mỗi lần gỡ được một vấn đề thì ghi
-> ngay vào mục tương ứng. Ghi cả cái đã thử mà hỏng — phần "hỏng" mới là phần
-> người đọc học được nhiều nhất, và cũng là phần mentor hỏi khi phản biện.
->
-> Xoá hết các dòng trích dẫn hướng dẫn này trước khi nộp.
 
 ---
 
@@ -397,8 +391,6 @@ mục** — không phải chuỗi dùng để hiển thị. Khi một hệ thố
 cùng một nội dung, mọi phép đếm đều phải nói rõ nó đang đếm bản nào.
 
 ### Bước 5 — Schema và index
-*(Ghi lại: vì sao 768 chiều, vì sao HNSW, vì sao hai cột tsvector.)*
-
 **Vì sao 768 chiều.** Đây là số chiều `gemini-embedding-001` trả về, và cột được
 khai `vector(768)` để **khoá cứng** hai bên với nhau. Đổi model embedding là phải
 nạp lại vector cho toàn bộ corpus — không có đường tắt, vì vector của hai model
@@ -746,8 +738,6 @@ Một số bẫy đã biết trước khi bắt đầu, xác nhận lại khi g�
 
 ## 4. Số liệu
 
-*(Bảng tiến triển qua các lần chạy eval. Đây là chương 4 của báo cáo.)*
-
 **Một quy tắc, áp cho mọi con số dưới đây:** ghi kèm **chế độ chạy**, **cỡ mẫu**
 và **nơi chạy**. Bộ số đẹp nhất của dự án từng là một bộ ghép ba chỉ số từ lần
 chạy 26 câu chế độ truy-hồi với một chỉ số từ lần chạy 8 câu chế độ full — nhìn
@@ -896,8 +886,6 @@ Cần **một lần chạy `--judge` trên production ngay sau khi quota reset**
 
 ## 5. Nếu làm lại
 
-*(Viết ở tuần 8. Cái gì giữ, cái gì làm khác, cái gì bỏ hẳn.)*
-
 ### Giữ nguyên
 
 **Spike sáu trang khó nhất trước khi viết dòng code nào.** Bốn lỗi mà đọc code
@@ -976,8 +964,6 @@ trong sáu ca ở đây sai theo hướng bi quan.
 ---
 
 ## 6. Checklist tái sử dụng
-
-*(Rút gọn toàn bộ file thành một checklist người khác làm theo được.)*
 
 Thứ tự có chủ ý: mỗi mục phải đo được trước khi mục sau bắt đầu.
 
