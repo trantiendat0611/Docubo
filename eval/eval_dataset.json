@@ -566,9 +566,57 @@
       "notes": "Ngoài phạm vi nhưng CÙNG LĨNH VỰC với corpus. Đo 20/08 bằng eval/threshold.py: cosine 0.613, tức VƯỢT MIN_COSINE 0.60 — ngưỡng không chặn được, chỉ grounding prompt chặn. Ngữ cảnh có nhắc L1 một câu nhưng không có L2 và không có phần so sánh.",
       "query_en": "difference between L1 and L2 regularisation",
       "query_vi": "sự khác nhau giữa chính quy hoá L1 và L2"
+    },
+    {
+      "id": "i-001",
+      "question": "According to the chart, what was the SJC gold buying price ('Mua vào') on 24/07/2026?",
+      "q_lang": "en",
+      "doc_lang": "vi",
+      "category": "image",
+      "source": "eval-bieu-do-gia-vang.png",
+      "expected_pages": [
+        1
+      ],
+      "expected_points": [
+        "Giá SJC Mua vào ngày 24/07/2026 (12:00) là 134.5 triệu đồng/lượng"
+      ],
+      "notes": "Xuyên ngôn ngữ trên ảnh dán — hỏi bằng tiếng Anh, nhãn số trong ảnh là tiếng Việt. Dùng cặp nhãn ở mép trái vì đây là điểm dữ liệu duy nhất tách biệt rõ, không bị chồng lên điểm khác — cụm nhãn bên phải bị dính chữ, không dùng làm đáp án để tránh đọc sai.",
+      "query_en": "SJC gold buying price on 24/07/2026 from the chart",
+      "query_vi": "giá vàng SJC mua vào ngày 24/07/2026 theo biểu đồ"
+    },
+    {
+      "id": "i-002",
+      "question": "Theo biểu đồ, giá vàng SJC bán ra vào ngày 24/07/2026 (thời điểm 12:00, đầu biểu đồ) là bao nhiêu?",
+      "q_lang": "vi",
+      "doc_lang": "vi",
+      "category": "image",
+      "source": "eval-bieu-do-gia-vang.png",
+      "expected_pages": [
+        1
+      ],
+      "expected_points": [
+        "Giá SJC Bán ra ngày 24/07/2026 (12:00) là 139.5 triệu đồng/lượng"
+      ],
+      "notes": "Cùng ngôn ngữ, đọc đúng một nhãn cụ thể trong ảnh — đường Bán ra (đỏ), không nhầm sang đường Mua vào (xanh) ở cùng vị trí.",
+      "query_en": "SJC gold selling price on 24/07/2026 from the chart",
+      "query_vi": "giá vàng SJC bán ra ngày 24/07/2026 theo biểu đồ"
+    },
+    {
+      "id": "i-003",
+      "question": "Giá vàng thế giới hôm nay là bao nhiêu theo biểu đồ này?",
+      "q_lang": "vi",
+      "doc_lang": null,
+      "category": "image",
+      "source": null,
+      "expected_pages": [],
+      "expected_points": [],
+      "notes": "Liền kề chủ đề nhưng ảnh không trả lời được: biểu đồ chỉ có giá SJC trong nước (Mua vào/Bán ra), không có giá vàng thế giới. Đúng dạng câu hard_negative áp cho ảnh — phải từ chối bằng văn xuôi, không phải từ chối có cấu trúc, nên đo bằng faithfulness (--judge) giống hard_negative, không tính vào refusal_rate cấu trúc.",
+      "query_en": "world gold price today from this chart",
+      "query_vi": "giá vàng thế giới hôm nay theo biểu đồ"
     }
   ],
   "query_variants_note": "query_en/query_vi sinh 11/08 bang cung model va cung chi dan ma guardrail.ts dung, luu lai de moi lan chay eval khong ton them request. Sinh lai neu doi prompt guardrail.",
   "hard_negative_note": "Nhom hard_negative them 20/08. Sau cau hoi nam trong dung linh vuc cua corpus nhung corpus khong tra loi duoc, va ca nam deu VUOT nguong cosine (0.613-0.654 so voi MIN_COSINE 0.60) — xem eval/reports/threshold-20260820-031504.json. Chung KHONG duoc tinh vao refusal_rate: chi so do do duong tu choi co cau truc, con nhom nay di qua duong sinh cau tra loi va tu choi bang van xuoi. Cham chung bang faithfulness (can --judge). query_en/query_vi o nhom nay viet tay chu khong sinh bang model nhu 26 cau goc — chung la cau don gian, va sinh bang model se ton quota cho mot phep dich hien nhien.",
-  "corpus_note": "Ba tai lieu tren la NGUON cua moi cau hoi: moi expected_pages deu doc tu chunk that cua chung. --retrieval-only KHONG loc theo bo nay: no goi hybrid_search voi filter_documents=None bang service_role, tuc do tren toan bo tai lieu cua moi tai khoan. Da don 24/08: xoa 2 tai lieu mo coi (ban trung cua 2402.00253v2.pdf va NET Roadmap, khong khung chat nao tro toi) — con lai 7 tai lieu, 90 chunk. Nguyen nhan trung lap: content_hash tinh tren markdown vision trich ra, ma vision khong tat dinh, nen cung file tai hai lan cho hai hash khac nhau va chong trung khong bao gio no — xem bay #26. Do truoc/sau that (khong suy doan): MRR di 0.926 -> 0.897 sau khi don. Mot cau (t-008, xuyen ngon ngu) doi tu mrr=1.0 xuong 0.5 vi ba ban trung co ranh gioi chunk khac nhau, va mot ban vua xoa tinh co xep dung trang len hang 1 — may rui do trung lap, khong phai tin hieu that. 30/31 cau con lai khong doi. Ket luan cu ('khong keo tut truy hoi') dua tren so sanh hai lan chay khac ngay la sai — xem bay #27."
+  "corpus_note": "Ba tai lieu tren la NGUON cua moi cau hoi: moi expected_pages deu doc tu chunk that cua chung. --retrieval-only KHONG loc theo bo nay: no goi hybrid_search voi filter_documents=None bang service_role, tuc do tren toan bo tai lieu cua moi tai khoan. Da don 24/08: xoa 2 tai lieu mo coi (ban trung cua 2402.00253v2.pdf va NET Roadmap, khong khung chat nao tro toi) — con lai 7 tai lieu, 90 chunk. Nguyen nhan trung lap: content_hash tinh tren markdown vision trich ra, ma vision khong tat dinh, nen cung file tai hai lan cho hai hash khac nhau va chong trung khong bao gio no — xem bay #26. Do truoc/sau that (khong suy doan): MRR di 0.926 -> 0.897 sau khi don. Mot cau (t-008, xuyen ngon ngu) doi tu mrr=1.0 xuong 0.5 vi ba ban trung co ranh gioi chunk khac nhau, va mot ban vua xoa tinh co xep dung trang len hang 1 — may rui do trung lap, khong phai tin hieu that. 30/31 cau con lai khong doi. Ket luan cu ('khong keo tut truy hoi') dua tren so sanh hai lan chay khac ngay la sai — xem bay #27.",
+  "image_note": "Nhom 'image' them 24/08, kiem duong dan anh vao o chat (paste hoac upload). Anh la bieu do gia vang SJC (giavang.org), khong lien quan gi toi 7 tai lieu con lai trong corpus. File can duoc tai len qua nut chon file / keo tha voi ten 'eval-bieu-do-gia-vang.png' — KHONG dan bang Ctrl+V, vi paste dat ten mac dinh 'image.png' va corpus da co san mot file trung ten do. i-001/i-002 co source va expected_pages, duoc cham hit/mrr nhu nhom RETRIEVABLE nhung tach rieng (xem eval/run_eval.py IMAGE) de khong doi hit@8/MRR cua 30 cau con lai. i-003 khong co source, cham refusal rieng (image_refusal_rate) va faithfulness khi chay --judge, giong het cach hard_negative duoc cham."
 }

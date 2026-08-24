@@ -49,6 +49,16 @@ REPORTS = ROOT / "eval" / "reports"
 #: searches — and refusals are scored on whether nothing was retrieved.
 RETRIEVABLE = {"text", "formula", "figure", "cross_page"}
 
+#: The image-paste path, added 24/08. Kept out of RETRIEVABLE on purpose: this
+#: is a brand-new set of items, and folding it into hit@8/MRR would change
+#: those numbers on the very next run for reasons that have nothing to do with
+#: retrieval quality — the same mistake hard_negative's addition made to
+#: p90_ttft_ms before it was excluded (bẫy #24). Not every "image" item is
+#: retrievable either: one deliberately asks something the pasted image does
+#: not contain, so within this set item.get("source") is what decides —
+#: exactly the split document_overview items already use.
+IMAGE = {"image"}
+
 #: A failed request that took at least this long was almost certainly killed by
 #: the platform rather than refused by the route: /api/chat declares
 #: maxDuration = 60, and every error the route raises itself comes back in
@@ -159,7 +169,9 @@ def run_retrieval(items: list[dict], dense_only: bool) -> list[dict]:
             "latency_ms": int((time.time() - started) * 1000),
         }
 
-        if item["category"] in RETRIEVABLE:
+        if item["category"] in RETRIEVABLE or (
+            item["category"] in IMAGE and item.get("source")
+        ):
             if dense_only:
                 # dense_search does not return a filename, so location filtering
                 # is not possible; score on pages alone.
@@ -401,7 +413,10 @@ def run_full(
             "answer": answer[:800],
         }
 
-        if item["category"] in RETRIEVABLE and kind == "answer":
+        if (
+            item["category"] in RETRIEVABLE
+            or (item["category"] in IMAGE and item.get("source"))
+        ) and kind == "answer":
             rows = [
                 {
                     "filename": c.get("filename"),
@@ -492,6 +507,13 @@ def summarise(results: list[dict]) -> dict:
     # there would drop a passing metric to 0.545 while the system was behaving
     # correctly — the same pessimistic-metric failure as citation_validity 0.15.
     hard = [r for r in scored if r["category"] == "hard_negative"]
+    # Split the same way overview already splits must_ask/can_answer: by
+    # whether hit was actually computed for this record, not by a second
+    # category value. image_hit/image_mrr are the answerable ones;
+    # image_refuse is the one item that should come back as a refusal.
+    image = [r for r in scored if r["category"] in IMAGE]
+    image_answerable = [r for r in image if r.get("hit") is not None]
+    image_refuse = [r for r in image if r.get("hit") is None]
     cross = [r for r in retrievable if r["cross_lingual"]]
     same = [r for r in retrievable if not r["cross_lingual"]]
 
@@ -541,7 +563,9 @@ def summarise(results: list[dict]) -> dict:
         ttft_values = sorted(
             r["ttft_ms"]
             for r in scored
-            if r.get("ttft_ms") is not None and r["category"] != "hard_negative"
+            if r.get("ttft_ms") is not None
+            and r["category"] != "hard_negative"
+            and r["category"] not in IMAGE
         )
         summary["median_ttft_ms"] = (
             ttft_values[len(ttft_values) // 2] if ttft_values else None
@@ -564,7 +588,11 @@ def summarise(results: list[dict]) -> dict:
         # marker — so a correct refusal would be scored as a citation failure.
         # That is trap 17, which cost 0.947 on a question that behaved exactly
         # as designed; averaging five more of them in would make it routine.
-        citable = [r for r in scored if r["category"] != "hard_negative"]
+        citable = [
+            r
+            for r in scored
+            if r["category"] != "hard_negative" and r["category"] not in IMAGE
+        ]
         summary["citation_validity"] = mean([r.get("citation_validity") for r in citable])
         # Split by what each item is supposed to do. Dividing by every overview
         # item scored a clean run at 0.333 — two of the three questions name a
@@ -626,6 +654,31 @@ def summarise(results: list[dict]) -> dict:
         scores = [r.get("faithfulness_score") for r in hard]
         if any(s is not None for s in scores):
             summary["hard_negative_faithfulness"] = mean(scores)
+
+    if image:
+        # image_answerable has hit/mrr computed the same way RETRIEVABLE items
+        # do; image_refuse never entered that branch (item.get("source") was
+        # falsy) so its hit/mrr are None and it is scored on refusal instead,
+        # same treatment should_refuse gets.
+        summary["n_image"] = len(image)
+        if image_answerable:
+            summary["image_hit_at_8"] = mean(
+                [float(r["hit"]) for r in image_answerable if r.get("hit") is not None]
+            )
+            summary["image_mrr"] = mean(
+                [r["mrr"] for r in image_answerable if r.get("mrr") is not None]
+            )
+            valid = [
+                r.get("citation_validity")
+                for r in image_answerable
+                if r.get("citation_validity") is not None
+            ]
+            if valid:
+                summary["image_citation_validity"] = mean(valid)
+        if image_refuse:
+            summary["image_refusal_rate"] = mean(
+                [float(r["refused"]) for r in image_refuse]
+            )
 
     if any("faithfulness_score" in r for r in results):
         answered = [r for r in scored if r.get("type") == "answer"]
