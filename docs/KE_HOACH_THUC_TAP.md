@@ -542,8 +542,8 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       *(Mục gốc giữ lại bên dưới để đối chiếu:)*
 - [ ] ~~`docs/BAO_CAO.md` Chương 1~~ — Tổng quan, dựng từ `README.md` +
       `REQUIREMENTS.md` §1–2
-- [ ] Chương 2 — Phân tích & Thiết kế, dựng từ `REQUIREMENTS.md` §3–6 + 2 sơ đồ
-- [ ] Kiểm tra 2 sơ đồ kiến trúc còn khớp route/bảng thật trong code, sửa nếu
+- [ ] ~~Chương 2~~ — Phân tích & Thiết kế, dựng từ `REQUIREMENTS.md` §3–6 + 2 sơ đồ
+- [ ] ~~Kiểm tra 2 sơ đồ kiến trúc còn khớp route/bảng thật trong code~~, sửa nếu
       lệch
 - [x] Cuối tuần: cập nhật `BAO_CAO_TIEN_DO.md` — làm đều từ 19/08, lần gần
       nhất 24/08
