@@ -441,17 +441,29 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       Ghi thành bẫy #25 — **lần đầu một giả định sai bị bắt trước khi ship**.
       11 test mới (72 test JS). Đã cập nhật `REQUIREMENTS` §3 và 3 ngoại lệ mới
       (E28–E30), sơ đồ 1, chương 2 báo cáo, README
-- [ ] **Còn nợ:** thêm 2–3 câu hỏi về ảnh vào `eval_dataset.json`. Điều kiện
-      cụ thể hơn sau khi thử 21/08 — **ảnh phải chứa nội dung KHÔNG có sẵn
-      trong corpus**. Ảnh người dùng dán khi test là ảnh chụp trang 1 của
-      `2608.18058v1.pdf`, mà PDF đó đã nằm trong corpus từ 19/08, nên hai tài
-      liệu chứa nguyên văn cùng một đoạn. Câu hỏi viết trên đó sẽ không đo
-      đường ảnh mà đo **bản nào trong hai bản thắng** — đo được đúng 0 điều về
-      tính năng. Cần một ảnh chọn có chủ ý, khai vào `corpus` của dataset, và
-      xếp riêng một nhóm để không làm đứt mạch so sánh của bảng §4 (bẫy #24).
-      Đo sơ bộ trên ảnh hiện có, chỉ tốn embedding: câu tiếng Anh truy hồi ảnh
-      ở **hạng 1, cosine 0.726** — đường ảnh hoạt động, chỉ là chưa đo được
-      bằng bộ eval
+- [x] **24/08** Thêm 3 câu hỏi về ảnh vào `eval_dataset.json` — **và tìm ra
+      bẫy nghiêm trọng nhất tính đến giờ trong lúc kiểm chúng.** Chọn ảnh biểu
+      đồ giá vàng SJC (giavang.org), thoả điều kiện đặt ra ngày 21/08: nội
+      dung không có trong corpus, cần vision đọc, có dữ kiện tuỳ tiện. Sửa
+      `eval/run_eval.py` để nhóm `image` có thống kê riêng
+      (`image_hit_at_8`, `image_mrr`, `image_citation_validity`,
+      `image_refusal_rate`), không trộn vào `hit@8`/`MRR` chung — smoke-test
+      trước khi ảnh tồn tại xác nhận cách li hoạt động đúng.
+      **Chạy thật thì cả 3 câu trả lời rỗng**, dù `image_hit_at_8 = 1.0` (đúng
+      trang được trích). Tra ngược: `g-001`/`g-002` — hai câu `figure` trong bộ
+      26 câu gốc, có từ 11/08 — cũng rỗng y hệt kiểu này ở **mọi lần chạy full
+      mode từ trước tới giờ**, và không chỉ số nào trong 15 lần chạy bắt được.
+      Gốc rễ: `display_text` (trường đưa vào `buildContext` để sinh câu trả
+      lời) giữ nguyên placeholder `[[FIGURE:id]]` thay vì dữ liệu thật — trong
+      khi `embed_text` đã được thay đúng từ đầu. Không nơi nào trong frontend
+      đọc placeholder đó để render thành gì, nên thiết kế "giữ nguyên để hiển
+      thị" phục vụ một mục đích không tồn tại. Quét corpus: **46/90 chunk
+      (51%)** mang placeholder chưa thay thế. Đã sửa `buildContext`
+      (`src/lib/prompt.ts`) dùng lại đúng logic `toEmbedText` đã có, xuất
+      `FIGURE_REF` từ `chunk.ts` để không viết lại regex lần hai. 3 test mới,
+      dùng chính dữ liệu đo được từ database làm ca kiểm. Ghi thành bẫy #28,
+      cập nhật `REQUIREMENTS.md` §7. **Còn phải làm:** đẩy lên, chờ Vercel
+      deploy, chạy lại đúng 3 câu này trên production để xác nhận sửa đúng
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh

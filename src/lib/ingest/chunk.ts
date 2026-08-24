@@ -31,7 +31,9 @@ import type { Chunk, Figure, Lang, Page } from "./types";
 const DISPLAY_MATH = /\$\$([\s\S]+?)\$\$/g;
 const DISPLAY_MATH_ONLY = /^\$\$[\s\S]+?\$\$$/;
 const INLINE_MATH = /(?<!\$)\$([^$\n]+?)\$(?!\$)/g;
-const FIGURE_REF = /\[\[FIGURE:([^\]]+)\]\]/g;
+// Exported so prompt.ts can resolve the same placeholder at generation time —
+// see its buildContext for why display_text cannot be sent to the model as-is.
+export const FIGURE_REF = /\[\[FIGURE:([^\]]+)\]\]/g;
 const FIGURE_REF_ONLY = /^\[\[FIGURE:[^\]]+\]\]$/;
 const HEADING = /^#{1,6}\s+/;
 

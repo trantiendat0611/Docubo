@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCitations, generationFailedMessage } from "./prompt";
+import { buildCitations, buildContext, generationFailedMessage } from "./prompt";
 import type { RetrievedChunk } from "./types";
 
 function chunk(overrides: Partial<RetrievedChunk> = {}): RetrievedChunk {
@@ -18,6 +18,51 @@ function chunk(overrides: Partial<RetrievedChunk> = {}): RetrievedChunk {
     ...overrides,
   };
 }
+
+describe("buildContext", () => {
+  it("resolves a figure placeholder to its transcribed data, not the raw marker", () => {
+    // Caught for real on 24/08: a chunk that is entirely a chart came back as
+    // "[[FIGURE:fig-1-1]]" in the model's context, and the model correctly
+    // reported having no data — it never had any. hit@8 and citation_validity
+    // both stayed green through this, because neither reads display_text.
+    const c = chunk({
+      display_text: "# A chart\n\n[[FIGURE:fig-1-1]]",
+      figure_refs: [
+        {
+          id: "fig-1-1",
+          kind: "chart",
+          caption: "Monthly price",
+          description: "A line chart of price over time.",
+          data: "Jan: 10, Feb: 12",
+          image_path: null,
+        },
+      ],
+    });
+
+    const context = buildContext([c]);
+
+    expect(context).not.toContain("[[FIGURE:fig-1-1]]");
+    expect(context).toContain("Jan: 10, Feb: 12");
+    expect(context).toContain("A line chart of price over time.");
+  });
+
+  it("leaves ordinary text untouched", () => {
+    const c = chunk({ display_text: "Plain prose, no figures here." });
+
+    expect(buildContext([c])).toContain("Plain prose, no figures here.");
+  });
+
+  it("drops a placeholder cleanly if its figure never arrived, rather than leaking the marker", () => {
+    const c = chunk({
+      display_text: "before [[FIGURE:missing]] after",
+      figure_refs: [],
+    });
+
+    expect(buildContext([c])).not.toContain("[[FIGURE:");
+    expect(buildContext([c])).toContain("before");
+    expect(buildContext([c])).toContain("after");
+  });
+});
 
 describe("buildCitations", () => {
   it("carries the chunk id through so the eval harness can reload the exact context", () => {

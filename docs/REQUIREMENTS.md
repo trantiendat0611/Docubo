@@ -372,6 +372,27 @@ thường thì giới hạn duy nhất là trần của Vercel — và thứ cli
 một trong hai câu chết. Chưa đủ dữ liệu để tách cold start của hàm khỏi độ chậm
 của model.
 
+### *(24/08)* Câu hỏi về hình/bảng đã trả lời rỗng từ lần chạy đầu tiên — nay đã sửa
+
+Ba câu eval mới cho đường dán ảnh trả lời rỗng cả ba, dù `hit@8` báo đúng trang.
+Tra ngược thì `g-001`/`g-002` — hai câu `figure` trong bộ 26 câu gốc, có từ
+11/08 — cũng rỗng y hệt kiểu này ở **mọi lần chạy full mode trước giờ**, và
+không chỉ số nào trong 15 lần chạy bắt được: `hit@8` chỉ đo đúng trang,
+`citation_validity` chỉ đếm có `[n]` hay không, cả hai không đọc nội dung
+`display_text` — trường thực sự đưa vào prompt sinh câu trả lời.
+
+Gốc rễ: `display_text` cố tình giữ nguyên placeholder `[[FIGURE:id]]` thay vì
+dữ liệu thật, theo đúng thiết kế ghi trong `chunk.ts` — nhưng không nơi nào
+trong frontend đọc placeholder đó để render thành gì cả, nên thiết kế "giữ
+nguyên để hiển thị" phục vụ một mục đích không tồn tại, và phá mất mục đích
+thật của trường này. Quét toàn corpus: **46/90 chunk (51%) mang placeholder
+chưa thay thế**.
+
+Đã sửa `buildContext` (`src/lib/prompt.ts`) để thay `[[FIGURE:id]]` bằng
+`caption + description + data` từ `figure_refs`, đúng logic đã có sẵn cho
+`embed_text` trong `chunk.ts` — chỉ chưa từng áp cho `display_text`. 3 test
+mới. Xem `SKILL` bẫy #28.
+
 ## 8. Câu hỏi còn mở
 
 - [x] `MIN_COSINE` — đo hai lần. Trên corpus 34 chunk song ngữ, 10 câu hỏi:
