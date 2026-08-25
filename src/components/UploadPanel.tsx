@@ -347,9 +347,9 @@ export function UploadPanel({
           }}
         />
         <span className="headline">
-          {busy ? label[phase] : "Kéo PDF, DOCX, TXT hoặc ảnh vào đây, hoặc bấm để chọn"}
+          {busy ? label[phase] : "Kéo tài liệu hoặc ảnh vào đây, hoặc bấm để chọn"}
         </span>
-        <small>PDF tối đa {MAX_UPLOAD_PAGES} trang</small>
+        <small>Tài liệu tối đa {MAX_UPLOAD_PAGES} trang</small>
       </label>
 
       {phase === "extracting" && kindRunning !== "text" && total > 0 && (
