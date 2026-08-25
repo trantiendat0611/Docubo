@@ -541,6 +541,36 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       route mới build đúng cùng mọi route khác. 87/87 test JS, cập nhật
       `REQUIREMENTS.md` (thêm mục có ngày, không xoá quyết định 20/08 —
       đúng quy ước sửa-bằng-cách-thêm-mục-mới của bẫy #26/27) và README
+- [x] **25/08** Chạy `--judge` chốt số thì `faithfulness` rớt **0.835**, dưới
+      ngưỡng 0.90 và thấp hơn hẳn mọi lần đo trước (luôn 1.000). Đọc từng câu
+      điểm thấp thay vì tin thẳng con số: `g-001`/`g-002` — hai câu `figure`
+      duy nhất trong bộ — bị chấm **0.0** dù trả lời khớp gần nguyên văn
+      `expected_points`. Model không bịa, bộ đo bịa: `eval/judge.py` có một
+      `build_context()` **Python riêng** (tránh gọi lại retrieval — bẫy #17),
+      đọc thẳng `display_text` từ database — nơi bẫy #28 hôm qua **chưa từng
+      chạm tới** vì bản sửa đó chỉ tác động lúc dựng prompt (TS), không tác
+      động dữ liệu đã lưu. Sửa một bên, quên bên song song — đúng bài học vừa
+      ghi 24 giờ trước, tự mắc lại. Thêm `_resolve_figures()` vào `judge.py`,
+      cổng đúng logic `resolveFigures()` bên TS, cộng cột `figure_refs` vào
+      `chunks_by_id()`. Xác minh bằng dữ liệu thật không tốn quota: đọc thẳng
+      chunk có `has_figure=True`, thấy bảng dữ liệu hiện đúng thay vì
+      placeholder. 2 test mới. Ghi thành bẫy #30. **Chưa chạy lại `--judge`**
+      — hôm nay đã tốn 78 request, để mai lấy số đúng
+- [x] **25/08** Xác nhận thủ công trên production, đúng việc đã hẹn người
+      dùng tự làm: tải `Kien_Thuc_ML.docx` (nội dung ML tiếng Việt, có công
+      thức) — báo *"Đã đọc xong 2 trang thành 3 đoạn"*, hỏi *"Cách khắc phục
+      Overfitting"* trả lời đúng, trích dẫn `[1]` khớp nội dung thật, không
+      bịa thêm. Trước khi test, đã dự đoán bằng cách chạy thẳng
+      `cleanText`/`paginate` thật (không phải đoán) trên đúng nội dung file
+      `.txt` người dùng gửi: file đó **không có dòng trống nào** trong toàn
+      văn bản, mà `paginate()` chỉ cắt theo ranh giới dòng trống (cố ý —
+      không bao giờ cắt giữa câu) — nên `.txt` sẽ gộp thành **đúng 1 trang
+      giả** dù `.docx` cùng nội dung (mammoth tự chèn dòng trống giữa mỗi
+      paragraph Word) chia được nhiều trang hơn. Không sửa — người dùng chọn
+      giữ nguyên hành vi, biết trước lý do là đủ. Giao diện mới (redesign
+      24/08) cũng lần đầu thấy chạy thật trên production qua ảnh chụp màn
+      hình người dùng gửi: bubble, nút Sao chép, "+ Chat mới", tìm kiếm, nhóm
+      Hôm nay/Hôm qua/7 ngày qua — đúng như thiết kế
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh
