@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { shouldFlushBefore } from "@/lib/ingest/batching";
 import { MAX_UPLOAD_PAGES } from "@/lib/ingest/config";
 import { toPageImage } from "@/lib/ingest/image";
-import { IMAGE_TYPES, fileKind } from "@/lib/ingest/kinds";
+import { DOCX_MIME, IMAGE_TYPES, fileKind } from "@/lib/ingest/kinds";
 import { openPdf, renderPage } from "@/lib/ingest/pdf";
 import { browserClient } from "@/lib/supabase/client";
 
@@ -52,7 +52,7 @@ export function UploadPanel({
   const [dragging, setDragging] = useState(false);
 
   const busy = phase !== "idle" && phase !== "error";
-  const [kindRunning, setKindRunning] = useState<"pdf" | "image" | null>(null);
+  const [kindRunning, setKindRunning] = useState<"pdf" | "image" | "text" | null>(null);
 
   // Clearing the file before ingest rather than after: leaving it set until the
   // job finished re-fired this effect on every progress render, and the guard
@@ -95,7 +95,7 @@ export function UploadPanel({
     setKindRunning(kind);
     if (!kind) {
       setPhase("error");
-      setMessage("Chỉ nhận PDF, hoặc ảnh PNG / JPEG / WebP.");
+      setMessage("Chỉ nhận PDF, DOCX, TXT, hoặc ảnh PNG / JPEG / WebP.");
       return;
     }
 
@@ -114,12 +114,17 @@ export function UploadPanel({
       }
     }
 
-    const nPages = doc ? doc.numPages : 1;
+    // DOCX/TXT have no real page count to know yet — the server has not
+    // parsed the file. 1 travels to /api/upload as an unverified placeholder;
+    // the real synthetic count comes back from /api/ingest/text below and
+    // MAX_UPLOAD_PAGES is enforced there, on the number that is actually true.
+    let nPages = doc ? doc.numPages : 1;
     setTotal(nPages);
 
     // Checked here as well as on the server so an oversized document costs no
-    // upload at all — the server check is the one that counts.
-    if (nPages > MAX_UPLOAD_PAGES) {
+    // upload at all — the server check is the one that counts. Meaningless for
+    // text kind at this point (nPages is still the placeholder), so skipped.
+    if (kind !== "text" && nPages > MAX_UPLOAD_PAGES) {
       setPhase("error");
       setMessage(
         `Tài liệu có ${nPages} trang, vượt giới hạn ${MAX_UPLOAD_PAGES} trang. ` +
@@ -144,64 +149,26 @@ export function UploadPanel({
 
     setPhase("extracting");
 
-    let batch: Array<{ page: number; blob: Blob }> = [];
-    let batchBytes = 0;
+    if (kind === "text") {
+      const extracted = await fetch("/api/ingest/text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      });
 
-    const flush = async () => {
-      if (batch.length === 0) return true;
-
-      const step = new FormData();
-      step.set("jobId", jobId);
-      for (const { page, blob } of batch) {
-        // Name and type both follow the blob. toPageImage may hand back JPEG
-        // when a photograph will not fit as PNG, and the server reads the type
-        // off this File to tell the vision model what it is being given.
-        const ext = blob.type === "image/jpeg" ? "jpg" : "png";
-        step.append(
-          "pages",
-          new File([blob], `p${page}.${ext}`, { type: blob.type || "image/png" }),
-        );
-      }
-
-      const res = await fetch("/api/ingest/step", { method: "POST", body: step });
-      batch = [];
-      batchBytes = 0;
-
-      if (!res.ok) {
+      if (!extracted.ok) {
         setPhase("error");
-        setMessage((await res.json()).error ?? "Xử lí trang thất bại.");
-        return false;
+        setMessage((await extracted.json()).error ?? "Không đọc được nội dung file.");
+        return;
       }
 
-      const result = (await res.json()) as { pagesDone: number };
+      const result = (await extracted.json()) as { pagesDone: number; nPages: number };
+      nPages = result.nPages;
+      setTotal(nPages);
       setDone(result.pagesDone);
-      return true;
-    };
-
-    for (let page = 1; page <= nPages; page += 1) {
-      let blob: Blob;
-      try {
-        blob = doc ? await renderPage(doc, page) : await toPageImage(file);
-      } catch (error) {
-        setPhase("error");
-        setMessage(
-          error instanceof Error ? error.message : "Không xử lí được trang này.",
-        );
-        return;
-      }
-
-      if (
-        shouldFlushBefore({ count: batch.length, bytes: batchBytes }, blob.size) &&
-        !(await flush())
-      ) {
-        return;
-      }
-
-      batch.push({ page, blob });
-      batchBytes += blob.size;
+    } else {
+      if (!(await extractPdfOrImage())) return;
     }
-
-    if (!(await flush())) return;
 
     setPhase("indexing");
 
@@ -250,10 +217,78 @@ export function UploadPanel({
     setMessage(
       kind === "image"
         ? `Đã đọc xong ảnh thành ${chunks} đoạn. Hỏi được rồi.`
-        : `Đã nạp xong ${nPages} trang thành ${chunks} đoạn. Hỏi được rồi.`,
+        : kind === "text"
+          ? `Đã đọc xong ${nPages} trang thành ${chunks} đoạn. Hỏi được rồi.`
+          : `Đã nạp xong ${nPages} trang thành ${chunks} đoạn. Hỏi được rồi.`,
     );
     if (input.current) input.current.value = "";
     onDone();
+
+    /** The PDF/image render-and-batch loop, split out so `ingest` above reads
+        as one straight line for every kind instead of one kind's inner loop
+        interrupting the shared tail every other kind also needs. Returns
+        false having already set the error state, same convention `flush`
+        already used inline. */
+    async function extractPdfOrImage(): Promise<boolean> {
+      let batch: Array<{ page: number; blob: Blob }> = [];
+      let batchBytes = 0;
+
+      const flush = async () => {
+        if (batch.length === 0) return true;
+
+        const step = new FormData();
+        step.set("jobId", jobId);
+        for (const { page, blob } of batch) {
+          // Name and type both follow the blob. toPageImage may hand back JPEG
+          // when a photograph will not fit as PNG, and the server reads the
+          // type off this File to tell the vision model what it is given.
+          const ext = blob.type === "image/jpeg" ? "jpg" : "png";
+          step.append(
+            "pages",
+            new File([blob], `p${page}.${ext}`, { type: blob.type || "image/png" }),
+          );
+        }
+
+        const res = await fetch("/api/ingest/step", { method: "POST", body: step });
+        batch = [];
+        batchBytes = 0;
+
+        if (!res.ok) {
+          setPhase("error");
+          setMessage((await res.json()).error ?? "Xử lí trang thất bại.");
+          return false;
+        }
+
+        const result = (await res.json()) as { pagesDone: number };
+        setDone(result.pagesDone);
+        return true;
+      };
+
+      for (let page = 1; page <= nPages; page += 1) {
+        let blob: Blob;
+        try {
+          blob = doc ? await renderPage(doc, page) : await toPageImage(file);
+        } catch (error) {
+          setPhase("error");
+          setMessage(
+            error instanceof Error ? error.message : "Không xử lí được trang này.",
+          );
+          return false;
+        }
+
+        if (
+          shouldFlushBefore({ count: batch.length, bytes: batchBytes }, blob.size) &&
+          !(await flush())
+        ) {
+          return false;
+        }
+
+        batch.push({ page, blob });
+        batchBytes += blob.size;
+      }
+
+      return flush();
+    }
   }
 
   const label: Record<Phase, string> = {
@@ -263,7 +298,9 @@ export function UploadPanel({
     extracting:
       kindRunning === "image"
         ? "Đang đọc nội dung ảnh…"
-        : `Đang đọc nội dung ${done}/${total} trang…`,
+        : kindRunning === "text"
+          ? "Đang đọc nội dung file…"
+          : `Đang đọc nội dung ${done}/${total} trang…`,
     indexing: "Đang lập chỉ mục…",
     error: "",
   };
@@ -302,7 +339,7 @@ export function UploadPanel({
         <input
           ref={input}
           type="file"
-          accept={`application/pdf,.pdf,${IMAGE_TYPES.join(",")}`}
+          accept={`application/pdf,.pdf,${DOCX_MIME},.docx,text/plain,.txt,${IMAGE_TYPES.join(",")}`}
           disabled={busy}
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -310,12 +347,12 @@ export function UploadPanel({
           }}
         />
         <span className="headline">
-          {busy ? label[phase] : "Kéo PDF hoặc ảnh vào đây, hoặc bấm để chọn"}
+          {busy ? label[phase] : "Kéo PDF, DOCX, TXT hoặc ảnh vào đây, hoặc bấm để chọn"}
         </span>
         <small>PDF tối đa {MAX_UPLOAD_PAGES} trang</small>
       </label>
 
-      {phase === "extracting" && total > 0 && (
+      {phase === "extracting" && kindRunning !== "text" && total > 0 && (
         <div
           className="progress"
           role="progressbar"

@@ -95,6 +95,22 @@ trong bất kì câu trả lời nào.
       biểu đồ, mà `.txt` thì chỉ là text — vấn đề đó không tồn tại. Nên đây là
       một đường ingest thứ hai chạy song song, không phải phần mở rộng của
       đường hiện có. Ghi lại ở "Không làm" §3 để bảo vệ khi phản biện
+- [x] **Quyết định 25/08: đảo lại — làm DOCX/TXT.** Không phủ nhận hai lí do
+      kĩ thuật ở trên, mà chấp nhận cả hai theo cách khác: **(1)** "không có
+      số trang thật" được giải quyết bằng **đánh số trang giả** — chia văn bản
+      đã làm sạch thành các đoạn ~3000 kí tự theo ranh giới đoạn văn, mỗi đoạn
+      một số trang tuần tự, đưa thẳng vào `buildChunks()` không sửa gì — hàm
+      đó vốn đã tính `page_start`/`page_end` bằng `Math.min/max` trên số trang
+      của các `Page` đưa vào, nên trang giả cho ra trích dẫn biến thiên y hệt
+      PDF thật mà không đụng schema hay UI. Nhãn vẫn ghi "trang N" — đây là
+      một xấp xỉ có chủ đích, không phải nói sai: xem ghi chú ở README mục
+      *Nguồn tài liệu*. **(2)** "không đi qua vision" giờ được coi là một
+      **tính chất tốt** chứ không phải vấn đề — DOCX/TXT ingest không tốn một
+      request vision nào, chỉ tốn embedding (vốn đã rẻ). Phạm vi chỉ giới hạn
+      ở **web app (TypeScript)**, không đụng `ingest/main.py`/pipeline Python
+      và không mở rộng parity test — hai đường ingest độc lập, không cần đồng
+      bộ nếu một bên không tồn tại ở bên kia. Công thức/bảng OMML trong DOCX
+      vẫn ngoài phạm vi, giữ nguyên dòng dưới trong bảng "Không làm"
 - [ ] Đính tài liệu có sẵn vào khung chat từ giao diện — hiện chỉ gắn được
       bằng cách tải lên trong khung đó, dù schema đã hỗ trợ dùng lại
 
@@ -103,9 +119,8 @@ trong bất kì câu trả lời nào.
 | Bỏ | Lí do |
 |---|---|
 | OCR tài liệu scan | Chất lượng phụ thuộc bản scan, không kiểm soát được |
-| Công thức nhúng OMML trong DOCX | Định dạng phức tạp, PDF đã phủ hết ca dùng thật |
+| Công thức nhúng OMML trong DOCX | Định dạng phức tạp — DOCX/TXT (25/08) chỉ trích văn bản thuần, không trích công thức/bảng nhúng |
 | Fine-tuning | Không có ngân sách, và RAG đã giải quyết bài toán |
-| **Nạp DOCX / TXT** | Không có số trang nên phải đổi đơn vị trích dẫn — lời hứa trung tâm của sản phẩm. Và chúng không đi qua đường vision, tức không dùng tới phần lõi của đồ án. Quyết định 20/08 |
 | Agent / multi-hop | Vượt phạm vi MVP 8 tuần |
 | Render PDF phía server | Cần native canvas binding — thứ serverless xử lí tệ nhất. Trình duyệt đã có sẵn canvas và có sẵn file |
 | Xác nhận email khi đăng ký | Free tier không có SMTP; bật lại chỉ là một công tắc khi triển khai thật |

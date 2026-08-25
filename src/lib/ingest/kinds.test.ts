@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { IMAGE_MAX_EDGE, fileKind } from "./kinds";
+import { DOCX_MIME, IMAGE_MAX_EDGE, fileKind } from "./kinds";
 
 describe("fileKind", () => {
   it("reads the clipboard's MIME rather than its filename", () => {
@@ -30,9 +30,23 @@ describe("fileKind", () => {
     expect(fileKind("IMG_4821.heic", "image/heic")).toBeNull();
   });
 
+  it("accepts DOCX and TXT as one kind — text", () => {
+    expect(fileKind("ghi-chu.txt", "text/plain")).toBe("text");
+    expect(fileKind("bao-cao.docx", DOCX_MIME)).toBe("text");
+    // Windows file pickers again — MIME can arrive empty.
+    expect(fileKind("ghi-chu.txt", "")).toBe("text");
+    expect(fileKind("bao-cao.docx", "")).toBe("text");
+  });
+
+  it("refuses legacy .doc, which mammoth cannot read", () => {
+    // .doc is a different, older binary format — not just a DOCX with a
+    // shorter extension. Letting it through would mean a file that uploads
+    // and then fails deep inside mammoth instead of cleanly here.
+    expect(fileKind("bao-cao-cu.doc", "application/msword")).toBeNull();
+  });
+
   it("refuses everything else rather than guessing", () => {
-    expect(fileKind("ghi-chu.txt", "text/plain")).toBeNull();
-    expect(fileKind("bao-cao.docx", "application/vnd.openxmlformats")).toBeNull();
+    expect(fileKind("ghi-chu.rtf", "application/rtf")).toBeNull();
     expect(fileKind("", "")).toBeNull();
   });
 

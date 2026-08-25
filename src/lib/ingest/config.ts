@@ -32,6 +32,16 @@ export const VISION_BATCH_SIZE = 8;
  */
 export const MAX_UPLOAD_PAGES = 25;
 
+/**
+ * Characters per synthetic "page" for DOCX/TXT, which have no real page
+ * breaks — see paginate.ts. Unlike the constants above, this has no
+ * measurement behind it, only a rough proxy: ~500 words on a printed page ×
+ * ~5.5 characters per word with Vietnamese diacritics ≈ 3000. Its only job is
+ * to keep citations from all landing on "trang 1" — nothing downstream reads
+ * it as a real page count.
+ */
+export const CHARS_PER_SYNTHETIC_PAGE = 3000;
+
 /** Render resolution for page images produced in the browser. */
 export const RENDER_SCALE = 200 / 72;
 

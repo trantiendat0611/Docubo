@@ -121,6 +121,19 @@ export async function loadPages(jobId: string): Promise<Page[]> {
   return (data ?? []).map((r) => r.content as Page);
 }
 
+/**
+ * Correct ingest_jobs.n_pages after the real synthetic page count is known.
+ *
+ * Only DOCX/TXT jobs need this: their client can't know the true count before
+ * the server has parsed the file, so /api/upload records a placeholder.
+ * documents.n_pages is unaffected — finishDocument sets that correctly from
+ * the actual loaded pages regardless, so this is purely so the job row itself
+ * stops reading 1 forever, not something anything downstream depends on.
+ */
+export async function updateJobPageCount(jobId: string, nPages: number): Promise<void> {
+  await admin().from("ingest_jobs").update({ n_pages: nPages }).eq("id", jobId);
+}
+
 export async function bumpProgress(
   jobId: string,
   pagesDone: number,
@@ -185,7 +198,7 @@ export async function finishDocument(job: Job): Promise<{
       .from("documents")
       .insert({
         filename: job.filename,
-        title: job.filename.replace(/\.pdf$/i, ""),
+        title: job.filename.replace(/\.(pdf|docx|txt)$/i, ""),
         owner_id: job.owner_id,
         lang,
         n_pages: pages.length,

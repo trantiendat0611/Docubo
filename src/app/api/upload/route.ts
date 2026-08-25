@@ -1,5 +1,5 @@
 import { MAX_UPLOAD_PAGES, MAX_UPLOADS_PER_DAY } from "@/lib/ingest/config";
-import { fileKind } from "@/lib/ingest/kinds";
+import { DOCX_MIME, fileKind } from "@/lib/ingest/kinds";
 import { createJob } from "@/lib/ingest/store";
 import { admin } from "@/lib/supabase/admin";
 import { currentUser } from "@/lib/supabase/server";
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   const kind = fileKind(file.name, file.type);
   if (!kind) {
     return Response.json(
-      { error: "chỉ hỗ trợ PDF, hoặc ảnh PNG / JPEG / WebP" },
+      { error: "chỉ hỗ trợ PDF, DOCX, TXT, hoặc ảnh PNG / JPEG / WebP" },
       { status: 415 },
     );
   }
@@ -61,6 +61,10 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  // A DOCX/TXT job's real page count is a synthetic one the client cannot
+  // know before the server has parsed the file — nPages here is an
+  // unverified placeholder. /api/ingest/text enforces MAX_UPLOAD_PAGES for
+  // real, after pagination, and corrects this row via updateJobPageCount.
 
   const client = admin();
 
@@ -94,7 +98,15 @@ export async function POST(req: Request) {
     // application/pdf makes the signed URL undisplayable later, and the citation
     // panel showing the original page is exactly what this bucket is for.
     .upload(storagePath, file, {
-      contentType: file.type || (kind === "pdf" ? "application/pdf" : "image/png"),
+      contentType:
+        file.type ||
+        (kind === "pdf"
+          ? "application/pdf"
+          : kind === "text"
+            ? /\.docx$/i.test(file.name)
+              ? DOCX_MIME
+              : "text/plain"
+            : "image/png"),
       upsert: false,
     });
 
