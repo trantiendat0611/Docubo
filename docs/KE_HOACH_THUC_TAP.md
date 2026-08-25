@@ -491,6 +491,56 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       bằng chứng nhưng **`faithfulness = 0.986` KHÔNG dùng làm số chốt `SKILL`
       §0** — đo trên corpus bị thu hẹp bất thường, không phải chất lượng hệ
       thống thật. Phải chạy lại sau khi sửa quyền sở hữu
+- [x] **24/08** Sửa quyền sở hữu `testtv1.pdf`/`testta1.pdf` — nạp lại dưới
+      `11a2trantiendat@gmail.com` qua `ingest.main all --owner`. **Tốn 0
+      quota**: cả 73 trang đều lấy từ cache trích xuất 10/08 (`0 need vision,
+      X cached`), hash trùng khớp nên `upsert_document` cập nhật đúng hàng cũ
+      thay vì tạo bản trùng. Corpus giờ chỉ còn lệch đúng 1 tài liệu mồ côi
+      (`baddf715`, bản gốc `2402.00253v2.pdf` dưới tài khoản cũ) — chưa xoá,
+      chờ quyết định
+- [x] **24/08** Restyle giao diện theo bố cục một mẫu AI SaaS tham khảo
+      (uideck "AI Agent"), **giữ nguyên** bảng màu/font Docubo — không đổi gì
+      trong `:root` của `globals.css`. Đổi: tài liệu sang trái/hội thoại sang
+      phải (mẫu không có tương đương "Products" của Docubo), bubble câu hỏi bo
+      phải/câu trả lời bo trái có "đuôi", nút gửi tròn thay nút chữ, nút Sao
+      chép hoạt động thật dưới mỗi câu trả lời (bỏ like/dislike — không có nơi
+      lưu phản hồi, nút không làm gì tệ hơn không có nút), danh sách hội thoại
+      thêm tìm kiếm + nhóm theo Hôm nay/Hôm qua/7 ngày qua tính hoàn toàn phía
+      trình duyệt từ `updated_at` sẵn có. Không đăng nhập được cục bộ để xem
+      trực tiếp (không có mật khẩu) nên dựng bản HTML tĩnh dùng đúng CSS thật,
+      đặt tạm trong `public/` để dev server phục vụ, chụp ảnh sáng/tối/di
+      động rồi xoá sạch. Một chỗ tưởng là bug (khoảng trắng lạ ở bố cục di
+      động) hoá ra do file test thiếu `<meta viewport>` — xác nhận bằng `curl`
+      rằng Next.js tự thêm thẻ này nên app thật không dính
+- [x] **25/08 Đảo quyết định 20/08 — thêm DOCX/TXT.** Hỏi lại và tra nguyên
+      văn file hướng dẫn mentor: Task 2.1 có nhắc "PDF/DOCX/TXT", nhưng nằm ở
+      checklist lộ trình tuần, không phải bảng 5 tiêu chí chấm điểm. Quyết
+      định làm thêm, giữ nguyên hai lý do kĩ thuật cũ nhưng đổi cách xử lý:
+      **(1)** "không có số trang thật" → đánh **trang giả** (~3000 kí tự/trang,
+      cắt theo ranh giới đoạn văn) đưa thẳng vào `buildChunks()` không sửa gì
+      — hàm đó vốn tính `page_start`/`page_end` bằng `Math.min/max` trên số
+      trang các `Page` đưa vào, nên không cần đổi schema, không đổi
+      `CitationList.tsx`, không đổi eval harness. **(2)** "không đi qua vision"
+      giờ là điểm tốt — 0 quota vision, chỉ tốn embedding. Phạm vi **chỉ web
+      app (TypeScript)**, không đụng `ingest/main.py`.
+      Dùng 2 agent con (Explore rồi Plan) kiểm chứng thiết kế trước khi viết
+      code — agent Plan bắt được thiết kế route ban đầu của tôi **viết lại
+      logic chunk/embed/lưu lần hai**, trong khi route `/api/ingest/finish` đã
+      tách sẵn đúng việc đó — sửa thành route mới chỉ lo trích xuất + đánh
+      trang giả + `savePages`, gọi lại `/api/ingest/finish` có sẵn. Cũng bắt
+      2 lỗi cụ thể trước khi viết: `Buffer#toString("utf-8")` không throw khi
+      gặp byte hỏng mà âm thầm thay `U+FFFD` (phải dùng `TextDecoder` với
+      `fatal: true`), và regex đuôi file phải neo `\.docx$` chứ không phải
+      `\.docx?$` — mammoth không đọc được `.doc` cũ, lẫn vào sẽ crash giữa
+      chừng chứ không báo lỗi sạch.
+      Test bằng chính file mẫu thật của `mammoth` (`single-paragraph.docx`,
+      `tables.docx`, `empty.docx`) chạy qua nguyên vẹn pipeline thật
+      (mammoth → làm sạch → đoán ngôn ngữ → đánh trang giả) — không chỉ tin
+      unit test trên chuỗi tự viết — xác nhận cả đường thường lẫn đường lỗi
+      (file rỗng) đúng như thiết kế, tốn 0 mạng/quota. `npm run build` sạch,
+      route mới build đúng cùng mọi route khác. 87/87 test JS, cập nhật
+      `REQUIREMENTS.md` (thêm mục có ngày, không xoá quyết định 20/08 —
+      đúng quy ước sửa-bằng-cách-thêm-mục-mới của bẫy #26/27) và README
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh
@@ -707,7 +757,7 @@ chiếm 0% thang điểm. P1 chỉ được đụng tới nếu tuần 7 kết t
 | 1.3 `REQUIREMENTS.md` | Xong | P0/P1, happy path, 22 edge case |
 | 1.4 Hai sơ đồ kiến trúc | Xong | `docs/architecture/*.mmd` + `*.png` (xuất 21/08) |
 | 1.5 Khung `SKILL_MY_PROJECT.md` | Gần xong | §1–§6 viết xong; còn **mỗi §0 tóm tắt** |
-| 2.1 Đọc PDF/DOCX/TXT | PDF xong, **DOCX/TXT bỏ có chủ ý** | Lí do kĩ thuật ở mục 20/08. Bù lại: nạp **ảnh dán** qua cùng đường vision (21/08) |
+| 2.1 Đọc PDF/DOCX/TXT | **Xong cả ba, cộng ảnh dán** | PDF+ảnh qua vision; DOCX/TXT qua trích văn bản thuần + đánh trang giả (25/08, đảo quyết định 20/08) |
 | 2.2 Vector DB + chunking | Xong | Supabase pgvector, HNSW, 768 chiều |
 | 2.3 Retriever + grounding prompt | Xong | Hybrid 3 nhánh RRF, trích dẫn số trang |
 | 2.4 Guardrail + eval 15–20 câu | Xong | `guardrail.ts`; bộ eval **31 câu**, 7 nhóm |
