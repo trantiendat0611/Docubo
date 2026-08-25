@@ -62,7 +62,17 @@ export function ChatPanel({
   const [scope, setScope] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
+  const [copiedAt, setCopiedAt] = useState<number | null>(null);
   const abort = useRef<AbortController | null>(null);
+
+  /** Briefly swaps the button's own label to confirm the copy actually ran —
+      clipboard writes are silent otherwise, and silent is indistinguishable
+      from broken. */
+  async function copyAnswer(index: number, text: string) {
+    await navigator.clipboard.writeText(text);
+    setCopiedAt(index);
+    setTimeout(() => setCopiedAt((cur) => (cur === index ? null : cur)), 1600);
+  }
 
   // A conversation this panel brought into being while the user was mid-send.
   // Its id arrives as a prop change, which is indistinguishable from the user
@@ -317,7 +327,44 @@ export function ChatPanel({
           <article key={i} className={`turn turn-${t.kind}`}>
             <p className="question">{t.question}</p>
             {t.answer ? (
-              <Markdown>{t.answer}</Markdown>
+              <>
+                <Markdown>{t.answer}</Markdown>
+                <div className="turn-actions">
+                  <button
+                    type="button"
+                    className={`turn-action${copiedAt === i ? " is-done" : ""}`}
+                    onClick={() => void copyAnswer(i, t.answer)}
+                  >
+                    {copiedAt === i ? (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                          <path
+                            d="M2.5 7.5L5.5 10.5L11.5 3.5"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        Đã sao chép
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                          <rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+                          <path
+                            d="M2.5 9.5V2.5C2.5 1.94772 2.94772 1.5 3.5 1.5H9.5"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        Sao chép
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
             ) : (
               <p className="thinking" aria-label="Đang soạn câu trả lời">
                 <span />
@@ -364,12 +411,26 @@ export function ChatPanel({
             className="field"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Hỏi về tài liệu đã nạp — tiếng Việt hoặc tiếng Anh"
+            placeholder="Hỏi đáp tài liệu"
             aria-label="Câu hỏi"
             disabled={busy}
           />
-          <button className="btn" type="submit" disabled={busy || !input.trim()}>
-            {busy ? "Đang trả lời…" : "Gửi"}
+          <button
+            className="btn btn-send"
+            type="submit"
+            disabled={busy || !input.trim()}
+            aria-label={busy ? "Đang trả lời" : "Gửi câu hỏi"}
+            title={busy ? "Đang trả lời…" : "Gửi câu hỏi"}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path
+                d="M3 9H14.5M14.5 9L9.5 4M14.5 9L9.5 14"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         </form>
       </div>

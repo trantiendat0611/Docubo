@@ -93,21 +93,8 @@ export function Workspace() {
 
   return (
     <div className="workspace">
-      <ConversationList
-        currentId={conversationId}
-        onSelect={openChat}
-        reloadKey={convoKey}
-      />
-
-      {/* Chat sits between the two rails on screen, and its own DOM order puts
-          the transcript ahead of the panels that feed it. */}
-      <ChatPanel
-        conversationId={conversationId}
-        reloadKey={reloadKey}
-        ensureConversation={ensureConversation}
-        onTitled={() => setConvoKey((n) => n + 1)}
-      />
-
+      {/* Documents sit on the left and conversations on the right — the two
+          rails read as a matched pair either side of the chat, in the middle. */}
       <aside className="rail">
         {error && (
           <p className="note note-error" role="alert">
@@ -129,6 +116,19 @@ export function Workspace() {
           <DocumentList conversationId={conversationId} reloadKey={reloadKey} onChange={bump} />
         </section>
       </aside>
+
+      <ChatPanel
+        conversationId={conversationId}
+        reloadKey={reloadKey}
+        ensureConversation={ensureConversation}
+        onTitled={() => setConvoKey((n) => n + 1)}
+      />
+
+      <ConversationList
+        currentId={conversationId}
+        onSelect={openChat}
+        reloadKey={convoKey}
+      />
     </div>
   );
 }

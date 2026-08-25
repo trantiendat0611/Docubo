@@ -107,7 +107,7 @@
 
   --measure: 68ch; /* prose line length */
   --shell: 1440px;
-  --sidebar: 232px;
+  --sidebar: 272px;
   --rail: 288px;
 }
 
@@ -384,8 +384,14 @@ button.link-danger:hover {
   align-items: center;
   justify-content: space-between;
   gap: var(--s4);
-  padding-bottom: var(--s4);
+  margin: calc(var(--s5) * -1) calc(var(--s4) * -1) 0;
+  padding: var(--s4) var(--s4);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--raised);
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .brand {
@@ -437,14 +443,26 @@ button.link-danger:hover {
 }
 
 /* The chat column stretches with the grid; the rail hugs its own content so
-   sticky still has somewhere to travel. */
+   sticky still has somewhere to travel. Framed as a card — .convo (the other
+   sidebar) gets the same treatment, so the two read as a matched pair either
+   side of the chat rather than one floating panel and one flush block. */
 .rail {
   align-self: start;
   display: flex;
   flex-direction: column;
   gap: var(--s5);
   position: sticky;
-  top: var(--s5);
+  top: calc(var(--s5) + 4.5rem);
+  padding: var(--s4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.rail section + section {
+  padding-top: var(--s5);
+  border-top: 1px solid var(--border);
 }
 
 .rail h2 {
@@ -464,15 +482,65 @@ button.link-danger:hover {
 .convo {
   align-self: start;
   position: sticky;
-  top: var(--s5);
+  top: calc(var(--s5) + 4.5rem);
   display: flex;
   flex-direction: column;
-  gap: var(--s3);
+  gap: var(--s4);
   min-width: 0;
+  padding: var(--s4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-sm);
+  /* Its own scroll region once history overflows a tall viewport — the New
+     Chat button and search stay put while the list underneath moves. */
+  max-height: calc(100dvh - var(--s5) - 4.5rem - var(--s5));
 }
 
 .convo-new {
   width: 100%;
+  border-radius: var(--radius-full);
+}
+
+.convo-search-wrap {
+  position: relative;
+}
+
+.convo-search-wrap svg {
+  position: absolute;
+  left: var(--s3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-subtle);
+  pointer-events: none;
+}
+
+.convo-search {
+  border-radius: var(--radius-full);
+  padding-left: var(--s7);
+}
+
+.convo-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.convo-group + .convo-group {
+  padding-top: var(--s4);
+  border-top: 1px solid var(--border);
+}
+
+.convo-group-label {
+  font-family: var(--font-mono, "IBM Plex Mono", "SFMono-Regular", Consolas, monospace);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-subtle);
+  margin: 0 0 var(--s2) var(--s2);
 }
 
 .convo-list {
@@ -488,10 +556,9 @@ button.link-danger:hover {
   display: flex;
   align-items: center;
   gap: var(--s1);
-  border-radius: var(--radius-sm);
-  padding-right: var(--s1);
-  border-left: 2px solid transparent;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  border-radius: var(--radius-full);
+  padding-right: var(--s2);
+  transition: background 0.15s ease;
 }
 
 .convo-list li:hover {
@@ -500,14 +567,13 @@ button.link-danger:hover {
 
 .convo-list li.is-current {
   background: var(--accent-weak);
-  border-left-color: var(--accent);
 }
 
 .convo-open {
   flex: 1;
   min-width: 0;
   min-height: var(--tap);
-  padding: 0 var(--s2);
+  padding: 0 var(--s3);
   border: none;
   background: none;
   color: var(--fg);
@@ -782,22 +848,30 @@ button.link-danger:hover {
   }
 }
 
-/* The question reads as something the user said, not as a heading of the
-   answer. */
+/* The question reads as something the user said, sitting on the right the
+   way a message you sent does; the answer below it sits on the left as
+   something said back to you. The corner each bubble leaves square — top
+   right for the question, top left for the answer — is what points it at
+   its speaker instead of just centring it. */
 .turn .question {
-  align-self: flex-start;
+  align-self: flex-end;
   max-width: 90%;
-  padding: var(--s2) var(--s4);
-  border-radius: var(--radius-lg);
-  border-bottom-left-radius: var(--radius-sm);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--radius-lg) var(--radius-sm) var(--radius-lg) var(--radius-lg);
+  background: var(--accent-weak);
+  border: 1px solid var(--accent-weak);
   font-size: var(--text-base);
   font-weight: 500;
 }
 
 .turn .prose {
+  align-self: flex-start;
   max-width: var(--measure);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--radius-sm) var(--radius-lg) var(--radius-lg) var(--radius-lg);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .turn .prose > :first-child {
@@ -836,11 +910,10 @@ button.link-danger:hover {
 .turn-blocked .prose,
 .turn-error .prose,
 .turn-needs_document .prose {
-  padding: var(--s3) var(--s4);
   border-left: 3px solid var(--border-strong);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--surface);
   color: var(--fg-muted);
+  box-shadow: none;
 }
 
 .turn-error .prose {
@@ -874,6 +947,39 @@ button.link-danger:hover {
 @keyframes pulse {
   0%, 60%, 100% { opacity: 0.25; }
   30% { opacity: 1; }
+}
+
+.turn-actions {
+  align-self: flex-start;
+  display: flex;
+  gap: var(--s2);
+}
+
+.turn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  height: 2rem;
+  padding: 0 var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--raised);
+  color: var(--fg-muted);
+  font: inherit;
+  font-family: var(--font-sans, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.turn-action:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+
+.turn-action.is-done {
+  color: var(--success);
+  border-color: var(--success);
 }
 
 /* =========================================================================
@@ -1003,11 +1109,28 @@ button.link-danger:hover {
 .composer form {
   display: flex;
   gap: var(--s2);
-  align-items: flex-end;
+  align-items: center;
 }
 
 .composer .field {
   flex: 1;
+  border-radius: var(--radius-full);
+  padding-left: var(--s5);
+}
+
+/* Icon-only, round — the label people would otherwise read ("Gửi") moves to
+   aria-label, since the arrow glyph is the same word in every language a
+   question could be typed in. */
+.composer .btn-send {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border-radius: 50%;
+}
+
+.composer .btn-send svg {
+  flex: none;
 }
 
 .composer-tools {
@@ -1243,6 +1366,10 @@ button.link-danger:hover {
 
   .convo {
     order: -2;
+    /* The sticky-panel cap only makes sense against the viewport it was
+       pinned to; stacked and static, the panel should size to its content
+       instead, and .convo-list below is what keeps it from running away. */
+    max-height: none;
   }
 
   .rail {
@@ -1259,6 +1386,14 @@ button.link-danger:hover {
 @media (max-width: 560px) {
   .shell {
     padding: var(--s4) var(--s3) var(--s7);
+  }
+
+  /* .topbar's negative margin pulls it flush with .shell's own padding, so it
+     has to be re-stated wherever that padding changes or the bar drifts off
+     the edge it is supposed to sit flush against. */
+  .topbar {
+    margin: calc(var(--s4) * -1) calc(var(--s3) * -1) 0;
+    padding: var(--s3) var(--s3);
   }
 
   /* The address is the item that has to give way here, not the button. */

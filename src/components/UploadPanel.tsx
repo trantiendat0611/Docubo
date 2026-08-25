@@ -312,9 +312,7 @@ export function UploadPanel({
         <span className="headline">
           {busy ? label[phase] : "Kéo PDF hoặc ảnh vào đây, hoặc bấm để chọn"}
         </span>
-        <small>
-          PDF tối đa {MAX_UPLOAD_PAGES} trang, hoặc một ảnh · tiếng Việt hoặc tiếng Anh
-        </small>
+        <small>PDF tối đa {MAX_UPLOAD_PAGES} trang</small>
       </label>
 
       {phase === "extracting" && total > 0 && (
