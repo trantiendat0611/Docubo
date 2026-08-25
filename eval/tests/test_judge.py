@@ -53,6 +53,60 @@ def test_build_context_numbers_blocks_and_formats_page_ranges():
     assert context.index('n="1"') < context.index('n="2"')
 
 
+def test_build_context_resolves_figure_placeholders_instead_of_leaking_them():
+    """Regression test for the sibling of bẫy #28.
+
+    display_text keeps [[FIGURE:id]] intact by design — see chunk.ts and
+    chunk.py — and prompt.ts's buildContext() resolves it before the model
+    ever sees it. This module reads display_text straight from the database
+    to rebuild what the generator saw, which means it silently inherited the
+    same unresolved-placeholder bug the TypeScript side already fixed: found
+    when g-001 and g-002, the only two `figure` questions in the eval set,
+    both scored faithfulness 0.0 despite answering with the exact expected
+    numbers, because the judge was grading against the placeholder, not the
+    data the model actually had.
+    """
+    chunks = [
+        {
+            "filename": "a.pdf",
+            "page_start": 1,
+            "page_end": 1,
+            "display_text": "See the table.\n\n[[FIGURE:fig-1-1]]",
+            "figure_refs": [
+                {
+                    "id": "fig-1-1",
+                    "caption": "Cell features",
+                    "description": "A table of cell types.",
+                    "data": "color, #nuclei, #tails",
+                }
+            ],
+        }
+    ]
+
+    context = judge_module.build_context(chunks)
+
+    assert "[[FIGURE:fig-1-1]]" not in context
+    assert "color, #nuclei, #tails" in context
+    assert "A table of cell types." in context
+
+
+def test_build_context_drops_a_placeholder_cleanly_when_its_figure_is_missing():
+    chunks = [
+        {
+            "filename": "a.pdf",
+            "page_start": 1,
+            "page_end": 1,
+            "display_text": "before [[FIGURE:missing]] after",
+            "figure_refs": [],
+        }
+    ]
+
+    context = judge_module.build_context(chunks)
+
+    assert "[[FIGURE:" not in context
+    assert "before" in context and "after" in context
+
+
 def test_judge_rotates_past_a_model_that_has_spent_its_day(monkeypatch):
     monkeypatch.setattr(config, "VISION_MODELS", ["model-a", "model-b"])
 

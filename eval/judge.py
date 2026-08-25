@@ -15,6 +15,8 @@ per model regardless of what the request contains.
 
 from __future__ import annotations
 
+import re
+
 from google import genai
 from google.genai import errors, types
 from pydantic import BaseModel, Field
@@ -57,6 +59,35 @@ def _chain() -> list[str]:
     return [m for m in config.VISION_MODELS if m not in _EXHAUSTED]
 
 
+_FIGURE_REF = re.compile(r"\[\[FIGURE:([^\]]+)\]\]")
+
+
+def _resolve_figures(chunk: dict) -> str:
+    """Port of resolveFigures() in src/lib/prompt.ts — keep the two in step.
+
+    display_text keeps `[[FIGURE:id]]` placeholders intact by design (for a
+    frontend renderer that does not actually exist); buildContext() resolves
+    them against the chunk's own figure_refs before the model ever sees them.
+    This harness reads display_text straight from the database to rebuild
+    what the generator saw (bẫy #17 — a second retrieval call is not
+    guaranteed to return the same rows), which means it inherited the same
+    unresolved placeholder bẫy #28 fixed in the TypeScript path. Found by
+    g-001/g-002 — the only two `figure` questions in the set — both scoring
+    faithfulness 0.0 despite answering with the exact expected numbers,
+    because the judge was reading the placeholder, not the data.
+    """
+    by_id = {f["id"]: f for f in chunk.get("figure_refs") or []}
+
+    def swap(m: re.Match[str]) -> str:
+        fig = by_id.get(m.group(1))
+        if fig is None:
+            return ""
+        parts = [p for p in (fig.get("caption"), fig.get("description"), fig.get("data")) if p]
+        return "\n".join(parts)
+
+    return _FIGURE_REF.sub(swap, chunk["display_text"])
+
+
 def build_context(chunks: list[dict]) -> str:
     """Same block shape as buildContext in src/lib/prompt.ts.
 
@@ -77,7 +108,7 @@ def build_context(chunks: list[dict]) -> str:
         )
         blocks.append(
             f'<block n="{i}" source="{c["filename"]}" pages="{pages}">\n'
-            f"{c['display_text']}\n</block>"
+            f"{_resolve_figures(c)}\n</block>"
         )
     return "\n\n".join(blocks)
 

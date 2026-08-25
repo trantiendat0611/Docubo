@@ -139,7 +139,9 @@ def chunks_by_id(ids: list[int]) -> dict[int, dict]:
     res = (
         _get()
         .table("chunks")
-        .select("id, page_start, page_end, display_text, documents(filename)")
+        .select(
+            "id, page_start, page_end, display_text, figure_refs, documents(filename)"
+        )
         .in_("id", ids)
         .execute()
     )
