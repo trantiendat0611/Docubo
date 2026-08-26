@@ -651,6 +651,38 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       để đăng nhập nằm ngoài phạm vi được phép tự làm; xác nhận `/app` bằng
       đọc code (cùng `useLang()`/`LangToggle`/`ThemeToggle` đã kiểm chứng ở
       `/login`) cộng `tsc`/`build` sạch, không phải bằng mắt trên trình duyệt.
+      Người dùng gửi ảnh chụp `/app` thật: hai heading "Tải tài liệu"/"Tài
+      liệu trong khung này" vẫn tiếng Việt dù đã chuyển EN — sót vì chúng nằm
+      thẳng trong `Workspace.tsx`, không thuộc component con nào đã dịch.
+      Thêm `t.upload.heading`/`t.docs.heading`, sửa xong, `tsc`/`lint`/`test`
+      lại sạch.
+- [x] **26/08 14:20 Chạy lại `--judge` sau bẫy #30, chốt số `faithfulness`
+      cho `SKILL_MY_PROJECT.md` §0.** Đợi qua mốc reset quota (14:00 giờ VN),
+      lấy token mới (`eval.get_token`), chạy đúng cấu hình đã dùng hôm qua —
+      26 câu gốc, full mode, production
+      (`eval/reports/eval-full-20260826-072025.json`). Kết quả:
+      `faithfulness` **về đúng 1.000**, `n_faithfulness_unscored = 0` —
+      xác nhận bản sửa `_resolve_figures()` trong `judge.py` (bẫy #30) đúng.
+      `refusal_rate` ra 0.833 thay vì 1.000 quen thuộc — tra riêng thì không
+      phải hồi quy: `r-001` lặp lại đúng mẫu bẫy #17 (hỏi giá cổ phiếu, hệ
+      thống từ chối bằng văn xuôi "tài liệu hiện tại không chứa..." thay vì đi
+      nhánh cấu trúc), và `faithfulness_score` của chính câu đó vẫn 1.0 nên
+      không phải câu trả lời sai.
+      Nhân dịp có số thật, rà lại luôn **số `faithfulness = 1.000` đang trích
+      dẫn trong `REQUIREMENTS.md` §7 từ lần chạy 19/08** — hoá ra số đó
+      **đúng nhưng đúng vì may**: đọc lại report 19/08 thì hai câu `figure`
+      (`g-001`/`g-002`) lúc đó cũng trả lời kiểu "ngữ liệu không mô tả..." do
+      bẫy #28 (context sinh câu trả lời còn giữ nguyên placeholder
+      `[[FIGURE:id]]`, chưa sửa cho tới 24/08) — một câu không khẳng định gì
+      thì `FAITHFULNESS_PROMPT` mặc nhiên chấm faithful, nên bẫy #30 (bug ở
+      phía chấm điểm) khi đó **chưa có gì để lộ ra**: cả hai bên (sinh câu trả
+      lời và chấm điểm) cùng hỏng nên tình cờ khớp nhau. Chỉ sau khi bẫy #28
+      sửa xong, hai câu này bắt đầu trả lời có nội dung thật, và đúng lúc đó
+      bẫy #30 mới lộ diện (report 25/08, `faithfulness = 0.835`). Cập nhật
+      `REQUIREMENTS.md` §7 trỏ về report 26/08 kèm đoạn giải thích, để không
+      ai đọc sau tưởng nhầm 19/08 là bằng chứng độc lập với hai bẫy này.
+      Điền §0 (Tóm tắt) của `SKILL_MY_PROJECT.md` — mục cuối cùng còn trống
+      trong Task 1.5 của checklist mentor.
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh
@@ -868,7 +900,7 @@ chiếm 0% thang điểm. P1 chỉ được đụng tới nếu tuần 7 kết t
 | 1.2 `KE_HOACH_THUC_TAP.md` | Xong | File này |
 | 1.3 `REQUIREMENTS.md` | Xong | P0/P1, happy path, 22 edge case |
 | 1.4 Hai sơ đồ kiến trúc | Xong | `docs/architecture/*.mmd` + `*.png` (xuất 21/08) |
-| 1.5 Khung `SKILL_MY_PROJECT.md` | Gần xong | §1–§6 viết xong; còn **mỗi §0 tóm tắt** |
+| 1.5 Khung `SKILL_MY_PROJECT.md` | **Xong** | §0–§6 viết đủ; §0 điền 26/08 sau khi có số `faithfulness` thật |
 | 2.1 Đọc PDF/DOCX/TXT | **Xong cả ba, cộng ảnh dán** | PDF+ảnh qua vision; DOCX/TXT qua trích văn bản thuần + đánh trang giả (25/08, đảo quyết định 20/08) |
 | 2.2 Vector DB + chunking | Xong | Supabase pgvector, HNSW, 768 chiều |
 | 2.3 Retriever + grounding prompt | Xong | Hybrid 3 nhánh RRF, trích dẫn số trang |
