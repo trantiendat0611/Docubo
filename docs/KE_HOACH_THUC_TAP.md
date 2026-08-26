@@ -751,8 +751,10 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
 - [x] **(làm sớm 24/08)** Tag `v1.0.0-mvp`, tag chú thích, đặt ở commit
       re-baseline này. Tag đánh dấu **thời điểm phần sản phẩm hoàn chỉnh**:
       mọi việc còn lại là bằng chứng và trình bày, không phải tính năng
-- [ ] Tạo **Release** trên GitHub từ tag `v1.0.0-mvp` — cần `gh` hoặc làm tay
-      trên web; `gh` chưa cài trên máy này
+- [x] **(làm sớm 25/08)** Tạo **Release** trên GitHub từ tag `v1.0.0-mvp`.
+      Cài `gh` xong, xác nhận qua `gh release view v1.0.0-mvp`: `draft: false`,
+      đã publish, nội dung khớp đúng mô tả trong tag (kể cả dòng `p90` chưa
+      đạt — không lược bớt)
 - [ ] Slide + tập thuyết trình 15 phút — dùng 4 câu hỏi mentor ở
       `BAO_CAO_TIEN_DO.md` §10 và bảng bẫy ở `SKILL` §3 làm nguồn câu hỏi
       phản biện dự phòng
