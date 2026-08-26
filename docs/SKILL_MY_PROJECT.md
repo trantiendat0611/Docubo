@@ -8,7 +8,36 @@
 
 ## 0. Tóm tắt
 
-*(Viết cuối cùng, ở tuần 8. 5-7 câu: bài toán, cách giải, kết quả đo được.)*
+Bài toán: xây một trợ lí hỏi-đáp song ngữ (VI/EN) cho tài liệu chuyên ngành có
+công thức, bảng và hình — nội dung mà trích xuất text layer chuẩn
+(`pypdf`/`pdfplumber`) đọc sai hoàn toàn (§1.1) — trong khi toàn hệ thống phải
+sống trong hạn mức Gemini free tier khoảng 20 request/ngày/model.
+
+Giải pháp cốt lõi: ingest PDF bằng đường vision (ảnh từng trang, không phải
+text layer), DOCX/TXT qua trích văn bản thuần cộng đánh trang giả; retrieval
+hybrid (dense + lexical, hợp nhất bằng RRF) với biến thể truy vấn song ngữ để
+truy hồi chéo ngôn ngữ hoạt động; một prompt grounding buộc trích dẫn theo
+đúng số trang và từ chối khi ngữ cảnh không đủ, đặt sau một ngưỡng cosine lọc
+thô; chain bốn model Gemini xoay vòng để nhân hạn mức miễn phí lên khoảng bốn
+lần; giao diện Next.js stream câu trả lời kèm bảng nguồn trích dẫn, triển khai
+trên Vercel với CI chạy mỗi lần đẩy code.
+
+Kết quả đo được trên production (`eval/eval_dataset.json`, §7
+`REQUIREMENTS.md`): `retrieval_hit@8` = 1.000, truy hồi chéo ngôn ngữ = 1.000,
+`citation_validity` = 1.000, `refusal_rate` = 1.000, `faithfulness` = 1.000.
+Con số `faithfulness` chỉ trở nên đáng tin sau khi sửa hai bẫy về context
+chưa resolve khỏi placeholder ảnh/bảng — một ở phía sinh câu trả lời (bẫy
+#28), một ở chính bộ đo (bẫy #30) — vì trước đó cả hai lỗi cùng khiến hai câu
+hỏi về hình/bảng trông như đạt điểm tuyệt đối trong khi thực chất không trả
+lời được gì. Về tốc độ, `median_ttft_ms` = 8592 đạt ngưỡng < 10s, nhưng
+`p90_ttft_ms` = 15879 chưa đạt ngưỡng < 15s, vì model mạnh nhất trong chain —
+dùng khi các model rẻ hơn đã cạn hạn mức ngày — mất trung bình 8.4 giây riêng
+cho token đầu tiên.
+
+Ba mươi bẫy được ghi lại trong quá trình làm, phần lớn là một chỉ số trông
+như đo hệ thống trong khi đang đo thứ khác, thường sai theo hướng bi quan hơn
+là lạc quan; bài học lặp lại nhiều nhất là mở dữ liệu thô của vài câu hỏng ra
+đọc trước khi tin một con số tụt.
 
 ---
 
@@ -767,6 +796,7 @@ Giờ ghi ở dưới là **giờ Việt Nam** (`run_at` trong report lưu UTC, 
 | 13 | 20/08 14:56 | retrieval | — | **31** | 1.000 | 1.000 | 0.926 | — | 1.000 | — | — | Thêm nhóm `hard_negative` 5 câu. Mọi chỉ số cũ **không đổi** — đúng ý đồ |
 | 14 | 20/08 15:19 | full | **prod** | 5 | — | — | — | — | — | — | 3565 | Chỉ nhóm `hard_negative` (`--only`). **5/5 từ chối**, lặp lại kết quả 46 phút trước qua đường code khác |
 | 15 | 21/08 14:10 | full | **prod** | **31** | 1.000 | 1.000 | 0.882 | **1.000** | **1.000** | — | 8592 | Lần đầu chạy đủ 31 câu. Ba phép tách xác nhận; `n_timeout` = 0 lần thứ hai |
+| 16 | 26/08 14:20 | full | **prod** | 26 | 1.000 | 1.000 | 0.838 | 1.000 | 0.833 | **1.000** | 7922 | Chạy lại ngay sau khi sửa bẫy #30 — **`faithfulness` về đúng 1.000**, xác nhận `_resolve_figures()` trong `judge.py` sửa đúng. `refusal_rate = 0.833` không phải hồi quy: `r-001` lặp lại đúng mẫu bẫy #17 — từ chối bằng văn xuôi ("tài liệu hiện tại không chứa...") thay vì nhánh cấu trúc — và `faithfulness_score` của chính câu đó vẫn 1.0 |
 
 Dòng 10 là bảng nghiệm thu hiện hành (`REQUIREMENTS.md` §7). Các lần chạy 3, 5,
 6 và 8 câu không đưa vào bảng: chúng là lần dò lỗi, không phải phép đo.

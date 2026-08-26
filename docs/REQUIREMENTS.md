@@ -210,15 +210,25 @@ Hệ thống coi là đạt khi trên `eval/eval_dataset.json`:
 Lần đo mới nhất: **21/08/2026** trên production —
 `eval/reports/eval-full-20260821-071023.json`. **Lần đầu chạy đủ 31 câu**, tức
 lần đầu nhóm `hard_negative` chạy cùng mọi nhóm khác. Không kèm `--judge`:
-`faithfulness` có số production 1.000 từ 19/08, và 62 + 24 request vượt trần một
+`faithfulness` giữ số production dưới đây, và 62 + 24 request vượt trần một
 ngày.
+
+`faithfulness` riêng lấy từ lần chạy **26/08/2026**, `--judge` trên 26 câu gốc —
+`eval/reports/eval-full-20260826-072025.json` — chứ **không phải** số 19/08 như
+bản trước của mục này ghi. Số 19/08 đo trên hai câu `figure` (`g-001`/`g-002`)
+lúc đó vẫn còn trả lời kiểu "ngữ liệu không mô tả..." do bẫy #28 chưa sửa —
+`FAITHFULNESS_PROMPT` coi một câu không khẳng định gì là mặc nhiên faithful,
+nên 1.000 khi đó **đúng bằng may**, không phải bằng chứng pipeline ảnh/bảng
+hoạt động đúng. Sau khi bẫy #28 (24/08) và bẫy #30 (25/08, xem
+`SKILL_MY_PROJECT.md` bảng bẫy) đều đã sửa, hai câu đó giờ trả lời có nội dung
+thật và được chấm đúng — số 1.000 của 26/08 vì thế là bằng chứng mạnh hơn.
 
 | Chỉ số | Ngưỡng | Đo được | |
 |---|---|---|---|
 | `retrieval_hit_at_8` | ≥ 0.85 | **1.000** | Đạt |
 | `citation_validity` | ≥ 0.95 | **1.000** | Đạt — nhóm mới **không** pha loãng |
 | `refusal_rate` | ≥ 0.90 | **1.000** | Đạt — nhóm mới **không** kéo xuống 0.545 |
-| `faithfulness` | ≥ 0.90 | **1.000** | Đạt — số đo 19/08 |
+| `faithfulness` | ≥ 0.90 | **1.000** | Đạt — số đo 26/08, sau bẫy #28+#30 |
 | `n_timeout` | **= 0** | **0** | Đạt, lần xác nhận thứ hai |
 | `median_ttft_ms` (`p50`) | < 10s | **8592** | Đạt |
 | `p90_ttft_ms` | < 15s | **15879** | **Không đạt** — xem dưới |
