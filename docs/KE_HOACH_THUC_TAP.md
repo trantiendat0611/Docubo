@@ -608,6 +608,49 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       chưa đăng nhập; kiểm ảnh kiến trúc tải đúng kích thước thật qua
       `naturalWidth/naturalHeight`; kiểm di động không tràn ngang
       (`scrollWidth === innerWidth`)
+- [x] **26/08 Mở rộng nút chuyển ngôn ngữ/giao diện ra `/login` và `/app`,
+      xoá dòng mô tả thừa ở khung chat.** Người dùng phản hồi sau khi thấy
+      trang chủ mới: hai nút chuyển vừa làm chỉ có ở trang chủ, còn phần đăng
+      nhập và ứng dụng chính vẫn thuần tiếng Việt không có nút gì. Thay vì
+      copy state cục bộ của trang chủ sang từng trang, dựng `src/lib/i18n.tsx`
+      — một Context dùng chung toàn site (`LanguageProvider`/`useLang()`),
+      gắn vào `layout.tsx` một lần, thay cho state+localStorage riêng của
+      `LandingPage.tsx` trước đó. Gặp lỗi TypeScript ngay khi viết: `as const`
+      trên object từ điển song ngữ đóng băng mỗi chuỗi thành kiểu literal
+      riêng, khiến nhánh `vi` và `en` thành hai kiểu không tương thích dù
+      cùng một hình dạng — bỏ `as const` để kiểu nới rộng về `string` là sửa
+      xong, kèm comment giải thích tại sao không dùng nó ở đây.
+      Ranh giới phạm vi cố ý giữ hẹp, ghi thẳng trong doc comment đầu file:
+      chỉ dịch chuỗi hiển thị tĩnh phía client. **Không đụng** hai cơ chế
+      "ngôn ngữ" khác đã có sẵn — câu trả lời của model vẫn theo ngôn ngữ câu
+      hỏi (`prompt.ts`, một cam kết sản phẩm đang đo, không phải sở thích hiển
+      thị), và các thông báo lỗi `.error` phía server vẫn giữ tiếng Việt (dịch
+      chúng cần truyền ngôn ngữ UI vào từng request và sửa mọi route, không
+      đáng làm cho lỗi hiếm gặp).
+      Dịch toàn bộ `ChatPanel`, `ConversationList`, `UploadPanel`,
+      `DocumentList`, `ScopePicker`, `CitationList`, `SignOutButton`,
+      `login/page.tsx`; tận dụng lại `ThemeToggle` đã có từ 26/08 sáng cho
+      trang chủ — nhưng phát hiện chính nó vẫn hardcode tiếng Việt
+      ("Theo hệ thống"/"Tối"/"Sáng"), sẽ lộ ra ngay khi trang login chuyển
+      sang EN mà nút giao diện bên cạnh vẫn tiếng Việt, nên dịch nốt component
+      này dù không nằm trong yêu cầu ban đầu. `ConversationList.bucketOf()`
+      trước đó trả thẳng nhãn tiếng Việt ("Hôm nay"/"Hôm qua"...) dùng làm cả
+      khoá `Map` lẫn chữ hiển thị — đổi thành trả khoá trừu tượng
+      (`"today"`/`"yesterday"`/...), dịch riêng lúc render, để nhóm hội thoại
+      cũng đổi ngôn ngữ được. Xoá đúng dòng mô tả trong khung chat rỗng mà
+      người dùng chỉ trong ảnh chụp màn hình
+      ("Tải một PDF lên ở khu vực tải tài liệu...").
+      Kiểm: `npx tsc --noEmit`, `npm run lint`, `npm test` (87/87), `npm run
+      build` đều sạch. Gặp một lần dev server báo lỗi
+      `Cannot find module './873.js'` sau khi chạy `next build` trong lúc
+      `next dev` vẫn sống — cả hai lệnh dùng chung thư mục `.next`, khởi động
+      lại `next dev` là hết. Bấm thật trên `/login`: chuyển VI↔EN đổi đúng
+      toàn bộ chữ kể cả nhãn nút giao diện, bấm nút giao diện đổi đúng chu
+      trình hệ thống→tối→sáng. **Chưa** đăng nhập thử `/app` bằng trình
+      duyệt tự động — không có tài khoản test sẵn và việc tự nhập mật khẩu
+      để đăng nhập nằm ngoài phạm vi được phép tự làm; xác nhận `/app` bằng
+      đọc code (cùng `useLang()`/`LangToggle`/`ThemeToggle` đã kiểm chứng ở
+      `/login`) cộng `tsc`/`build` sạch, không phải bằng mắt trên trình duyệt.
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh
