@@ -98,7 +98,7 @@ const dict = {
     docs: {
       heading: "Tài liệu trong khung này",
       loading: "Đang tải danh sách…",
-      empty: "Chưa có tài liệu nào trong khung chat này.",
+      empty: "Chưa có tài liệu nào trong khung chat.",
       detach: "Bỏ ra",
       destroy: "Xoá hẳn",
       detachLabel: (name: string) => `Bỏ ${name} khỏi khung chat này`,

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import { LangToggle } from "@/components/LangToggle";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -13,12 +14,12 @@ export default async function Home() {
   return (
     <main className="shell">
       <header className="topbar">
-        <div className="brand">
+        <Link href="/" className="brand">
           <span className="mark">
             <BrandMark />
           </span>
           <h1>Docubo</h1>
-        </div>
+        </Link>
         <div className="who">
           <span className="email" title={user.email}>
             {user.email}

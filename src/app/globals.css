@@ -445,6 +445,8 @@ button.link-danger:hover {
   display: flex;
   align-items: center;
   gap: var(--s2);
+  color: inherit;
+  text-decoration: none;
 }
 
 .brand .mark {
@@ -1304,6 +1306,12 @@ button.link-danger:hover {
   border-radius: var(--radius-lg);
   background: var(--raised);
   box-shadow: var(--shadow);
+}
+
+.auth-card .brand-mark-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
 .auth-card .brand-mark {

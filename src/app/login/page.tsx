@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { LangToggle } from "@/components/LangToggle";
@@ -68,10 +69,12 @@ export default function LoginPage() {
       </div>
 
       <div className="auth-card">
-        <span className="brand-mark">
-          <BrandMark size={26} />
-        </span>
-        <h1>Docubo</h1>
+        <Link href="/" className="brand-mark-link">
+          <span className="brand-mark">
+            <BrandMark size={26} />
+          </span>
+          <h1>Docubo</h1>
+        </Link>
         <p className="lead">{mode === "signin" ? t.login.signInLead : t.login.signUpLead}</p>
 
         <form onSubmit={submit}>
