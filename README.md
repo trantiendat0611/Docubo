@@ -11,6 +11,8 @@ lời** khi tài liệu không chứa câu trả lời.
 
 **Live demo:** https://docubo.vercel.app
 
+<img src="docs/icqr-tree.png" alt="QR đến docubo.vercel.app" width="140" />
+
 ![demo](docs/demo.gif)
 
 ---
