@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
+import { LangToggle } from "@/components/LangToggle";
 import { SignOutButton } from "@/components/SignOutButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Workspace } from "@/components/Workspace";
 import { currentUser } from "@/lib/supabase/server";
 
@@ -21,6 +23,8 @@ export default async function Home() {
           <span className="email" title={user.email}>
             {user.email}
           </span>
+          <LangToggle />
+          <ThemeToggle />
           <SignOutButton />
         </div>
       </header>

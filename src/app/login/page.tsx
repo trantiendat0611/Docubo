@@ -3,12 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
+import { LangToggle } from "@/components/LangToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useLang } from "@/lib/i18n";
 import { browserClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLang();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,7 +49,7 @@ export default function LoginPage() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
         setMessage({
-          text: "Đã tạo tài khoản. Kiểm tra email để xác nhận, rồi đăng nhập.",
+          text: t.login.signupConfirm,
           kind: "info",
         });
         return;
@@ -58,19 +62,20 @@ export default function LoginPage() {
 
   return (
     <main className="auth">
+      <div className="auth-toolbar">
+        <LangToggle />
+        <ThemeToggle />
+      </div>
+
       <div className="auth-card">
         <span className="brand-mark">
           <BrandMark size={26} />
         </span>
         <h1>Docubo</h1>
-        <p className="lead">
-          {mode === "signin"
-            ? "Đăng nhập để hỏi tài liệu của bạn."
-            : "Tạo tài khoản để bắt đầu tải tài liệu lên."}
-        </p>
+        <p className="lead">{mode === "signin" ? t.login.signInLead : t.login.signUpLead}</p>
 
         <form onSubmit={submit}>
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t.login.email}</label>
           <input
             id="email"
             className="field"
@@ -81,7 +86,7 @@ export default function LoginPage() {
             required
           />
 
-          <label htmlFor="password">Mật khẩu</label>
+          <label htmlFor="password">{t.login.password}</label>
           <input
             id="password"
             className="field"
@@ -94,7 +99,7 @@ export default function LoginPage() {
           />
 
           <button className="btn" type="submit" disabled={busy}>
-            {busy ? "Đang xử lí…" : mode === "signin" ? "Đăng nhập" : "Đăng ký"}
+            {busy ? t.login.submitBusy : mode === "signin" ? t.nav.signIn : t.nav.signUp}
           </button>
         </form>
 
@@ -111,7 +116,7 @@ export default function LoginPage() {
 
         <p className="auth-alt">
           <span className="auth-alt-prompt">
-            {mode === "signin" ? "Chưa có tài khoản?" : "Đã có tài khoản?"}
+            {mode === "signin" ? t.login.noAccount : t.login.hasAccount}
           </span>
           <button
             type="button"
@@ -121,7 +126,7 @@ export default function LoginPage() {
               setMessage(null);
             }}
           >
-            {mode === "signin" ? "Đăng ký" : "Đăng nhập"}
+            {mode === "signin" ? t.nav.signUp : t.nav.signIn}
           </button>
         </p>
       </div>

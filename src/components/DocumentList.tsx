@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { deleteDocument } from "@/lib/documents";
+import { useLang } from "@/lib/i18n";
 import { browserClient } from "@/lib/supabase/client";
 
 /**
@@ -34,6 +35,7 @@ export function DocumentList({
 }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLang();
 
   const load = useCallback(async () => {
     const client = browserClient();
@@ -84,7 +86,7 @@ export function DocumentList({
   async function detach(doc: Doc) {
     const label = doc.title ?? doc.filename;
     if (!conversationId) return;
-    if (!confirm(`Bỏ "${label}" khỏi khung chat này? Tài liệu vẫn được giữ lại.`)) return;
+    if (!confirm(t.docs.confirmDetach(label))) return;
 
     await browserClient()
       .from("conversation_documents")
@@ -106,11 +108,7 @@ export function DocumentList({
    */
   async function destroy(doc: Doc) {
     const label = doc.title ?? doc.filename;
-    if (
-      !confirm(
-        `Xoá hẳn "${label}"? Mất khỏi mọi khung chat, kèm các đoạn đã lập chỉ mục và file gốc.`,
-      )
-    ) {
+    if (!confirm(t.docs.confirmDestroy(label))) {
       return;
     }
 
@@ -120,10 +118,10 @@ export function DocumentList({
     onChange();
   }
 
-  if (loading) return <p className="muted">Đang tải danh sách…</p>;
+  if (loading) return <p className="muted">{t.docs.loading}</p>;
 
   if (docs.length === 0) {
-    return <p className="muted">Chưa có tài liệu nào trong khung chat này.</p>;
+    return <p className="muted">{t.docs.empty}</p>;
   }
 
   return (
@@ -133,7 +131,7 @@ export function DocumentList({
           <div className="doc-main">
             <span className="doc-title">{doc.title ?? doc.filename}</span>
             <span className="doc-meta">
-              {doc.n_pages ? `${doc.n_pages} trang · ` : ""}
+              {doc.n_pages ? t.docs.pages(doc.n_pages) : ""}
               {doc.lang}
             </span>
           </div>
@@ -141,18 +139,18 @@ export function DocumentList({
             <button
               type="button"
               className="link remove"
-              aria-label={`Bỏ ${doc.title ?? doc.filename} khỏi khung chat này`}
+              aria-label={t.docs.detachLabel(doc.title ?? doc.filename)}
               onClick={() => void detach(doc)}
             >
-              Bỏ ra
+              {t.docs.detach}
             </button>
             <button
               type="button"
               className="link link-danger remove"
-              aria-label={`Xoá hẳn ${doc.title ?? doc.filename}`}
+              aria-label={t.docs.destroyLabel(doc.title ?? doc.filename)}
               onClick={() => void destroy(doc)}
             >
-              Xoá hẳn
+              {t.docs.destroy}
             </button>
           </span>
         </li>

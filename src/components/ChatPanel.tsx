@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CitationList } from "./CitationList";
 import { ScopePicker } from "./ScopePicker";
 import { Markdown } from "./Markdown";
+import { type Dict, useLang } from "@/lib/i18n";
 import { browserClient } from "@/lib/supabase/client";
 import type { Citation } from "@/lib/types";
 
@@ -16,14 +17,6 @@ interface Turn {
   kind: Kind;
 }
 
-/** The four question shapes the system is actually built for. */
-const SUGGESTIONS = [
-  "Tóm tắt tài liệu này",
-  "Công thức ở trang 44 nghĩa là gì?",
-  "Biểu đồ mô tả điều gì?",
-  "What is semi-supervised learning?",
-];
-
 /**
  * Say when the quota comes back, in the reader's own clock.
  *
@@ -31,7 +24,7 @@ const SUGGESTIONS = [
  * Pacific — which is 14:00 in Vietnam, so "tomorrow" would send someone away
  * for most of a day they did not need to wait.
  */
-function resetHint(resetAt?: string): string {
+function resetHint(t: Dict, resetAt?: string): string {
   if (!resetAt) return "";
 
   const at = new Date(resetAt);
@@ -42,9 +35,9 @@ function resetHint(resetAt?: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const day = at.toDateString() === new Date().toDateString() ? "hôm nay" : "ngày mai";
+  const today = at.toDateString() === new Date().toDateString();
 
-  return ` Hạn mức đặt lại lúc ${clock} ${day} — còn khoảng ${Math.max(1, Math.round(hours))} giờ.`;
+  return t.chat.resetHint(clock, today, Math.max(1, Math.round(hours)));
 }
 
 export function ChatPanel({
@@ -64,6 +57,7 @@ export function ChatPanel({
   const [busy, setBusy] = useState(false);
   const [copiedAt, setCopiedAt] = useState<number | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const { t } = useLang();
 
   /** Briefly swaps the button's own label to confirm the copy actually ran —
       clipboard writes are silent otherwise, and silent is indistinguishable
@@ -169,7 +163,7 @@ export function ChatPanel({
       if (contentType.includes("application/json")) {
         const data = await res.json();
         patchLast({
-          answer: data.message + resetHint(data.resetAt),
+          answer: data.message + resetHint(t, data.resetAt),
           kind: data.type ?? "refusal",
         });
         return;
@@ -196,9 +190,7 @@ export function ChatPanel({
       // genuinely unknown here, so the message does not name one.
       if (!acc.trim()) {
         patchLast({
-          answer:
-            "Không sinh được câu trả lời — luồng phản hồi dừng giữa chừng. " +
-            "Nguồn trích dẫn ở dưới vẫn là các đoạn tìm được. Thử hỏi lại.",
+          answer: t.chat.streamBroken,
           kind: "error",
         });
         return;
@@ -209,29 +201,23 @@ export function ChatPanel({
       // a measurably worse answer as a normal one.
       if (degraded) {
         patchLast({
-          answer: [
-            acc,
-            "---",
-            "*Bước phân tích câu hỏi không chạy được, nên câu hỏi được tìm " +
-              "nguyên văn. Với câu hỏi tiếng Việt trên tài liệu tiếng Anh, " +
-              "kết quả có thể kém hơn bình thường.*",
-          ].join("\n\n"),
+          answer: [acc, "---", t.chat.degradedNote].join("\n\n"),
         });
       }
     } catch (error) {
       // Stopping is a choice, not a failure: keep the partial answer as it was
       // when the user pressed the button.
       if ((error as Error)?.name === "AbortError") {
-        setTurns((t) =>
-          t.map((turn, i) =>
-            i === t.length - 1 && !turn.answer.trim()
-              ? { ...turn, answer: "Đã dừng trước khi có câu trả lời.", kind: "error" }
+        setTurns((prev) =>
+          prev.map((turn, i) =>
+            i === prev.length - 1 && !turn.answer.trim()
+              ? { ...turn, answer: t.chat.stoppedEarly, kind: "error" }
               : turn,
           ),
         );
         return;
       }
-      patchLast({ answer: "Có lỗi khi gọi API.", kind: "error" });
+      patchLast({ answer: t.chat.apiError, kind: "error" });
     } finally {
       abort.current = null;
       setBusy(false);
@@ -261,7 +247,7 @@ export function ChatPanel({
 
     const cid = await openChat();
     if (!cid) {
-      patchLast({ answer: "Không mở được khung chat để lưu câu hỏi.", kind: "error" });
+      patchLast({ answer: t.chat.couldNotOpenChat, kind: "error" });
       return;
     }
 
@@ -289,7 +275,7 @@ export function ChatPanel({
     // the single path rather than an assumption.
     const cid = await openChat();
     if (!cid) {
-      patchLast({ answer: "Không mở được khung chat để lưu câu hỏi.", kind: "error" });
+      patchLast({ answer: t.chat.couldNotOpenChat, kind: "error" });
       return;
     }
     await ask(last.question, cid);
@@ -305,14 +291,9 @@ export function ChatPanel({
             {/* A heading, not styled-up <strong>: below 900px the rail moves
                 above the chat, and without this the main column contributes
                 nothing to the heading outline at all. */}
-            <h2>Bạn muốn hỏi gì?</h2>
-            <p>
-              Tải một PDF lên ở khu vực tải tài liệu, rồi hỏi bằng tiếng Việt
-              hoặc tiếng Anh. Nếu tài liệu không chứa câu trả lời, Docubo sẽ
-              nói vậy thay vì đoán.
-            </p>
+            <h2>{t.chat.emptyTitle}</h2>
             <ul className="suggestions">
-              {SUGGESTIONS.map((s) => (
+              {t.chat.suggestions.map((s) => (
                 <li key={s}>
                   <button type="button" className="suggestion" onClick={() => setInput(s)}>
                     {s}
@@ -323,17 +304,17 @@ export function ChatPanel({
           </div>
         )}
 
-        {turns.map((t, i) => (
-          <article key={i} className={`turn turn-${t.kind}`}>
-            <p className="question">{t.question}</p>
-            {t.answer ? (
+        {turns.map((turn, i) => (
+          <article key={i} className={`turn turn-${turn.kind}`}>
+            <p className="question">{turn.question}</p>
+            {turn.answer ? (
               <>
-                <Markdown>{t.answer}</Markdown>
+                <Markdown>{turn.answer}</Markdown>
                 <div className="turn-actions">
                   <button
                     type="button"
                     className={`turn-action${copiedAt === i ? " is-done" : ""}`}
-                    onClick={() => void copyAnswer(i, t.answer)}
+                    onClick={() => void copyAnswer(i, turn.answer)}
                   >
                     {copiedAt === i ? (
                       <>
@@ -346,7 +327,7 @@ export function ChatPanel({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        Đã sao chép
+                        {t.chat.copied}
                       </>
                     ) : (
                       <>
@@ -359,20 +340,20 @@ export function ChatPanel({
                             strokeLinecap="round"
                           />
                         </svg>
-                        Sao chép
+                        {t.chat.copy}
                       </>
                     )}
                   </button>
                 </div>
               </>
             ) : (
-              <p className="thinking" aria-label="Đang soạn câu trả lời">
+              <p className="thinking" aria-label={t.chat.thinking}>
                 <span />
                 <span />
                 <span />
               </p>
             )}
-            <CitationList citations={t.citations} />
+            <CitationList citations={turn.citations} />
           </article>
         ))}
       </div>
@@ -391,7 +372,7 @@ export function ChatPanel({
               className="btn btn-secondary btn-compact"
               onClick={() => abort.current?.abort()}
             >
-              Dừng
+              {t.chat.stop}
             </button>
           ) : (
             canRegenerate && (
@@ -400,7 +381,7 @@ export function ChatPanel({
                 className="btn btn-secondary btn-compact"
                 onClick={() => void regenerate()}
               >
-                Sinh lại
+                {t.chat.regenerate}
               </button>
             )
           )}
@@ -411,16 +392,16 @@ export function ChatPanel({
             className="field"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Hỏi đáp tài liệu"
-            aria-label="Câu hỏi"
+            placeholder={t.chat.placeholder}
+            aria-label={t.chat.questionLabel}
             disabled={busy}
           />
           <button
             className="btn btn-send"
             type="submit"
             disabled={busy || !input.trim()}
-            aria-label={busy ? "Đang trả lời" : "Gửi câu hỏi"}
-            title={busy ? "Đang trả lời…" : "Gửi câu hỏi"}
+            aria-label={busy ? t.chat.answering : t.chat.sendLabel}
+            title={busy ? t.chat.answeringEllipsis : t.chat.sendLabel}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <path

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLang } from "@/lib/i18n";
 
 type Theme = "light" | "dark";
 
@@ -17,6 +18,7 @@ export function ThemeToggle() {
   // localStorage during render would disagree with the server-rendered
   // markup and React would warn about a hydration mismatch.
   const [theme, setTheme] = useState<Theme | null>(null);
+  const { t } = useLang();
 
   useEffect(() => {
     const stored = localStorage.getItem("docubo-theme");
@@ -44,16 +46,15 @@ export function ThemeToggle() {
     else apply(null);
   }
 
-  const label =
-    theme === "dark" ? "Tối" : theme === "light" ? "Sáng" : "Theo hệ thống";
+  const label = theme === "dark" ? t.theme.dark : theme === "light" ? t.theme.light : t.theme.system;
 
   return (
     <button
       type="button"
       className="theme-toggle"
       onClick={next}
-      aria-label={`Giao diện: ${label}. Bấm để đổi.`}
-      title={`Giao diện: ${label}`}
+      aria-label={t.theme.describe(label)}
+      title={label}
     >
       {theme === "dark" ? (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

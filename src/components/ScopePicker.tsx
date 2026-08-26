@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLang } from "@/lib/i18n";
 import { browserClient } from "@/lib/supabase/client";
 
 /**
@@ -29,6 +30,7 @@ export function ScopePicker({
   conversationId: string | null;
 }) {
   const [options, setOptions] = useState<ScopeOption[]>([]);
+  const { t } = useLang();
 
   useEffect(() => {
     void (async () => {
@@ -71,9 +73,9 @@ export function ScopePicker({
 
   return (
     <label className="scope">
-      <span>Hỏi trong</span>
+      <span>{t.scope.askIn}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">Tất cả tài liệu</option>
+        <option value="">{t.scope.allDocs}</option>
         {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.label}

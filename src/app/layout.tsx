@@ -4,6 +4,7 @@ import { Be_Vietnam_Pro, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 // unstyled characters.
 import "katex/dist/katex.min.css";
 import "./globals.css";
+import { LanguageProvider } from "@/lib/i18n";
 
 // Three faces, one job each: Be Vietnam Pro carries the brand and section
 // headings (display, used sparingly) — a geometric sans built for this
@@ -55,7 +56,7 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem("docubo-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}})();`,
           }}
         />
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );

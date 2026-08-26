@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useLang } from "@/lib/i18n";
 import { BrandMark } from "./BrandMark";
+import { LangToggle } from "./LangToggle";
 import { ThemeToggle } from "./ThemeToggle";
-
-type Lang = "vi" | "en";
 
 /** Fades a section up into place the first time it crosses the viewport,
     never again after — a scroll-in flourish, not a scroll-driven one.
@@ -184,18 +184,7 @@ const NAV = [
 ] as const;
 
 export function LandingPage({ signedIn }: { signedIn: boolean }) {
-  const [lang, setLang] = useState<Lang>("vi");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("docubo-lang");
-    if (stored === "vi" || stored === "en") setLang(stored);
-  }, []);
-
-  function setAndStore(next: Lang) {
-    setLang(next);
-    localStorage.setItem("docubo-lang", next);
-  }
-
+  const { lang } = useLang();
   const vi = lang === "vi";
   const appHref = signedIn ? "/app" : "/login";
 
@@ -216,14 +205,7 @@ export function LandingPage({ signedIn }: { signedIn: boolean }) {
         </nav>
 
         <div className="l-topnav-actions">
-          <div className="lang-switch" role="group" aria-label="Ngôn ngữ / Language">
-            <button type="button" className={vi ? "is-active" : ""} onClick={() => setAndStore("vi")}>
-              VI
-            </button>
-            <button type="button" className={!vi ? "is-active" : ""} onClick={() => setAndStore("en")}>
-              EN
-            </button>
-          </div>
+          <LangToggle />
           <ThemeToggle />
           <a
             className="l-btn-ghost l-github"

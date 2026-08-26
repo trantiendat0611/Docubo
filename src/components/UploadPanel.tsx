@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { shouldFlushBefore } from "@/lib/ingest/batching";
 import { MAX_UPLOAD_PAGES } from "@/lib/ingest/config";
 import { toPageImage } from "@/lib/ingest/image";
+import { useLang } from "@/lib/i18n";
 import { DOCX_MIME, IMAGE_TYPES, fileKind } from "@/lib/ingest/kinds";
 import { openPdf, renderPage } from "@/lib/ingest/pdf";
 import { browserClient } from "@/lib/supabase/client";
@@ -53,6 +54,7 @@ export function UploadPanel({
 
   const busy = phase !== "idle" && phase !== "error";
   const [kindRunning, setKindRunning] = useState<"pdf" | "image" | "text" | null>(null);
+  const { t } = useLang();
 
   // Clearing the file before ingest rather than after: leaving it set until the
   // job finished re-fired this effect on every progress render, and the guard
@@ -78,11 +80,7 @@ export function UploadPanel({
       await ingest(file);
     } catch (error) {
       setPhase("error");
-      setMessage(
-        error instanceof Error
-          ? `Xử lí thất bại: ${error.message}`
-          : "Xử lí thất bại vì lỗi không xác định.",
-      );
+      setMessage(t.upload.failedGeneric(error instanceof Error ? error.message : undefined));
     }
   }
 
@@ -95,7 +93,7 @@ export function UploadPanel({
     setKindRunning(kind);
     if (!kind) {
       setPhase("error");
-      setMessage("Chỉ nhận PDF, DOCX, TXT, hoặc ảnh PNG / JPEG / WebP.");
+      setMessage(t.upload.unsupportedKind);
       return;
     }
 
@@ -109,7 +107,7 @@ export function UploadPanel({
         doc = await openPdf(file);
       } catch {
         setPhase("error");
-        setMessage("Không đọc được file. Kiểm tra xem đây có phải PDF hợp lệ không.");
+        setMessage(t.upload.badPdf);
         return;
       }
     }
@@ -126,10 +124,7 @@ export function UploadPanel({
     // text kind at this point (nPages is still the placeholder), so skipped.
     if (kind !== "text" && nPages > MAX_UPLOAD_PAGES) {
       setPhase("error");
-      setMessage(
-        `Tài liệu có ${nPages} trang, vượt giới hạn ${MAX_UPLOAD_PAGES} trang. ` +
-          "Giới hạn này đến từ hạn mức xử lí miễn phí mỗi ngày.",
-      );
+      setMessage(t.upload.tooManyPages(nPages, MAX_UPLOAD_PAGES));
       return;
     }
 
@@ -142,7 +137,7 @@ export function UploadPanel({
     const created = await fetch("/api/upload", { method: "POST", body: form });
     if (!created.ok) {
       setPhase("error");
-      setMessage((await created.json()).error ?? "Không tạo được tiến trình xử lí.");
+      setMessage((await created.json()).error ?? t.upload.createJobFailed);
       return;
     }
     const { jobId } = (await created.json()) as { jobId: string };
@@ -158,7 +153,7 @@ export function UploadPanel({
 
       if (!extracted.ok) {
         setPhase("error");
-        setMessage((await extracted.json()).error ?? "Không đọc được nội dung file.");
+        setMessage((await extracted.json()).error ?? t.upload.readTextFailed);
         return;
       }
 
@@ -180,7 +175,7 @@ export function UploadPanel({
 
     if (!finished.ok) {
       setPhase("error");
-      setMessage((await finished.json()).error ?? "Không lập chỉ mục được tài liệu.");
+      setMessage((await finished.json()).error ?? t.upload.indexFailed);
       return;
     }
 
@@ -216,10 +211,10 @@ export function UploadPanel({
     setPhase("idle");
     setMessage(
       kind === "image"
-        ? `Đã đọc xong ảnh thành ${chunks} đoạn. Hỏi được rồi.`
+        ? t.upload.doneImage(chunks)
         : kind === "text"
-          ? `Đã đọc xong ${nPages} trang thành ${chunks} đoạn. Hỏi được rồi.`
-          : `Đã nạp xong ${nPages} trang thành ${chunks} đoạn. Hỏi được rồi.`,
+          ? t.upload.doneText(nPages, chunks)
+          : t.upload.donePdf(nPages, chunks),
     );
     if (input.current) input.current.value = "";
     onDone();
@@ -255,7 +250,7 @@ export function UploadPanel({
 
         if (!res.ok) {
           setPhase("error");
-          setMessage((await res.json()).error ?? "Xử lí trang thất bại.");
+          setMessage((await res.json()).error ?? t.upload.pageFailed);
           return false;
         }
 
@@ -270,9 +265,7 @@ export function UploadPanel({
           blob = doc ? await renderPage(doc, page) : await toPageImage(file);
         } catch (error) {
           setPhase("error");
-          setMessage(
-            error instanceof Error ? error.message : "Không xử lí được trang này.",
-          );
+          setMessage(error instanceof Error ? error.message : t.upload.pageFailedGeneric);
           return false;
         }
 
@@ -293,15 +286,15 @@ export function UploadPanel({
 
   const label: Record<Phase, string> = {
     idle: "",
-    reading: "Đang đọc file…",
-    uploading: "Đang tải lên…",
+    reading: t.upload.phaseReading,
+    uploading: t.upload.phaseUploading,
     extracting:
       kindRunning === "image"
-        ? "Đang đọc nội dung ảnh…"
+        ? t.upload.phaseExtractingImage
         : kindRunning === "text"
-          ? "Đang đọc nội dung file…"
-          : `Đang đọc nội dung ${done}/${total} trang…`,
-    indexing: "Đang lập chỉ mục…",
+          ? t.upload.phaseExtractingText
+          : t.upload.phaseExtractingPdf(done, total),
+    indexing: t.upload.phaseIndexing,
     error: "",
   };
 
@@ -346,10 +339,8 @@ export function UploadPanel({
             if (file) void start(file);
           }}
         />
-        <span className="headline">
-          {busy ? label[phase] : "Kéo tài liệu hoặc ảnh vào đây, hoặc bấm để chọn"}
-        </span>
-        <small>Tài liệu tối đa {MAX_UPLOAD_PAGES} trang</small>
+        <span className="headline">{busy ? label[phase] : t.upload.dropHeadline}</span>
+        <small>{t.upload.maxPages(MAX_UPLOAD_PAGES)}</small>
       </label>
 
       {phase === "extracting" && kindRunning !== "text" && total > 0 && (
@@ -372,7 +363,7 @@ export function UploadPanel({
         //
         // Only for a PDF. An image never touches pdfjs, so the warning would be
         // both untrue and a reason to keep watching a tab that does not need it.
-        <p className="note">Giữ tab này hiển thị — chuyển tab sẽ tạm dừng việc đọc trang.</p>
+        <p className="note">{t.upload.keepTabVisible}</p>
       )}
 
       {message && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLang } from "@/lib/i18n";
 import type { Citation } from "@/lib/types";
 
 /**
@@ -10,11 +11,12 @@ import type { Citation } from "@/lib/types";
  * is the strongest possible demonstration that the model is not making things up.
  */
 export function CitationList({ citations }: { citations: Citation[] }) {
+  const { t } = useLang();
   if (citations.length === 0) return null;
 
   return (
     <aside className="citations">
-      <h3>Nguồn trích dẫn</h3>
+      <h3>{t.citations.heading}</h3>
       <ol>
         {citations.map((c) => (
           <li key={c.n}>
@@ -22,8 +24,8 @@ export function CitationList({ citations }: { citations: Citation[] }) {
             <span className="file">{c.title ?? c.filename}</span>{" "}
             <span className="pages">
               {c.pageStart === c.pageEnd
-                ? `trang ${c.pageStart}`
-                : `trang ${c.pageStart}–${c.pageEnd}`}
+                ? t.citations.page(c.pageStart)
+                : t.citations.pageRange(c.pageStart, c.pageEnd)}
             </span>{" "}
             <span className="score">{c.score.toFixed(2)}</span>
           </li>

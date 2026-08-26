@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useLang } from "@/lib/i18n";
 import { browserClient } from "@/lib/supabase/client";
 
 export function SignOutButton() {
   const router = useRouter();
+  const { t } = useLang();
 
   return (
     <button
@@ -16,7 +18,7 @@ export function SignOutButton() {
         router.refresh();
       }}
     >
-      Đăng xuất
+      {t.nav.signOut}
     </button>
   );
 }
