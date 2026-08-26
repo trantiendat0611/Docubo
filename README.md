@@ -11,7 +11,7 @@ lời** khi tài liệu không chứa câu trả lời.
 
 **Live demo:** https://docubo.vercel.app
 
-![demo](docs/demo.gif) *(thêm ở tuần 8)*
+![demo](docs/demo.gif)
 
 ---
 

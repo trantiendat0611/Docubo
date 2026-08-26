@@ -832,7 +832,16 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
 - [ ] `SKILL` §0 (tóm tắt) — **mục trống duy nhất còn lại của cả file**. Cố ý
       để cuối: nó phải nêu bộ số chốt, mà bộ số đó chờ lượt `--judge` trên đủ
       31 câu
-- [ ] GIF demo vào `README.md`, bổ sung danh sách nguồn tài liệu
+- [x] **26/08** GIF demo vào `README.md` (danh sách nguồn tài liệu đã có sẵn
+      từ trước). Quay bằng ScreenToGif — mở lại đúng các hội thoại cũ thay vì
+      hỏi câu mới nên 0 quota. Bản xuất đầu 7.78MB, nặng cho README; thử giảm
+      màu **riêng từng khung hình** thì dung lượng **tăng lên** 12–19MB thay vì
+      giảm — vì UI phần lớn là mảng màu tĩnh, GIF nén hiệu quả bằng cách chỉ
+      lưu phần khác biệt giữa các khung liền nhau, mà lượng tử hoá riêng từng
+      khung làm mỗi khung nhiễu khác nhau một chút, phá mất kiểu nén đó. Sửa
+      bằng cách dùng **một bảng màu chung** cho mọi khung hình: còn 4.02MB,
+      1100×521 (từ 1840×871). Kiểm bằng mắt hai khung đầu/cuối, chữ và trích
+      dẫn `[1]` vẫn nét
 - [ ] Kiểm tra ứng dụng chạy 24/7 (đối chiếu log Action hàng tuần) — *phần đo
       latency đã xong 19–21/08: `median_ttft_ms` 8592 (đạt < 10s),
       `p90_ttft_ms` 15879 (**chưa đạt** < 15s), `n_timeout` 0*
@@ -909,7 +918,7 @@ chiếm 0% thang điểm. P1 chỉ được đụng tới nếu tuần 7 kết t
 | 3.2 Deploy Vercel | Xong | docubo.vercel.app, region `sin1` |
 | 3.3 CI/CD | Xong | `.github/workflows/ci.yml`, 2 job, chạy trên mỗi push vào `main` |
 | 4.1 Báo cáo 5 chương | **5/5 chương có bản đầy đủ** | `docs/BAO_CAO.md`, ~11.3k từ. Còn: xuất `.docx` |
-| 4.2 README + tag `v1.0.0-mvp` | Một phần | Tag `v1.0.0-mvp` xong 24/08. Còn GIF demo và Release |
+| 4.2 README + tag `v1.0.0-mvp` | **Xong** | Tag 24/08, Release 25/08, GIF demo 26/08 |
 | 4.3 Slide demo 15 phút | Chưa | Tuần 8 |
 
 ---
