@@ -52,7 +52,7 @@ export default function LoginPage() {
       }
     }
 
-    router.push("/");
+    router.push("/app");
     router.refresh();
   }
 

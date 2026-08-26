@@ -45,7 +45,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {/* Runs before paint so a manually-chosen theme (ThemeToggle, any
+            page) applies immediately everywhere in the site rather than
+            flashing the OS default first. Reads only its own localStorage
+            key and touches nothing else — safe to run unconditionally. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("docubo-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}})();`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

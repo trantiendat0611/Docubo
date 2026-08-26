@@ -571,6 +571,43 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       24/08) cũng lần đầu thấy chạy thật trên production qua ảnh chụp màn
       hình người dùng gửi: bubble, nút Sao chép, "+ Chat mới", tìm kiếm, nhóm
       Hôm nay/Hôm qua/7 ngày qua — đúng như thiết kế
+- [x] **26/08 Thêm trang chủ công khai — mentor phản hồi 25/08 rằng bấm vào
+      link live thì rơi thẳng vào `/login`, không có gì giới thiệu dự án.**
+      Chuyển route: `/` giờ là trang chủ công khai (không cần đăng nhập),
+      ứng dụng cũ dời sang `/app` (nguyên vẹn, chỉ đổi đường dẫn — vẫn
+      redirect `/login` nếu chưa đăng nhập). `login/page.tsx` sửa đích
+      chuyển hướng sau đăng nhập thành `/app`.
+      Tham khảo bố cục/hiệu ứng của một trang case-study kỹ thuật người dùng
+      gửi (đọc DOM + CSS thật của trang đó trước khi làm, không đoán): thẻ
+      hover nâng nhẹ + viền sáng màu nhấn, hiệu ứng fade-up khi cuộn tới,
+      thanh điều hướng dính có nút chuyển ngôn ngữ và chuyển giao diện riêng
+      biệt. **Giữ nguyên bảng màu/font Docubo**, chỉ học cấu trúc và tương
+      tác — nhất quán với quyết định đã chọn lúc redesign UI 24/08.
+      Nội dung trang chủ lấy từ chính dự án, không bịa: 4 quyết định thiết kế
+      cốt lõi, stack công nghệ (từ README), 2 sơ đồ kiến trúc (copy PNG vào
+      `public/architecture/`), bảng chỉ số nghiệm thu, 6 bẫy chọn lọc từ 30
+      bẫy đã ghi trong `SKILL_MY_PROJECT.md`. Cố ý **không đưa `faithfulness`
+      vào số liệu nổi bật** — con số đó đang chờ đo lại sau bẫy #30.
+      Nút chuyển giao diện là **thủ công** (3 trạng thái: hệ thống → tối →
+      sáng → hệ thống), không chỉ dựa `prefers-color-scheme` như phần còn lại
+      của app — thêm cặp khối `[data-theme="dark"]`/`:not([data-theme="light"])`
+      vào `globals.css` để lựa chọn tường minh luôn thắng OS, và một script
+      inline chạy trước khi vẽ trang (đặt ở `layout.tsx`, áp dụng cho mọi
+      route) để không nhấp nháy sai giao diện. Nút chuyển ngôn ngữ VI/EN lưu
+      `localStorage`, chỉ áp dụng cho trang chủ — phần ứng dụng đã đăng nhập
+      vẫn thuần tiếng Việt như cũ, không mở rộng phạm vi song ngữ ra ngoài
+      yêu cầu.
+      Đặt tên toàn bộ class CSS mới với tiền tố `l-` để không đụng
+      `.btn-secondary` app đang dùng — cùng tên lớp, khác ý nghĩa, sẽ vỡ cả
+      hai nơi nếu dùng chung.
+      Kiểm bằng dữ liệu thật, không chỉ tin build sạch: `npm run build` qua
+      cả hai route lẫn route `/api/ingest/text`; bấm nút chuyển ngôn ngữ và
+      chuyển giao diện qua trình duyệt thật, đọc `localStorage`/
+      `document.documentElement.dataset.theme` sau mỗi lần bấm để xác nhận
+      đúng chu trình 3 trạng thái; xác nhận `/app` vẫn redirect `/login` khi
+      chưa đăng nhập; kiểm ảnh kiến trúc tải đúng kích thước thật qua
+      `naturalWidth/naturalHeight`; kiểm di động không tràn ngang
+      (`scrollWidth === innerWidth`)
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh
