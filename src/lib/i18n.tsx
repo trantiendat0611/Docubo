@@ -68,6 +68,7 @@ const dict = {
       renameFailed: (msg: string) => `Không đổi tên được: ${msg}`,
     },
     upload: {
+      heading: "Tải tài liệu",
       dropHeadline: "Kéo tài liệu hoặc ảnh vào đây, hoặc bấm để chọn",
       maxPages: (n: number) => `Tài liệu tối đa ${n} trang`,
       unsupportedKind: "Chỉ nhận PDF, DOCX, TXT, hoặc ảnh PNG / JPEG / WebP.",
@@ -95,6 +96,7 @@ const dict = {
       keepTabVisible: "Giữ tab này hiển thị — chuyển tab sẽ tạm dừng việc đọc trang.",
     },
     docs: {
+      heading: "Tài liệu trong khung này",
       loading: "Đang tải danh sách…",
       empty: "Chưa có tài liệu nào trong khung chat này.",
       detach: "Bỏ ra",
@@ -189,6 +191,7 @@ const dict = {
       renameFailed: (msg: string) => `Could not rename: ${msg}`,
     },
     upload: {
+      heading: "Upload a document",
       dropHeadline: "Drag a document or image here, or click to choose",
       maxPages: (n: number) => `${n} pages max`,
       unsupportedKind: "Only PDF, DOCX, TXT, or PNG / JPEG / WebP images.",
@@ -215,6 +218,7 @@ const dict = {
       keepTabVisible: "Keep this tab visible — switching tabs pauses page reading.",
     },
     docs: {
+      heading: "Documents in this chat",
       loading: "Loading the list…",
       empty: "No documents in this chat yet.",
       detach: "Remove",

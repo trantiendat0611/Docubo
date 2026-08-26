@@ -6,6 +6,7 @@ import { ConversationList } from "./ConversationList";
 import { DocumentList } from "./DocumentList";
 import { UploadPanel } from "./UploadPanel";
 import { createConversation } from "@/lib/conversations";
+import { useLang } from "@/lib/i18n";
 import { fileKind } from "@/lib/ingest/kinds";
 import { browserClient } from "@/lib/supabase/client";
 
@@ -26,6 +27,7 @@ export function Workspace() {
   const [reloadKey, setReloadKey] = useState(0);
   const [convoKey, setConvoKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useLang();
 
   // Two panels can ask for a conversation at once — uploading a document while
   // a question is in flight. Sharing the in-flight promise means they get the
@@ -102,7 +104,7 @@ export function Workspace() {
           </p>
         )}
         <section>
-          <h2>Tải tài liệu</h2>
+          <h2>{t.upload.heading}</h2>
           <UploadPanel
             conversationId={conversationId}
             ensureConversation={ensureConversation}
@@ -112,7 +114,7 @@ export function Workspace() {
           />
         </section>
         <section>
-          <h2>Tài liệu trong khung này</h2>
+          <h2>{t.docs.heading}</h2>
           <DocumentList conversationId={conversationId} reloadKey={reloadKey} onChange={bump} />
         </section>
       </aside>
