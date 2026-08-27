@@ -683,6 +683,23 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       ai đọc sau tưởng nhầm 19/08 là bằng chứng độc lập với hai bẫy này.
       Điền §0 (Tóm tắt) của `SKILL_MY_PROJECT.md` — mục cuối cùng còn trống
       trong Task 1.5 của checklist mentor.
+- [x] **27/08 Mentor góp ý: cho `docubo.vercel.app` tìm được qua
+      `site:docubo.vercel.app` trên Google.** Trước đó không có `robots.txt`
+      hay `sitemap.xml` — không gì báo cho Google biết trang tồn tại. Thêm
+      `src/app/robots.ts` (chỉ cho phép `/`, chặn `/app` và `/login` vì
+      Googlebot chưa đăng nhập chỉ thấy form đăng nhập hoặc bị redirect, không
+      có nội dung gì đáng lập chỉ mục) và `src/app/sitemap.ts` (một URL: trang
+      chủ). Phần còn lại phải làm thủ công qua tài khoản Google của người
+      dùng, không tự làm thay được: đăng ký property trên Google Search
+      Console, xác minh quyền sở hữu (thử HTML tag trước, chuyển sang HTML
+      file giữa chừng — cả hai cách đều hợp lệ, không cần làm lại từ đầu), lấy
+      chuỗi/tên file xác minh gửi qua để thêm vào `metadata.verification.google`
+      trong `layout.tsx`, nộp sitemap, và bấm "Yêu cầu lập chỉ mục" cho trang
+      chủ. Sitemap báo "Không thể tìm nạp" ngay sau khi nộp — kiểm tay bằng
+      cách tự tải `https://docubo.vercel.app/sitemap.xml` thì ra đúng XML,
+      200 OK, nên đây là Google chưa kịp thử lại chứ không phải trang lỗi.
+      Việc còn lại chỉ là chờ Google crawl và lập chỉ mục, không có thao tác
+      gì thêm ở phía dự án.
 - [x] **21/08** Xuất PNG cho hai sơ đồ (`mermaid-cli`, không tốn quota model).
       Đây là việc **chặn** bản `.docx`: pandoc không render mermaid nên bản nộp
       sẽ mất trắng cả hai hình. Nối ảnh vào báo cáo và README, kèm đúng lệnh
