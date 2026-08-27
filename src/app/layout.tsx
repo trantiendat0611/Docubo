@@ -37,6 +37,9 @@ export const metadata: Metadata = {
   title: "Docubo",
   description:
     "Hỏi đáp tài liệu chuyên ngành song ngữ, có trích dẫn nguồn và công thức toán",
+  verification: {
+    google: "at9wcnQeeizAUl4fhUqeioYrDvNSp2ib76_L_pCo5pE",
+  },
 };
 
 export default function RootLayout({
