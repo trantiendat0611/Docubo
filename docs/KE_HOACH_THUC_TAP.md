@@ -167,7 +167,7 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       bằng 5 test offline mới (`eval/tests/test_call_api.py` mock
       `urllib.request.urlopen` + `time.time`, 2 test `summarise()` mới) —
       32 test Python đều xanh, không tốn quota
-- [ ] **21/08 (làm sớm 18/08, trên local — chưa tính là số chính thức)**
+- [x] **21/08 (làm sớm 18/08, trên local — chưa tính là số chính thức)**
       Chạy full 26 câu kèm `--judge`: `eval-full-20260818-081602.json`.
       26/26 câu chạy, không câu nào hỏng. `hit@8` 1.000 · `hit_cross_lingual`
       1.000 · `refusal_rate` 1.000 · `faithfulness` 1.000
@@ -835,20 +835,21 @@ diễn giải, thí nghiệm truy hồi xuyên ngôn ngữ có/không `query_en`
       theo đó; 4/5 chương có bản nháp
 
 **Tuần 7 · 14/09 – 20/09** — chốt số, chốt sản phẩm
-- [ ] Chạy eval lần cuối trên production, đủ **31** câu và đủ 4 chỉ số (kể cả
-      `faithfulness`) — đây là bộ số chốt dùng cho báo cáo và demo.
+- [x] Chạy eval lần cuối trên production, đủ 4 chỉ số (kể cả `faithfulness`)
+      — đây là bộ số chốt dùng cho báo cáo và demo.
       **Cảnh báo ngân sách, tính lại 24/08:** 31 câu × 2 request sinh + tối đa
       31 lượt chấm = **93 request**, trong khi trần cả chain chỉ ~80/ngày. Chạy
       thẳng sẽ cạn quota giữa chừng. Cách vừa: bỏ nhóm `hard_negative` khỏi lượt
       chấm (câu trả lời của chúng là lời từ chối, mà prompt của người chấm cho
       từ chối điểm tuyệt đối — chấm chúng là phí quota) → 26 câu = 78 request.
-      Ngày đó không ingest và không chạy gì khác
+      **Chạy đúng như vậy 26/08 14:20**, sau khi sửa xong bẫy #30:
+      `faithfulness` **1.000** (xem mục 26/08 ở trên) — số chốt dùng cho
+      `REQUIREMENTS.md` §7 và `SKILL` §0
 - [x] **(làm sớm 21/08)** Chương 5 — Kết luận, 5 mục, trả lời từng lời hứa của
       chương 1 bằng số đo và ghi thẳng mục **chưa đạt**
 - [x] **(làm sớm 21/08)** `SKILL` §5 (nếu làm lại) và §6 (checklist tái sử dụng)
-- [ ] `SKILL` §0 (tóm tắt) — **mục trống duy nhất còn lại của cả file**. Cố ý
-      để cuối: nó phải nêu bộ số chốt, mà bộ số đó chờ lượt `--judge` trên đủ
-      31 câu
+- [x] `SKILL` §0 (tóm tắt) — điền 26/08 ngay sau khi có số `faithfulness`
+      chốt ở trên
 - [x] **26/08** GIF demo vào `README.md` (danh sách nguồn tài liệu đã có sẵn
       từ trước). Quay bằng ScreenToGif — mở lại đúng các hội thoại cũ thay vì
       hỏi câu mới nên 0 quota. Bản xuất đầu 7.78MB, nặng cho README; thử giảm
