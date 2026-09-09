@@ -287,7 +287,7 @@ const LangContext = createContext<Ctx | null>(null);
 const STORAGE_KEY = "docubo-lang";
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<UiLang>("vi");
+  const [lang, setLangState] = useState<UiLang>("en");
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
