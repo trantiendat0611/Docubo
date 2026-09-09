@@ -2185,6 +2185,122 @@ button.link-danger:hover {
   line-height: var(--leading-snug);
 }
 
+/* ---- pricing ---- */
+
+.l-pricing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s5);
+  align-items: stretch;
+}
+
+@media (min-width: 900px) {
+  .l-pricing-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.pricing-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--s5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pricing-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.pricing-card.is-highlight {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: var(--s4);
+  right: var(--s4);
+  padding: 0.2rem var(--s3);
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pricing-card h3 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.pricing-tagline {
+  margin-top: var(--s1);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.pricing-price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s1);
+  margin: var(--s4) 0;
+}
+
+.pricing-amount {
+  font-family: var(--font-display, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+}
+
+.pricing-period {
+  color: var(--fg-subtle);
+  font-size: var(--text-sm);
+}
+
+.pricing-features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin-bottom: var(--s5);
+  flex: 1;
+}
+
+.pricing-features li {
+  padding-left: var(--s4);
+  position: relative;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.pricing-features li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.pricing-cta {
+  width: 100%;
+}
+
+.pricing-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
 /* ---- footer ---- */
 
 .l-footer {

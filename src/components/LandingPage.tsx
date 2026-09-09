@@ -181,6 +181,91 @@ const NAV = [
   { href: "#stack", vi: "Công nghệ", en: "Stack" },
   { href: "#metrics", vi: "Đánh giá", en: "Metrics" },
   { href: "#lessons", vi: "Bài học", en: "Lessons" },
+  { href: "#pricing", vi: "Gói dịch vụ", en: "Pricing" },
+] as const;
+
+/** Illustrative only — the app has no billing, so Free is the only tier that
+    links anywhere real. Numbers echo the actual free-tier limits documented
+    in REQUIREMENTS.md (25 pages/doc, 5 uploads/day) rather than being
+    invented from nothing. */
+const PRICING = [
+  {
+    id: "free",
+    name: "Free",
+    price: { vi: "0đ", en: "$0" },
+    period: { vi: "/mãi mãi", en: "/forever" },
+    tagline: { vi: "Đủ dùng cho một người, vài tài liệu.", en: "Enough for one person, a few documents." },
+    features: {
+      vi: [
+        "Tài liệu tối đa 25 trang",
+        "5 lượt tải lên mỗi ngày",
+        "PDF, DOCX, TXT, ảnh",
+        "Trích dẫn số trang, từ chối trung thực",
+        "Song ngữ VI/EN",
+      ],
+      en: [
+        "25 pages per document",
+        "5 uploads a day",
+        "PDF, DOCX, TXT, images",
+        "Page citations, honest refusals",
+        "Bilingual VI/EN",
+      ],
+    },
+    cta: { vi: "Bắt đầu miễn phí", en: "Get started free" },
+    badge: null,
+    highlight: false,
+    live: true,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: { vi: "99.000đ", en: "$4" },
+    period: { vi: "/tháng", en: "/month" },
+    tagline: { vi: "Cho ai đọc tài liệu mỗi ngày.", en: "For daily document reading." },
+    features: {
+      vi: [
+        "Tài liệu tối đa 100 trang",
+        "30 lượt tải lên mỗi ngày",
+        "Xử lý ưu tiên, ít chờ hơn",
+        "Hỗ trợ qua email",
+      ],
+      en: [
+        "100 pages per document",
+        "30 uploads a day",
+        "Priority processing, shorter queue",
+        "Email support",
+      ],
+    },
+    cta: { vi: "Sắp ra mắt", en: "Coming soon" },
+    badge: { vi: "Phổ biến", en: "Popular" },
+    highlight: true,
+    live: false,
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: { vi: "299.000đ", en: "$12" },
+    period: { vi: "/tháng", en: "/month" },
+    tagline: { vi: "Cho đội nhóm và khối lượng lớn.", en: "For teams and heavy volume." },
+    features: {
+      vi: [
+        "Không giới hạn trang mỗi tài liệu",
+        "Không giới hạn lượt tải lên",
+        "Truy cập API riêng",
+        "Hỗ trợ ưu tiên 24/7",
+      ],
+      en: [
+        "Unlimited pages per document",
+        "Unlimited uploads",
+        "Dedicated API access",
+        "24/7 priority support",
+      ],
+    },
+    cta: { vi: "Sắp ra mắt", en: "Coming soon" },
+    badge: null,
+    highlight: false,
+    live: false,
+  },
 ] as const;
 
 export function LandingPage({ signedIn }: { signedIn: boolean }) {
@@ -458,6 +543,48 @@ mode=retrieval  items=34  MIN_COSINE=0.6
                   <span className="lesson-n">{String(t.n).padStart(2, "0")}</span>
                   <h3>{vi ? t.vi.t : t.en.t}</h3>
                   <p>{vi ? t.vi.d : t.en.d}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        {/* ================= PRICING ================= */}
+        <section id="pricing" className="l-section">
+          <Reveal>
+            <p className="l-kicker">{vi ? "GÓI DỊCH VỤ" : "PRICING"}</p>
+            <h2>{vi ? "Chọn gói phù hợp" : "Pick a plan"}</h2>
+            <p className="l-section-lead">
+              {vi
+                ? "Minh hoạ mô hình gói dịch vụ cho một sản phẩm chạy trên free tier — Free là gói duy nhất có thật, Pro/Premium chưa mở thanh toán."
+                : "An illustrative pricing model for a product that runs on free tiers — Free is the only real tier; Pro/Premium aren't wired up to billing yet."}
+            </p>
+          </Reveal>
+          <div className="l-pricing-grid">
+            {PRICING.map((p) => (
+              <Reveal key={p.id}>
+                <article className={`pricing-card${p.highlight ? " is-highlight" : ""}`}>
+                  {p.badge && <span className="pricing-badge">{vi ? p.badge.vi : p.badge.en}</span>}
+                  <h3>{p.name}</h3>
+                  <p className="pricing-tagline">{vi ? p.tagline.vi : p.tagline.en}</p>
+                  <p className="pricing-price">
+                    <span className="pricing-amount">{vi ? p.price.vi : p.price.en}</span>
+                    <span className="pricing-period">{vi ? p.period.vi : p.period.en}</span>
+                  </p>
+                  <ul className="pricing-features">
+                    {(vi ? p.features.vi : p.features.en).map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                  {p.live ? (
+                    <Link className="l-btn-primary pricing-cta" href={appHref}>
+                      {vi ? p.cta.vi : p.cta.en}
+                    </Link>
+                  ) : (
+                    <button type="button" className="l-btn-secondary pricing-cta" disabled>
+                      {vi ? p.cta.vi : p.cta.en}
+                    </button>
+                  )}
                 </article>
               </Reveal>
             ))}
